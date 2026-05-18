@@ -112,6 +112,9 @@ export const getLinkMonitor = createServerFn({ method: "POST" })
       variant: c.variant,
       ip: c.ip_address ? c.ip_address.replace(/\.\d+$/, ".•") : null,
       ua: c.user_agent?.slice(0, 80) ?? null,
+      utm_source: c.utm_source,
+      utm_campaign: c.utm_campaign,
+      referer_host: c.referer_host,
     }));
 
     return {
