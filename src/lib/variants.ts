@@ -69,9 +69,22 @@ export const VARIANT_IDS = Object.keys(VARIANTS) as VariantId[];
 export type VariantStat = { id: VariantId; total: number; humans: number };
 
 /**
- * Epsilon-greedy bandit:
- *  - cold start (any variant <30 clicks): explore equally
- *  - else: 80% pick best by pass-rate, 20% explore random
+ * Stats per variant.
+ *  - total  = number of verify attempts (real conversion denominator)
+ *  - humans = number of successful human redirects (conversion numerator)
+ *
+ * Real conversion rate = humans / total. Bot-blocked attempts count as
+ * failures, so a variant that attracts more bots is naturally demoted.
+ */
+export type VariantStat = { id: VariantId; total: number; humans: number };
+
+/**
+ * Epsilon-greedy bandit using REAL conversion rate as the winning metric.
+ *  - cold start (any variant < 20 verify attempts): explore equally
+ *  - else: 80% pick best by Laplace-smoothed conversion rate, 20% explore
+ *
+ * Laplace smoothing ((humans + 1) / (total + 2)) prevents a variant with
+ * 1/1 (100%) from beating one with 40/50 (80%) on tiny samples.
  */
 export function pickVariant(stats: VariantStat[]): VariantId {
   const statsById = new Map(stats.map((s) => [s.id, s]));
@@ -80,7 +93,7 @@ export function pickVariant(stats: VariantStat[]): VariantId {
     Infinity,
   );
 
-  if (minSampled < 30) {
+  if (minSampled < 20) {
     return VARIANT_IDS[Math.floor(Math.random() * VARIANT_IDS.length)];
   }
 
@@ -92,7 +105,9 @@ export function pickVariant(stats: VariantStat[]): VariantId {
   let bestRate = -1;
   for (const id of VARIANT_IDS) {
     const s = statsById.get(id);
-    const rate = s && s.total > 0 ? s.humans / s.total : 0;
+    const total = s?.total ?? 0;
+    const humans = s?.humans ?? 0;
+    const rate = (humans + 1) / (total + 2); // Laplace-smoothed conversion
     if (rate > bestRate) { bestRate = rate; best = id; }
   }
   return best;
