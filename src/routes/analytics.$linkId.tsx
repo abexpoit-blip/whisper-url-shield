@@ -101,7 +101,12 @@ function LinkMonitorPage() {
                 <SelectItem value="90">Last 90 days</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={load} disabled={loading}>
+            <div className="hidden sm:flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border">
+              <span className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`} />
+              {live ? "Live" : "Offline"}
+              {pulse > 0 && <span className="text-muted-foreground tabular-nums">· {pulse}</span>}
+            </div>
+            <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics" })}>
