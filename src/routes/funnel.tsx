@@ -143,7 +143,7 @@ function FunnelPage() {
               onValueChange={(v) => {
                 const now = new Date();
                 now.setHours(23, 59, 59, 999);
-                let start = new Date();
+                const start = new Date();
                 start.setHours(0, 0, 0, 0);
                 if (v === "1") start.setDate(start.getDate() - 1);
                 else if (v === "7") start.setDate(start.getDate() - 7);
