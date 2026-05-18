@@ -37,7 +37,8 @@ export const getCrossLinkFunnel = createServerFn({ method: "POST" })
       .from("clicks")
       .select("link_id,is_bot,bot_reason")
       .in("link_id", ids)
-      .gte("created_at", since)
+      .gte("created_at", data.from)
+      .lte("created_at", data.to)
       .limit(50000);
 
     const clicks = (clicksRaw ?? []) as ClickRow[];
