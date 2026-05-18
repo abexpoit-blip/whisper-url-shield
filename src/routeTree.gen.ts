@@ -17,6 +17,7 @@ import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as AdminVariantsRouteImport } from './routes/admin.variants'
+import { Route as AdminProtectionRouteImport } from './routes/admin.protection'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -58,6 +59,11 @@ const AdminVariantsRoute = AdminVariantsRouteImport.update({
   path: '/admin/variants',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminProtectionRoute = AdminProtectionRouteImport.update({
+  id: '/admin/protection',
+  path: '/admin/protection',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/admin/protection': typeof AdminProtectionRoute
   '/admin/variants': typeof AdminVariantsRoute
   '/r/$code': typeof RCodeRoute
 }
@@ -76,6 +83,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/admin/protection': typeof AdminProtectionRoute
   '/admin/variants': typeof AdminVariantsRoute
   '/r/$code': typeof RCodeRoute
 }
@@ -87,6 +95,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
+  '/admin/protection': typeof AdminProtectionRoute
   '/admin/variants': typeof AdminVariantsRoute
   '/r/$code': typeof RCodeRoute
 }
@@ -99,6 +108,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
+    | '/admin/protection'
     | '/admin/variants'
     | '/r/$code'
   fileRoutesByTo: FileRoutesByTo
@@ -109,6 +119,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
+    | '/admin/protection'
     | '/admin/variants'
     | '/r/$code'
   id:
@@ -119,6 +130,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
+    | '/admin/protection'
     | '/admin/variants'
     | '/r/$code'
   fileRoutesById: FileRoutesById
@@ -130,6 +142,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
+  AdminProtectionRoute: typeof AdminProtectionRoute
   AdminVariantsRoute: typeof AdminVariantsRoute
   RCodeRoute: typeof RCodeRoute
 }
@@ -192,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminVariantsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/protection': {
+      id: '/admin/protection'
+      path: '/admin/protection'
+      fullPath: '/admin/protection'
+      preLoaderRoute: typeof AdminProtectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -202,9 +222,20 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
+  AdminProtectionRoute: AdminProtectionRoute,
   AdminVariantsRoute: AdminVariantsRoute,
   RCodeRoute: RCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
