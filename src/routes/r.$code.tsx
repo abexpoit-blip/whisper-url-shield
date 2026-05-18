@@ -499,7 +499,7 @@ function PreLanderPage() {
           </h1>
           <p className="text-muted-foreground mb-8">{variant.subtitle}</p>
           <p className="mb-4 leading-relaxed">{variant.intro}</p>
-          {variant.sections.map((s, i) => (
+          {variant.sections.map((s: VariantSection, i: number) => (
             <div key={`${s.heading}-${i}`}>
               <h2 className="text-xl font-semibold mt-8 mb-3">{s.heading}</h2>
               <p className="mb-4 leading-relaxed">{s.body}</p>
