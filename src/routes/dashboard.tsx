@@ -1,4 +1,4 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -18,11 +18,21 @@ import {
   Sparkles,
   Trash2,
   CheckCircle2,
+  RefreshCw,
+  Pause,
+  Play,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -79,6 +89,11 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [range, setRange] = useState<"day" | "week" | "month">("week");
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [linksDialogOpen, setLinksDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -102,12 +117,37 @@ function Dashboard() {
   useEffect(() => {
     const days = range === "day" ? 1 : range === "week" ? 7 : 30;
     void fetchAnalytics({ data: { days, linkId: null } })
-      .then(setAnalytics)
+      .then((res) => {
+        setAnalytics(res);
+        setLastUpdated(new Date());
+      })
       .catch((error) =>
         toast.error(error instanceof Error ? error.message : "Analytics failed to load"),
       );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range]);
+  }, [range, refreshTick]);
+
+  // Auto-refresh every 30s
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => {
+      setRefreshTick((t) => t + 1);
+      void load();
+    }, 30_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRefresh]);
+
+  const manualRefresh = () => {
+    setRefreshTick((t) => t + 1);
+    void load();
+    toast.success("Refreshing...");
+  };
+
+  const goToLinkAnalytics = (id: string) => {
+    void navigate({ to: "/analytics/$linkId", params: { linkId: id } });
+  };
+
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,6 +260,25 @@ function Dashboard() {
                   className="h-8 w-56 pl-8 text-sm"
                 />
               </div>
+              <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className={`flex h-1.5 w-1.5 rounded-full ${autoRefresh ? "bg-success animate-pulse" : "bg-muted-foreground/50"}`} />
+                <span>
+                  {autoRefresh ? "Auto · 30s" : "Paused"}
+                  {lastUpdated ? ` · ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setAutoRefresh((v) => !v)}
+                title={autoRefresh ? "Pause auto-refresh" : "Resume auto-refresh"}
+              >
+                {autoRefresh ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={manualRefresh} title="Refresh now">
+                <RefreshCw className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8 relative">
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
@@ -260,8 +319,14 @@ function Dashboard() {
               {/* Bento metrics — v3 Luminous Glass Layers */}
               <div className="grid gap-4 lg:grid-cols-3">
                 {/* HERO: Conversion Rate (big violet gradient card) */}
-                <div className="lg:col-span-2 lg:row-span-2 relative overflow-hidden rounded-3xl p-8 text-primary-foreground shadow-elegant"
-                     style={{ background: "var(--gradient-primary)" }}>
+                <div
+                  className="lg:col-span-2 lg:row-span-2 relative overflow-hidden rounded-3xl p-8 text-primary-foreground shadow-elegant cursor-pointer transition-transform hover:scale-[1.005]"
+                  style={{ background: "var(--gradient-primary)" }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate({ to: "/analytics" })}
+                  onKeyDown={(e) => { if (e.key === "Enter") void navigate({ to: "/analytics" }); }}
+                >
                   {/* Decorative glows */}
                   <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/15 blur-3xl" />
                   <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
@@ -277,12 +342,12 @@ function Dashboard() {
                           Conversion Rate
                         </span>
                       </div>
-                      <div className="flex rounded-xl border border-white/25 bg-white/15 p-0.5 backdrop-blur-sm">
+                      <div className="flex rounded-xl border border-white/25 bg-white/15 p-0.5 backdrop-blur-sm" onClick={(e) => e.stopPropagation()}>
                         {(["day", "week", "month"] as const).map((item) => (
                           <button
                             key={item}
                             type="button"
-                            onClick={() => setRange(item)}
+                            onClick={(e) => { e.stopPropagation(); setRange(item); }}
                             className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors ${range === item ? "bg-white text-primary" : "text-white/80 hover:text-white"}`}
                           >
                             {item}
@@ -344,7 +409,12 @@ function Dashboard() {
                 </div>
 
                 {/* Total Clicks */}
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                <div
+                  className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card cursor-pointer transition-all hover:border-primary/40 hover:shadow-glow"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate({ to: "/analytics" })}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <MousePointerClick className="h-4 w-4" />
@@ -370,7 +440,12 @@ function Dashboard() {
                 </div>
 
                 {/* Real Humans */}
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                <div
+                  className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card cursor-pointer transition-all hover:border-success/40"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate({ to: "/analytics" })}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success">
                       <Activity className="h-4 w-4" />
@@ -396,7 +471,12 @@ function Dashboard() {
 
               {/* Secondary row: Bots blocked + Links + Top */}
               <div className="grid gap-4 lg:grid-cols-3">
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                <div
+                  className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card cursor-pointer transition-all hover:border-destructive/40"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate({ to: "/analytics" })}
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
@@ -417,7 +497,12 @@ function Dashboard() {
                   </svg>
                 </div>
 
-                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                <div
+                  className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card cursor-pointer transition-all hover:border-primary/40 hover:shadow-glow"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setLinksDialogOpen(true)}
+                >
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Link2 className="h-4 w-4" />
@@ -430,8 +515,13 @@ function Dashboard() {
                   <div className="mt-1 text-xs text-muted-foreground">Total campaigns in rotation</div>
                 </div>
 
-                <div className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-card"
-                     style={{ background: "linear-gradient(135deg, oklch(0.97 0.04 295), oklch(1 0 0))" }}>
+                <div
+                  className={`relative overflow-hidden rounded-2xl border border-border p-5 shadow-card transition-all ${topLink ? "cursor-pointer hover:border-primary/40 hover:shadow-glow" : "opacity-80"}`}
+                  style={{ background: "linear-gradient(135deg, oklch(0.97 0.04 295), oklch(1 0 0))" }}
+                  role={topLink ? "button" : undefined}
+                  tabIndex={topLink ? 0 : -1}
+                  onClick={() => topLink && goToLinkAnalytics(topLink.id)}
+                >
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                     <Sparkles className="h-3.5 w-3.5" /> Top performer
                   </div>
@@ -646,6 +736,67 @@ function Dashboard() {
           </main>
         </div>
       </div>
+
+      {/* Active Links drill-down dialog */}
+      <Dialog open={linksDialogOpen} onOpenChange={setLinksDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display">Active Links · {links.length}</DialogTitle>
+            <DialogDescription>
+              Pick a link to drill into its full analytics, clicks, and bot-filter timeline.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-2 px-2">
+            {links.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">No links yet. Create one below.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {links.map((l) => {
+                  const total = l.clicks_count + l.bot_clicks_count;
+                  const cleanPct = total > 0 ? (l.clicks_count / total) * 100 : 100;
+                  return (
+                    <button
+                      key={l.id}
+                      onClick={() => {
+                        setLinksDialogOpen(false);
+                        goToLinkAnalytics(l.id);
+                      }}
+                      className="w-full rounded-xl border border-border bg-card-gradient p-3 text-left transition-all hover:border-primary/40 hover:shadow-card"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-md bg-primary/10 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
+                              /r/{l.short_code}
+                            </span>
+                            {l.title && <span className="truncate text-sm font-medium">{l.title}</span>}
+                          </div>
+                          <div className="mt-1 truncate text-xs text-muted-foreground">{l.destination_url}</div>
+                        </div>
+                        <div className="flex items-center gap-4 text-right">
+                          <div>
+                            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Real</div>
+                            <div className="font-mono text-sm font-bold text-success">{l.clicks_count}</div>
+                          </div>
+                          <div>
+                            <div className="text-[9px] uppercase tracking-wider text-muted-foreground">Bots</div>
+                            <div className="font-mono text-sm font-bold text-destructive">{l.bot_clicks_count}</div>
+                          </div>
+                          <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                      <div className="mt-2 flex h-1 overflow-hidden rounded-full bg-secondary">
+                        <div className="bg-success" style={{ width: `${cleanPct}%` }} />
+                        <div className="bg-destructive" style={{ width: `${100 - cleanPct}%` }} />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </SidebarProvider>
   );
 }
