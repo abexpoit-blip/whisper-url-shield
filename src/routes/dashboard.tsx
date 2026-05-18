@@ -257,153 +257,189 @@ function Dashboard() {
             </div>
 
             <div className="px-6 py-6 lg:px-10 space-y-6">
-              {/* Bento metrics */}
-              <div className="grid gap-4 lg:grid-cols-6">
-                {/* Hero metric — clean clicks */}
-                <div className="lg:col-span-3 lg:row-span-2 relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-6 shadow-card">
-                  <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
+              {/* Bento metrics — v3 Luminous Glass Layers */}
+              <div className="grid gap-4 lg:grid-cols-3">
+                {/* HERO: Conversion Rate (big violet gradient card) */}
+                <div className="lg:col-span-2 lg:row-span-2 relative overflow-hidden rounded-3xl p-8 text-primary-foreground shadow-elegant"
+                     style={{ background: "var(--gradient-primary)" }}>
+                  {/* Decorative glows */}
+                  <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/15 blur-3xl" />
+                  <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+                  <div className="absolute inset-0 grid-pattern opacity-20" />
+
                   <div className="relative">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <MousePointerClick className="h-4 w-4" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                          <Sparkles className="h-4 w-4" />
                         </div>
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          Real clicks
+                        <span className="text-xs font-semibold uppercase tracking-widest text-white/80">
+                          Conversion Rate
                         </span>
                       </div>
-                      <div className="flex rounded-lg border border-border/60 bg-background/45 p-0.5">
+                      <div className="flex rounded-xl border border-white/25 bg-white/15 p-0.5 backdrop-blur-sm">
                         {(["day", "week", "month"] as const).map((item) => (
                           <button
                             key={item}
                             type="button"
                             onClick={() => setRange(item)}
-                            className={`rounded-md px-2 py-1 text-[10px] font-semibold capitalize transition-colors ${range === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                            className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold capitalize transition-colors ${range === item ? "bg-white text-primary" : "text-white/80 hover:text-white"}`}
                           >
                             {item}
                           </button>
                         ))}
                       </div>
                     </div>
-                    <div className="mt-6 flex items-baseline gap-2">
-                      <span className="font-display text-5xl font-bold tracking-tight">
-                        {rangeTotals.humans.toLocaleString()}
+
+                    <div className="mt-8 flex items-baseline gap-3">
+                      <span className="font-display text-7xl font-bold tracking-tight">
+                        {(rangeTotals.conversionRate * 100).toFixed(1)}
                       </span>
-                      <span className="text-sm text-muted-foreground">
-                        verified humans · {rangeLabel}
+                      <span className="font-display text-3xl font-semibold text-white/80">%</span>
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
+                        <TrendingUp className="h-3 w-3" /> {rangeLabel}
                       </span>
                     </div>
-                    <div className="mt-6">
-                      <svg viewBox="0 0 100 28" className="h-16 w-full" preserveAspectRatio="none">
+                    <p className="mt-2 text-sm text-white/80">
+                      Verified humans vs. total traffic — live from your database.
+                    </p>
+
+                    {/* Sparkline */}
+                    <div className="mt-8">
+                      <svg viewBox="0 0 100 32" className="h-24 w-full" preserveAspectRatio="none">
                         <defs>
-                          <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.35" />
-                            <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
+                          <linearGradient id="heroSparkFill" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
+                            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
                           </linearGradient>
                         </defs>
                         <path
-                          d={`${linePath(chartValues)} L100,28 L0,28 Z`}
-                          fill="url(#sparkFill)"
+                          d={`${linePath(chartValues, 100, 32)} L100,32 L0,32 Z`}
+                          fill="url(#heroSparkFill)"
                         />
                         <path
-                          d={linePath(chartValues)}
-                          stroke="var(--color-primary)"
+                          d={linePath(chartValues, 100, 32)}
+                          stroke="#ffffff"
                           strokeWidth="1.5"
                           fill="none"
                         />
                       </svg>
                     </div>
-                    <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/60 pt-4">
-                      {[
-                        { label: "Today", value: range === "day" ? rangeTotals.humans : "—" },
-                        { label: "Week", value: range === "week" ? rangeTotals.humans : "—" },
-                        { label: "Month", value: range === "month" ? rangeTotals.humans : "—" },
-                      ].map((s) => (
-                        <div key={s.label}>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            {s.label}
-                          </div>
-                          <div className="mt-0.5 font-mono text-sm font-semibold">{s.value}</div>
-                        </div>
-                      ))}
+
+                    <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/20 pt-5">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest text-white/70">Real humans</div>
+                        <div className="mt-1 font-display text-xl font-bold">{rangeTotals.humans.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest text-white/70">Bots blocked</div>
+                        <div className="mt-1 font-display text-xl font-bold">{rangeTotals.bots.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-widest text-white/70">Total</div>
+                        <div className="mt-1 font-display text-xl font-bold">{rangeTotals.total.toLocaleString()}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Bots blocked */}
-                <div className="lg:col-span-3 relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
-                          <Bot className="h-3.5 w-3.5" />
-                        </div>
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                          Bots blocked
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-baseline gap-2">
-                        <span className="font-display text-3xl font-bold">
-                          {rangeTotals.bots.toLocaleString()}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          requests · {rangeLabel}
-                        </span>
-                      </div>
+                {/* Total Clicks */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <MousePointerClick className="h-4 w-4" />
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                      <TrendingDown className="h-3 w-3" />{" "}
-                      {(rangeTotals.total
-                        ? (rangeTotals.bots / rangeTotals.total) * 100
-                        : 0
-                      ).toFixed(1)}
-                      %
+                    <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">
+                      <TrendingUp className="h-3 w-3" /> Live
                     </span>
                   </div>
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-destructive to-warning transition-all"
-                      style={{
-                        width: `${Math.min(100, rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0)}%`,
-                      }}
-                    />
+                  <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Total Clicks · {rangeLabel}
                   </div>
-                  <svg viewBox="0 0 100 28" className="mt-4 h-10 w-full" preserveAspectRatio="none">
+                  <div className="mt-1 font-display text-3xl font-bold tracking-tight">
+                    {rangeTotals.total.toLocaleString()}
+                  </div>
+                  <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
                     <path
-                      d={linePath(botChartValues)}
-                      stroke="var(--color-destructive)"
+                      d={linePath(chartValues.map((v, i) => v + (botChartValues[i] ?? 0)), 100, 24)}
+                      stroke="var(--color-primary)"
                       strokeWidth="1.5"
                       fill="none"
                     />
                   </svg>
-                  <p className="mt-2 text-[11px] text-muted-foreground">
-                    Database-backed bot blocks for the selected period.
-                  </p>
                 </div>
 
-                {/* Total links */}
-                <div className="lg:col-span-2 relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <Link2 className="h-3.5 w-3.5" />
+                {/* Real Humans */}
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success">
+                      <Activity className="h-4 w-4" />
                     </div>
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      Links
+                    <span className="font-mono text-[10px] font-semibold text-success">
+                      {rangeTotals.total > 0 ? ((rangeTotals.humans / rangeTotals.total) * 100).toFixed(0) : 0}%
+                    </span>
+                  </div>
+                  <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    Real Humans
+                  </div>
+                  <div className="mt-1 font-display text-3xl font-bold tracking-tight">
+                    {rangeTotals.humans.toLocaleString()}
+                  </div>
+                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-success transition-all"
+                      style={{ width: `${rangeTotals.total ? (rangeTotals.humans / rangeTotals.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Secondary row: Bots blocked + Links + Top */}
+              <div className="grid gap-4 lg:grid-cols-3">
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                        <Bot className="h-4 w-4" />
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                        Bots blocked
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                      <TrendingDown className="h-3 w-3" />
+                      {(rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="mt-3 font-display text-3xl font-bold">{rangeTotals.bots.toLocaleString()}</div>
+                  <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
+                    <path d={linePath(botChartValues, 100, 24)} stroke="var(--color-destructive)" strokeWidth="1.5" fill="none" />
+                  </svg>
+                </div>
+
+                <div className="relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-5 shadow-card">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <Link2 className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Active Links
                     </span>
                   </div>
                   <div className="mt-3 font-display text-3xl font-bold">{stats.totalLinks}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">Active campaigns</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Total campaigns in rotation</div>
                 </div>
 
-                {/* Top performer */}
-                <div className="lg:col-span-1 relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/15 via-card to-card p-5 shadow-card">
+                <div className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-card"
+                     style={{ background: "linear-gradient(135deg, oklch(0.97 0.04 295), oklch(1 0 0))" }}>
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                    <Sparkles className="h-3.5 w-3.5" /> Top
+                    <Sparkles className="h-3.5 w-3.5" /> Top performer
                   </div>
                   <div className="mt-3 truncate font-mono text-sm font-semibold">
                     /{topLink?.short_code ?? "—"}
                   </div>
-                  <div className="mt-1 text-2xl font-bold">{topLink?.clicks_count ?? 0}</div>
+                  <div className="mt-1 font-display text-2xl font-bold">{topLink?.clicks_count ?? 0}</div>
+                  <div className="mt-1 text-[11px] text-muted-foreground">verified clicks</div>
                 </div>
               </div>
 
