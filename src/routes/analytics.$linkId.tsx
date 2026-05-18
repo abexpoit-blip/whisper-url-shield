@@ -1,9 +1,10 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Shield, ArrowLeft, Eye, Users, Bot, Target, AlertTriangle, TrendingUp,
   Globe, Smartphone, Monitor, RefreshCw, Copy, ExternalLink, Fingerprint,
+  Megaphone, Radio,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
