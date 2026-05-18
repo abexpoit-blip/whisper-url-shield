@@ -1,103 +1,291 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, useServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
+
+// ---------- Server-side helpers ----------
+
+const BOT_UA_PATTERNS = [
+  "bot", "crawler", "spider", "scraper", "facebookexternalhit", "facebookcatalog",
+  "meta-externalagent", "meta-externalfetcher", "twitterbot", "linkedinbot",
+  "whatsapp", "telegrambot", "slackbot", "discordbot", "embedly", "pinterest",
+  "googlebot", "bingbot", "yandex", "duckduckbot", "baiduspider", "applebot",
+  "ahrefsbot", "semrushbot", "mj12bot", "dotbot", "petalbot",
+  "headless", "phantom", "selenium", "puppeteer", "playwright", "chrome-lighthouse",
+  "curl", "wget", "python", "scrapy", "go-http", "java/", "okhttp", "ruby",
+  "axios", "node-fetch", "got (", "http_request", "libwww",
+  "preview", "monitor", "uptime", "validator", "checker", "fetcher", "scan",
+];
+
+// Datacenter / hosting ASN ranges are hard without paid APIs.
+// Instead we score headers — real browsers send a consistent fingerprint.
+function analyzeRequest() {
+  const ua = (getRequestHeader("user-agent") || "").toLowerCase();
+  const accept = (getRequestHeader("accept") || "").toLowerCase();
+  const acceptLang = getRequestHeader("accept-language") || "";
+  const acceptEnc = getRequestHeader("accept-encoding") || "";
+  const secFetchSite = getRequestHeader("sec-fetch-site") || "";
+  const secFetchMode = getRequestHeader("sec-fetch-mode") || "";
+  const secFetchDest = getRequestHeader("sec-fetch-dest") || "";
+  const secChUa = getRequestHeader("sec-ch-ua") || "";
+  const secChUaMobile = getRequestHeader("sec-ch-ua-mobile") || "";
+  const dnt = getRequestHeader("dnt") || "";
+  const referer = getRequestHeader("referer") || "";
+  const cfBotMgmt = getRequestHeader("cf-bot-management-score") || "";
+  const cfVerifiedBot = getRequestHeader("cf-verified-bot") || "";
+  const cfThreatScore = getRequestHeader("cf-threat-score") || "";
+
+  let score = 0;
+  const reasons: string[] = [];
+
+  if (!ua) { score += 50; reasons.push("no-ua"); }
+  for (const p of BOT_UA_PATTERNS) {
+    if (ua.includes(p)) { score += 60; reasons.push(`ua:${p}`); break; }
+  }
+
+  // Real browsers always send Accept with text/html on top-level navigation
+  if (!accept.includes("text/html")) { score += 25; reasons.push("no-html-accept"); }
+  if (!acceptLang) { score += 20; reasons.push("no-accept-lang"); }
+  if (!acceptEnc.includes("gzip") && !acceptEnc.includes("br")) {
+    score += 15; reasons.push("no-compression");
+  }
+
+  // Modern Chromium/Firefox/Safari send sec-fetch-* on navigation
+  const looksModern = /chrome\/|firefox\/|safari\//.test(ua);
+  if (looksModern && !secFetchMode) { score += 15; reasons.push("no-sec-fetch"); }
+  if (looksModern && !secFetchDest) { score += 10; reasons.push("no-sec-fetch-dest"); }
+
+  // Chromium sends sec-ch-ua
+  if (ua.includes("chrome/") && !secChUa) { score += 20; reasons.push("chrome-no-ch-ua"); }
+
+  // Cloudflare signals (free, automatic on .lovable.app)
+  if (cfVerifiedBot === "true") { score += 100; reasons.push("cf-verified-bot"); }
+  if (cfBotMgmt) {
+    const s = parseInt(cfBotMgmt, 10);
+    if (!isNaN(s) && s < 30) { score += 40; reasons.push(`cf-bot-score:${s}`); }
+  }
+  if (cfThreatScore) {
+    const s = parseInt(cfThreatScore, 10);
+    if (!isNaN(s) && s > 30) { score += 30; reasons.push(`cf-threat:${s}`); }
+  }
+
+  // Direct hits with no referer from non-search engines = mildly suspicious for ad traffic
+  if (!referer && secFetchSite === "none" && score === 0) {
+    // not penalized by itself, just noted
+    reasons.push("direct-nav");
+  }
+
+  return {
+    ua,
+    isBot: score >= 50,
+    score,
+    reasons: reasons.join(","),
+    acceptLang,
+    secChUaMobile,
+    dnt,
+  };
+}
+
+// ---------- Server functions ----------
 
 const resolveLink = createServerFn({ method: "POST" })
   .inputValidator((input: { code: string }) =>
     z.object({ code: z.string().min(1).max(32) }).parse(input),
   )
   .handler(async ({ data }) => {
-    const ua = getRequestHeader("user-agent") || "";
-    const referer = getRequestHeader("referer") || "";
+    const a = analyzeRequest();
     const ip =
       getRequestHeader("cf-connecting-ip") ||
       getRequestHeader("x-forwarded-for") ||
       "";
     const country = getRequestHeader("cf-ipcountry") || null;
+    const referer = getRequestHeader("referer") || "";
 
     const { data: link } = await supabaseAdmin
       .from("links")
-      .select("id, destination_url, status, title")
+      .select("id, status")
       .eq("short_code", data.code)
       .maybeSingle();
 
     if (!link || link.status !== "active") return { found: false as const };
 
-    const lowerUa = ua.toLowerCase();
-    const botPatterns = [
-      "bot",
-      "crawler",
-      "spider",
-      "facebookexternalhit",
-      "facebookcatalog",
-      "meta-externalagent",
-      "headless",
-      "curl",
-      "wget",
-      "python",
-      "scrapy",
-      "preview",
-      "slurp",
-      "lighthouse",
-    ];
-    const isBot = botPatterns.some((p) => lowerUa.includes(p)) || !ua;
-    const botReason = isBot
-      ? botPatterns.find((p) => lowerUa.includes(p)) || "missing-ua"
-      : null;
-
     await supabaseAdmin.from("clicks").insert({
       link_id: link.id,
       ip_address: ip || null,
       country,
-      user_agent: ua || null,
+      user_agent: a.ua || null,
       referer: referer || null,
-      is_bot: isBot,
-      bot_reason: botReason,
+      is_bot: a.isBot,
+      bot_reason: a.reasons || null,
     });
 
-    if (isBot) {
-      const { data: current } = await supabaseAdmin
-        .from("links")
-        .select("bot_clicks_count")
-        .eq("id", link.id)
-        .single();
-      if (current) {
-        await supabaseAdmin
-          .from("links")
-          .update({ bot_clicks_count: current.bot_clicks_count + 1 })
-          .eq("id", link.id);
-      }
-    } else {
-      const { data: current } = await supabaseAdmin
-        .from("links")
-        .select("clicks_count")
-        .eq("id", link.id)
-        .single();
-      if (current) {
-        await supabaseAdmin
-          .from("links")
-          .update({ clicks_count: current.clicks_count + 1 })
+    if (a.isBot) {
+      const { data: cur } = await supabaseAdmin
+        .from("links").select("bot_clicks_count").eq("id", link.id).single();
+      if (cur) {
+        await supabaseAdmin.from("links")
+          .update({ bot_clicks_count: cur.bot_clicks_count + 1 })
           .eq("id", link.id);
       }
     }
 
+    // NEVER return destination here — even humans must pass client verification
     return {
       found: true as const,
-      // Only send destination to non-bots — bots never see the real URL
-      destination: isBot ? null : link.destination_url,
-      title: link.title || "Article",
-      isBot,
+      linkId: link.id,
+      preFlagBot: a.isBot,
+      serverScore: a.score,
     };
   });
 
+const verifyHuman = createServerFn({ method: "POST" })
+  .inputValidator((input: {
+    code: string;
+    fp: {
+      ua: string;
+      webdriver: boolean;
+      languages: string[];
+      platform: string;
+      hwConcurrency: number;
+      deviceMemory: number;
+      screen: { w: number; h: number; cd: number };
+      tz: string;
+      plugins: number;
+      touchPoints: number;
+      hasChrome: boolean;
+      mouse: number;
+      scroll: number;
+      key: number;
+      touch: number;
+      timeOnPage: number;
+      canvasHash: string;
+    };
+  }) =>
+    z.object({
+      code: z.string().min(1).max(32),
+      fp: z.object({
+        ua: z.string().max(500),
+        webdriver: z.boolean(),
+        languages: z.array(z.string().max(20)).max(20),
+        platform: z.string().max(50),
+        hwConcurrency: z.number().min(0).max(256),
+        deviceMemory: z.number().min(0).max(1024),
+        screen: z.object({
+          w: z.number().min(0).max(20000),
+          h: z.number().min(0).max(20000),
+          cd: z.number().min(0).max(64),
+        }),
+        tz: z.string().max(100),
+        plugins: z.number().min(0).max(100),
+        touchPoints: z.number().min(0).max(50),
+        hasChrome: z.boolean(),
+        mouse: z.number().min(0).max(100000),
+        scroll: z.number().min(0).max(100000),
+        key: z.number().min(0).max(100000),
+        touch: z.number().min(0).max(100000),
+        timeOnPage: z.number().min(0).max(3600000),
+        canvasHash: z.string().max(64),
+      }),
+    }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const a = analyzeRequest();
+    const ip =
+      getRequestHeader("cf-connecting-ip") ||
+      getRequestHeader("x-forwarded-for") ||
+      "";
+
+    const { data: link } = await supabaseAdmin
+      .from("links")
+      .select("id, destination_url, status")
+      .eq("short_code", data.code)
+      .maybeSingle();
+
+    if (!link || link.status !== "active") {
+      return { ok: false as const, reason: "not-found" };
+    }
+
+    let score = a.score;
+    const reasons: string[] = a.reasons ? [a.reasons] : [];
+    const fp = data.fp;
+
+    // Hard fails
+    if (fp.webdriver) { score += 80; reasons.push("webdriver"); }
+    if (fp.ua.toLowerCase().includes("headless")) { score += 80; reasons.push("fp-headless"); }
+    if (!fp.languages.length) { score += 30; reasons.push("no-languages"); }
+    if (fp.screen.w < 200 || fp.screen.h < 200) { score += 50; reasons.push("tiny-screen"); }
+    if (fp.screen.cd === 0) { score += 30; reasons.push("no-colordepth"); }
+    if (fp.hwConcurrency === 0) { score += 20; reasons.push("no-hw-concurrency"); }
+    if (!fp.tz) { score += 20; reasons.push("no-tz"); }
+    if (fp.canvasHash === "blocked" || fp.canvasHash.length < 4) {
+      score += 25; reasons.push("canvas-blocked");
+    }
+
+    // Chrome should have window.chrome
+    if (fp.ua.toLowerCase().includes("chrome/") && !fp.hasChrome) {
+      score += 40; reasons.push("chrome-spoof");
+    }
+
+    // Mobile UA should report touch points
+    if (/mobile|android|iphone/i.test(fp.ua) && fp.touchPoints === 0) {
+      score += 30; reasons.push("mobile-no-touch");
+    }
+
+    // Interaction requirement: at least one of mouse/scroll/key/touch must be non-trivial
+    const interactions = fp.mouse + fp.scroll + fp.key + fp.touch;
+    if (interactions < 2) { score += 50; reasons.push("no-interaction"); }
+    if (fp.timeOnPage < 1500) { score += 30; reasons.push("too-fast"); }
+
+    // UA mismatch between request header and JS-reported UA
+    if (fp.ua && a.ua && fp.ua.toLowerCase() !== a.ua) {
+      score += 25; reasons.push("ua-mismatch");
+    }
+
+    const isBot = score >= 60;
+
+    // Log the verification attempt
+    await supabaseAdmin.from("clicks").insert({
+      link_id: link.id,
+      ip_address: ip || null,
+      country: getRequestHeader("cf-ipcountry") || null,
+      user_agent: a.ua || null,
+      referer: getRequestHeader("referer") || null,
+      is_bot: isBot,
+      bot_reason: `verify:${reasons.join(",")}|score:${score}`,
+    });
+
+    if (isBot) {
+      const { data: cur } = await supabaseAdmin
+        .from("links").select("bot_clicks_count").eq("id", link.id).single();
+      if (cur) {
+        await supabaseAdmin.from("links")
+          .update({ bot_clicks_count: cur.bot_clicks_count + 1 })
+          .eq("id", link.id);
+      }
+      return { ok: false as const, reason: "bot-detected" };
+    }
+
+    // Verified human — count and reveal destination
+    const { data: cur } = await supabaseAdmin
+      .from("links").select("clicks_count").eq("id", link.id).single();
+    if (cur) {
+      await supabaseAdmin.from("links")
+        .update({ clicks_count: cur.clicks_count + 1 })
+        .eq("id", link.id);
+    }
+
+    return { ok: true as const, destination: link.destination_url };
+  });
+
+// ---------- Route ----------
+
 export const Route = createFileRoute("/r/$code")({
   loader: async ({ params }) => {
-    const result = await resolveLink({ data: { code: params.code } });
-    if (!result.found) throw notFound();
-    return result;
+    const r = await resolveLink({ data: { code: params.code } });
+    if (!r.found) throw notFound();
+    return r;
   },
   component: PreLanderPage,
   head: () => ({
@@ -105,8 +293,7 @@ export const Route = createFileRoute("/r/$code")({
       { title: "Health & Wellness Tips — Daily Reads" },
       {
         name: "description",
-        content:
-          "Practical lifestyle, wellness and productivity tips for everyday readers.",
+        content: "Practical lifestyle and wellness tips for everyday readers.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -123,57 +310,139 @@ export const Route = createFileRoute("/r/$code")({
   ),
 });
 
+// ---------- Client-side fingerprint ----------
+
+function collectFingerprint(metrics: {
+  mouse: number; scroll: number; key: number; touch: number; startedAt: number;
+}) {
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    webdriver?: boolean;
+  };
+  const w = window as Window & { chrome?: unknown };
+
+  // Lightweight canvas fingerprint (just to confirm canvas works)
+  let canvasHash = "blocked";
+  try {
+    const c = document.createElement("canvas");
+    c.width = 200; c.height = 50;
+    const ctx = c.getContext("2d");
+    if (ctx) {
+      ctx.textBaseline = "top";
+      ctx.font = "14px Arial";
+      ctx.fillStyle = "#f60";
+      ctx.fillRect(0, 0, 100, 20);
+      ctx.fillStyle = "#069";
+      ctx.fillText("dr-check", 2, 15);
+      const data = c.toDataURL();
+      let h = 0;
+      for (let i = 0; i < data.length; i++) {
+        h = ((h << 5) - h) + data.charCodeAt(i);
+        h |= 0;
+      }
+      canvasHash = Math.abs(h).toString(16);
+    }
+  } catch {
+    canvasHash = "blocked";
+  }
+
+  return {
+    ua: navigator.userAgent || "",
+    webdriver: Boolean(nav.webdriver),
+    languages: Array.isArray(navigator.languages) ? [...navigator.languages] : [],
+    platform: navigator.platform || "",
+    hwConcurrency: navigator.hardwareConcurrency || 0,
+    deviceMemory: nav.deviceMemory || 0,
+    screen: {
+      w: screen.width || 0,
+      h: screen.height || 0,
+      cd: screen.colorDepth || 0,
+    },
+    tz: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+    plugins: navigator.plugins ? navigator.plugins.length : 0,
+    touchPoints: navigator.maxTouchPoints || 0,
+    hasChrome: typeof w.chrome !== "undefined",
+    mouse: metrics.mouse,
+    scroll: metrics.scroll,
+    key: metrics.key,
+    touch: metrics.touch,
+    timeOnPage: Date.now() - metrics.startedAt,
+    canvasHash,
+  };
+}
+
 function PreLanderPage() {
-  const data = Route.useLoaderData();
-  const [ready, setReady] = useState(false);
+  const { code } = Route.useParams();
+  const verify = useServerFn(verifyHuman);
+  const [status, setStatus] = useState<"reading" | "verifying" | "redirecting" | "blocked">("reading");
   const [countdown, setCountdown] = useState(3);
+  const metrics = useRef({ mouse: 0, scroll: 0, key: 0, touch: 0, startedAt: Date.now() });
+  const destRef = useRef<string | null>(null);
+  const triggered = useRef(false);
 
-  // Real-user verification: requires JS, mouse/touch capability, and a short delay.
-  // Bots without JS just see the safe article content below.
   useEffect(() => {
-    if (data.isBot || !data.destination) return;
-
-    let humanSignals = 0;
-    const bump = () => {
-      humanSignals += 1;
-      if (humanSignals >= 1) setReady(true);
-    };
-
-    window.addEventListener("mousemove", bump, { once: true });
-    window.addEventListener("touchstart", bump, { once: true });
-    window.addEventListener("scroll", bump, { once: true });
-    window.addEventListener("keydown", bump, { once: true });
-
-    // Fallback: mark ready after 1.5s even without interaction (still requires JS = no crawler)
-    const fallback = window.setTimeout(() => setReady(true), 1500);
-
+    const onMouse = () => { metrics.current.mouse += 1; };
+    const onScroll = () => { metrics.current.scroll += 1; };
+    const onKey = () => { metrics.current.key += 1; };
+    const onTouch = () => { metrics.current.touch += 1; };
+    window.addEventListener("mousemove", onMouse, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("touchstart", onTouch, { passive: true });
     return () => {
-      window.removeEventListener("mousemove", bump);
-      window.removeEventListener("touchstart", bump);
-      window.removeEventListener("scroll", bump);
-      window.removeEventListener("keydown", bump);
-      window.clearTimeout(fallback);
+      window.removeEventListener("mousemove", onMouse);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("touchstart", onTouch);
     };
-  }, [data]);
+  }, []);
+
+  const runVerify = async () => {
+    if (triggered.current) return;
+    triggered.current = true;
+    setStatus("verifying");
+    try {
+      const fp = collectFingerprint(metrics.current);
+      const res = await verify({ data: { code, fp } });
+      if (res.ok) {
+        destRef.current = res.destination;
+        setStatus("redirecting");
+      } else {
+        setStatus("blocked");
+      }
+    } catch {
+      setStatus("blocked");
+    }
+  };
+
+  // Auto-trigger verify after the user has spent ~2.5s with at least some interaction
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const m = metrics.current;
+      const interactions = m.mouse + m.scroll + m.key + m.touch;
+      const elapsed = Date.now() - m.startedAt;
+      if (elapsed > 2500 && interactions >= 2 && !triggered.current) {
+        void runVerify();
+      }
+    }, 500);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
-    if (!ready || !data.destination) return;
-    const timer = window.setInterval(() => {
+    if (status !== "redirecting" || !destRef.current) return;
+    const t = window.setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
-          window.clearInterval(timer);
-          window.location.replace(data.destination!);
+          window.clearInterval(t);
+          window.location.replace(destRef.current!);
           return 0;
         }
         return c - 1;
       });
     }, 1000);
-    return () => window.clearInterval(timer);
-  }, [ready, data.destination]);
-
-  const goNow = () => {
-    if (data.destination) window.location.replace(data.destination);
-  };
+    return () => window.clearInterval(t);
+  }, [status]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -181,120 +450,90 @@ function PreLanderPage() {
         <div className="mx-auto max-w-3xl px-6 py-5 flex items-center justify-between">
           <span className="font-bold tracking-tight text-lg">Daily Reads</span>
           <nav className="text-sm text-muted-foreground space-x-4 hidden sm:block">
-            <span>Wellness</span>
-            <span>Lifestyle</span>
-            <span>Productivity</span>
+            <span>Wellness</span><span>Lifestyle</span><span>Productivity</span>
           </nav>
         </div>
       </header>
 
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <article className="prose prose-invert max-w-none">
-          <p className="text-sm uppercase tracking-wider text-primary mb-3">
-            Featured Article
-          </p>
+        <article className="max-w-none">
+          <p className="text-sm uppercase tracking-wider text-primary mb-3">Featured Article</p>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
             5 Simple Habits That Can Transform Your Daily Routine
           </h1>
-          <p className="text-muted-foreground mb-8">
-            Published today · 4 min read
-          </p>
+          <p className="text-muted-foreground mb-8">Published today · 4 min read</p>
 
           <p className="mb-4 leading-relaxed">
-            Building a healthier, more productive routine doesn't require a
-            complete life overhaul. Small, consistent habits — practiced daily —
-            create the biggest long-term changes. Here are five evidence-backed
-            habits anyone can start this week.
+            Building a healthier, more productive routine doesn't require a complete life overhaul.
+            Small, consistent habits — practiced daily — create the biggest long-term changes.
           </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-3">
-            1. Start your morning with water
-          </h2>
+          <h2 className="text-xl font-semibold mt-8 mb-3">1. Start your morning with water</h2>
           <p className="mb-4 leading-relaxed">
-            After 7-8 hours of sleep your body is mildly dehydrated. A glass of
-            water before coffee helps kickstart your metabolism and improves
-            focus throughout the morning.
+            After 7-8 hours of sleep your body is mildly dehydrated. A glass of water before coffee
+            kickstarts your metabolism and improves focus.
           </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-3">
-            2. Move for 10 minutes
-          </h2>
+          <h2 className="text-xl font-semibold mt-8 mb-3">2. Move for 10 minutes</h2>
           <p className="mb-4 leading-relaxed">
-            You don't need a gym. A brisk 10-minute walk, light stretching, or a
-            short bodyweight session is enough to boost circulation and mood.
+            A brisk 10-minute walk or short stretching session boosts circulation and mood.
           </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-3">
-            3. Plan three priorities
-          </h2>
+          <h2 className="text-xl font-semibold mt-8 mb-3">3. Plan three priorities</h2>
           <p className="mb-4 leading-relaxed">
-            Instead of a long to-do list, pick the three most important tasks
-            for the day. This reduces decision fatigue and helps you finish what
-            actually matters.
+            Pick the three most important tasks for the day. This reduces decision fatigue.
           </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-3">
-            4. Take screen-free breaks
-          </h2>
+          <h2 className="text-xl font-semibold mt-8 mb-3">4. Take screen-free breaks</h2>
           <p className="mb-4 leading-relaxed">
-            Every 60-90 minutes, step away from screens for a few minutes. Your
-            eyes, posture, and concentration will all benefit.
+            Every 60-90 minutes, step away from screens for a few minutes.
           </p>
-
-          <h2 className="text-xl font-semibold mt-8 mb-3">
-            5. Wind down with a routine
-          </h2>
+          <h2 className="text-xl font-semibold mt-8 mb-3">5. Wind down with a routine</h2>
           <p className="mb-6 leading-relaxed">
             A consistent evening routine signals your body it's time to rest.
-            Dim the lights, avoid heavy meals, and try reading instead of
-            scrolling.
           </p>
-
           <p className="leading-relaxed">
-            Try one habit this week. Once it sticks, add the next. Small steps
-            compound into big results.
+            Try one habit this week. Once it sticks, add the next.
           </p>
         </article>
 
-        {/* Continue card — only shown / activated for real users with JS */}
-        {!data.isBot && data.destination && (
-          <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
-            {!ready ? (
-              <>
-                <h3 className="text-lg font-semibold mb-2">
-                  Loading next article...
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Please wait a moment while we prepare your content.
-                </p>
-                <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              </>
-            ) : (
-              <>
-                <h3 className="text-lg font-semibold mb-2">
-                  Continuing in {countdown}...
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  You're being taken to the next page.
-                </p>
-                <button
-                  onClick={goNow}
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
-                >
-                  Continue now
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {data.isBot && (
-          <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              Thanks for reading. Browse more articles on our homepage.
-            </p>
-          </div>
-        )}
+        <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
+          {status === "reading" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Continue reading</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Scroll or interact with the page to load the next article.
+              </p>
+              <button
+                onClick={runVerify}
+                className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+              >
+                Continue
+              </button>
+            </>
+          )}
+          {status === "verifying" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Loading next article...</h3>
+              <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            </>
+          )}
+          {status === "redirecting" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Continuing in {countdown}...</h3>
+              <button
+                onClick={() => destRef.current && window.location.replace(destRef.current)}
+                className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
+              >
+                Continue now
+              </button>
+            </>
+          )}
+          {status === "blocked" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Thanks for reading</h3>
+              <p className="text-sm text-muted-foreground">
+                Browse more articles on our homepage.
+              </p>
+            </>
+          )}
+        </div>
       </main>
 
       <footer className="border-t border-border mt-10">
