@@ -410,6 +410,9 @@ function collectFingerprint(metrics: {
 
 function PreLanderPage() {
   const { code } = Route.useParams();
+  const loaderData = Route.useLoaderData();
+  const variantId = (loaderData.variant ?? "wellness") as VariantId;
+  const variant = VARIANTS[variantId];
   const verify = useServerFn(verifyHuman);
   const [status, setStatus] = useState<"reading" | "verifying" | "redirecting" | "blocked">("reading");
   const [countdown, setCountdown] = useState(3);
@@ -440,7 +443,7 @@ function PreLanderPage() {
     setStatus("verifying");
     try {
       const fp = collectFingerprint(metrics.current);
-      const res = await verify({ data: { code, fp } });
+      const res = await verify({ data: { code, variant: variantId, fp } });
       if (res.ok) {
         destRef.current = res.destination;
         setStatus("redirecting");
@@ -494,40 +497,19 @@ function PreLanderPage() {
 
       <main className="mx-auto max-w-3xl px-6 py-10">
         <article className="max-w-none">
-          <p className="text-sm uppercase tracking-wider text-primary mb-3">Featured Article</p>
+          <p className="text-sm uppercase tracking-wider text-primary mb-3">{variant.category}</p>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
-            5 Simple Habits That Can Transform Your Daily Routine
+            {variant.title}
           </h1>
-          <p className="text-muted-foreground mb-8">Published today · 4 min read</p>
-
-          <p className="mb-4 leading-relaxed">
-            Building a healthier, more productive routine doesn't require a complete life overhaul.
-            Small, consistent habits — practiced daily — create the biggest long-term changes.
-          </p>
-          <h2 className="text-xl font-semibold mt-8 mb-3">1. Start your morning with water</h2>
-          <p className="mb-4 leading-relaxed">
-            After 7-8 hours of sleep your body is mildly dehydrated. A glass of water before coffee
-            kickstarts your metabolism and improves focus.
-          </p>
-          <h2 className="text-xl font-semibold mt-8 mb-3">2. Move for 10 minutes</h2>
-          <p className="mb-4 leading-relaxed">
-            A brisk 10-minute walk or short stretching session boosts circulation and mood.
-          </p>
-          <h2 className="text-xl font-semibold mt-8 mb-3">3. Plan three priorities</h2>
-          <p className="mb-4 leading-relaxed">
-            Pick the three most important tasks for the day. This reduces decision fatigue.
-          </p>
-          <h2 className="text-xl font-semibold mt-8 mb-3">4. Take screen-free breaks</h2>
-          <p className="mb-4 leading-relaxed">
-            Every 60-90 minutes, step away from screens for a few minutes.
-          </p>
-          <h2 className="text-xl font-semibold mt-8 mb-3">5. Wind down with a routine</h2>
-          <p className="mb-6 leading-relaxed">
-            A consistent evening routine signals your body it's time to rest.
-          </p>
-          <p className="leading-relaxed">
-            Try one habit this week. Once it sticks, add the next.
-          </p>
+          <p className="text-muted-foreground mb-8">{variant.subtitle}</p>
+          <p className="mb-4 leading-relaxed">{variant.intro}</p>
+          {variant.sections.map((s) => (
+            <div key={s.heading}>
+              <h2 className="text-xl font-semibold mt-8 mb-3">{s.heading}</h2>
+              <p className="mb-4 leading-relaxed">{s.body}</p>
+            </div>
+          ))}
+          <p className="leading-relaxed">{variant.outro}</p>
         </article>
 
         <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
