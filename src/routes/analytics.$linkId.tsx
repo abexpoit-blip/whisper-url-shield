@@ -74,13 +74,22 @@ type Data = Awaited<ReturnType<typeof getLinkMonitor>>;
 
 function LinkMonitorPage() {
   const { linkId } = Route.useParams();
+  const { days } = Route.useSearch();
   const navigate = useNavigate();
   const fetchMonitor = useServerFn(getLinkMonitor);
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
-  const [days, setDays] = useState(7);
   const [live, setLive] = useState(false);
   const [pulse, setPulse] = useState(0);
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const setDays = (n: number) =>
+    navigate({
+      to: "/analytics/$linkId",
+      params: { linkId },
+      search: (prev: LinkSearch) => ({ ...prev, days: n }),
+      replace: true,
+    });
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = async (silent = false) => {
