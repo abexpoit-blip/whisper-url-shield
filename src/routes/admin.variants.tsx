@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Shield, ArrowLeft, Plus, Trash2, Save, X, Lock } from "lucide-react";
+import { Shield, ArrowLeft, Plus, Trash2, Save, X, Lock, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +80,16 @@ function AdminVariantsPage() {
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<(Omit<VariantRow, "stats"> & { stats?: VariantRow["stats"] }) | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const reorderSections = (from: number, to: number) => {
+    if (!editing || from === to || to < 0 || to >= editing.sections.length) return;
+    const next = [...editing.sections];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setEditing({ ...editing, sections: next });
+  };
 
   const refresh = async () => {
     const [v, l] = await Promise.all([listVariants(), listLinks({ data: { search } })]);
@@ -379,8 +389,43 @@ function AdminVariantsPage() {
                 </div>
                 <div className="space-y-2">
                   {editing.sections.map((s, i) => (
-                    <div key={i} className="border rounded p-3 bg-background space-y-2">
-                      <div className="flex gap-2">
+                    <div
+                      key={i}
+                      draggable
+                      onDragStart={(e) => {
+                        setDragIndex(i);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverIndex !== i) setDragOverIndex(i);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverIndex === i) setDragOverIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragIndex !== null) reorderSections(dragIndex, i);
+                        setDragIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDragIndex(null);
+                        setDragOverIndex(null);
+                      }}
+                      className={`border rounded p-3 bg-background space-y-2 transition-all ${
+                        dragIndex === i ? "opacity-50" : ""
+                      } ${dragOverIndex === i && dragIndex !== i ? "border-primary border-2" : ""}`}
+                    >
+                      <div className="flex gap-2 items-center">
+                        <div
+                          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+                          title="Drag to reorder"
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono w-6">#{i + 1}</span>
                         <Input
                           placeholder="Heading"
                           value={s.heading}
@@ -390,6 +435,24 @@ function AdminVariantsPage() {
                             setEditing({ ...editing, sections: next });
                           }}
                         />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={i === 0}
+                          onClick={() => reorderSections(i, i - 1)}
+                          title="Move up"
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={i === editing.sections.length - 1}
+                          onClick={() => reorderSections(i, i + 1)}
+                          title="Move down"
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
