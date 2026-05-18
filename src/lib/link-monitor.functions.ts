@@ -19,6 +19,12 @@ type Click = {
   ip_address: string | null;
   user_agent: string | null;
   created_at: string;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_term: string | null;
+  utm_content: string | null;
+  referer_host: string | null;
 };
 
 export const getLinkMonitor = createServerFn({ method: "POST" })
