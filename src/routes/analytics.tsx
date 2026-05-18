@@ -2,30 +2,65 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Shield, ArrowLeft, Users, Bot, Target, Globe, Smartphone, Monitor, Tablet,
-  TrendingUp, AlertTriangle, BarChart3, RefreshCw,
+  Shield,
+  ArrowLeft,
+  Users,
+  Bot,
+  Target,
+  Globe,
+  Smartphone,
+  Monitor,
+  Tablet,
+  TrendingUp,
+  AlertTriangle,
+  BarChart3,
+  RefreshCw,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getAnalytics } from "@/lib/analytics.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/analytics")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: AnalyticsPage,
 });
 
-const PIE_COLORS = ["hsl(var(--primary))", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"];
+const PIE_COLORS = [
+  "hsl(var(--primary))",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#06b6d4",
+  "#ec4899",
+  "#84cc16",
+];
 
 type Analytics = Awaited<ReturnType<typeof getAnalytics>>;
 
@@ -49,10 +84,12 @@ function AnalyticsPage() {
     }
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [days, linkId]);
+  useEffect(() => {
+    void load(); /* eslint-disable-next-line */
+  }, [days, linkId]);
 
   const t = data?.totals;
-  const conversionPct = useMemo(() => t ? Math.round(t.conversionRate * 1000) / 10 : 0, [t]);
+  const conversionPct = useMemo(() => (t ? Math.round(t.conversionRate * 1000) / 10 : 0), [t]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -64,7 +101,9 @@ function AnalyticsPage() {
           </div>
           <div className="flex items-center gap-2">
             <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">Last 24h</SelectItem>
                 <SelectItem value="7">Last 7 days</SelectItem>
@@ -74,11 +113,15 @@ function AnalyticsPage() {
               </SelectContent>
             </Select>
             <Select value={linkId} onValueChange={setLinkId}>
-              <SelectTrigger className="w-48"><SelectValue placeholder="All links" /></SelectTrigger>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="All links" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All links</SelectItem>
                 {data?.links.map((l) => (
-                  <SelectItem key={l.id} value={l.id}>{l.title || l.short_code}</SelectItem>
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.title || l.short_code}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -98,10 +141,30 @@ function AnalyticsPage() {
       <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KpiCard icon={<BarChart3 className="h-5 w-5" />} label="Total Clicks" value={t?.total ?? 0} accent="text-foreground" />
-          <KpiCard icon={<Users className="h-5 w-5" />} label="Real Users" value={t?.humans ?? 0} accent="text-emerald-500" />
-          <KpiCard icon={<Bot className="h-5 w-5" />} label="Bots Blocked" value={t?.bots ?? 0} accent="text-rose-500" />
-          <KpiCard icon={<Target className="h-5 w-5" />} label="Pass Rate" value={`${conversionPct}%`} accent="text-primary" />
+          <KpiCard
+            icon={<BarChart3 className="h-5 w-5" />}
+            label="Total Clicks"
+            value={t?.total ?? 0}
+            accent="text-foreground"
+          />
+          <KpiCard
+            icon={<Users className="h-5 w-5" />}
+            label="Real Users"
+            value={t?.humans ?? 0}
+            accent="text-emerald-500"
+          />
+          <KpiCard
+            icon={<Bot className="h-5 w-5" />}
+            label="Bots Blocked"
+            value={t?.bots ?? 0}
+            accent="text-rose-500"
+          />
+          <KpiCard
+            icon={<Target className="h-5 w-5" />}
+            label="Pass Rate"
+            value={`${conversionPct}%`}
+            accent="text-primary"
+          />
         </div>
 
         {/* Traffic timeseries */}
@@ -127,13 +190,32 @@ function AnalyticsPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
                   <Legend />
-                  <Area type="monotone" dataKey="humans" stroke="#22c55e" fill="url(#h)" name="Real users" />
-                  <Area type="monotone" dataKey="bots" stroke="#ef4444" fill="url(#b)" name="Bots" />
+                  <Area
+                    type="monotone"
+                    dataKey="humans"
+                    stroke="#22c55e"
+                    fill="url(#h)"
+                    name="Real users"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="bots"
+                    stroke="#ef4444"
+                    fill="url(#b)"
+                    name="Bots"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
-            ) : <EmptyState />}
+            ) : (
+              <EmptyState />
+            )}
           </div>
         </Card>
 
@@ -150,12 +232,25 @@ function AnalyticsPage() {
                   <BarChart data={data.topReasons} layout="vertical" margin={{ left: 80 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis type="category" dataKey="reason" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                    <YAxis
+                      type="category"
+                      dataKey="reason"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={11}
+                      width={120}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
+                    />
                     <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-              ) : <EmptyState />}
+              ) : (
+                <EmptyState />
+              )}
             </div>
           </Card>
 
@@ -169,16 +264,31 @@ function AnalyticsPage() {
               {data && data.byDevice.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={data.byDevice} dataKey="total" nameKey="key" cx="50%" cy="50%" outerRadius={90} label>
+                    <Pie
+                      data={data.byDevice}
+                      dataKey="total"
+                      nameKey="key"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={90}
+                      label
+                    >
                       {data.byDevice.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
+                    />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
-              ) : <EmptyState />}
+              ) : (
+                <EmptyState />
+              )}
             </div>
           </Card>
         </div>
@@ -243,10 +353,18 @@ function AnalyticsPage() {
               </thead>
               <tbody>
                 {(data?.byLink ?? []).map((l) => (
-                  <tr key={l.id} className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
-                      onClick={() => navigate({ to: "/analytics/$linkId", params: { linkId: l.id } })}>
-                    <td className="py-2 px-2 font-mono text-primary underline-offset-2 hover:underline">/r/{l.short_code}</td>
-                    <td className="py-2 px-2 max-w-xs truncate text-muted-foreground" title={l.destination_url}>
+                  <tr
+                    key={l.id}
+                    className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
+                    onClick={() => navigate({ to: "/analytics/$linkId", params: { linkId: l.id } })}
+                  >
+                    <td className="py-2 px-2 font-mono text-primary underline-offset-2 hover:underline">
+                      /r/{l.short_code}
+                    </td>
+                    <td
+                      className="py-2 px-2 max-w-xs truncate text-muted-foreground"
+                      title={l.destination_url}
+                    >
                       {l.destination_url}
                     </td>
                     <td className="py-2 px-2 text-right">{l.total}</td>
@@ -258,7 +376,11 @@ function AnalyticsPage() {
                   </tr>
                 ))}
                 {!data?.byLink.length && (
-                  <tr><td colSpan={6} className="py-6 text-center text-muted-foreground">No data yet</td></tr>
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-muted-foreground">
+                      No data yet
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -272,22 +394,37 @@ function AnalyticsPage() {
             <h2 className="font-semibold">Top referrers</h2>
           </div>
           <BreakdownTable
-            rows={(data?.referrers ?? []).map((r) => ({ key: r.host, total: r.count, humans: 0, bots: 0 }))}
+            rows={(data?.referrers ?? []).map((r) => ({
+              key: r.host,
+              total: r.count,
+              humans: 0,
+              bots: 0,
+            }))}
             keyLabel="Source"
             hideSplit
           />
         </Card>
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          <Link to="/dashboard" className="hover:text-primary">← Back to dashboard</Link>
+          <Link to="/dashboard" className="hover:text-primary">
+            ← Back to dashboard
+          </Link>
         </p>
       </main>
     </div>
   );
 }
 
-function KpiCard({ icon, label, value, accent }: {
-  icon: React.ReactNode; label: string; value: string | number; accent: string;
+function KpiCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  accent: string;
 }) {
   return (
     <Card className="p-4">
@@ -308,7 +445,12 @@ function EmptyState() {
   );
 }
 
-function BreakdownTable({ rows, keyLabel, showConversion, hideSplit }: {
+function BreakdownTable({
+  rows,
+  keyLabel,
+  showConversion,
+  hideSplit,
+}: {
   rows: { key: string; total: number; humans: number; bots: number }[];
   keyLabel: string;
   showConversion?: boolean;
@@ -326,8 +468,10 @@ function BreakdownTable({ rows, keyLabel, showConversion, hideSplit }: {
               {r.total}
               {!hideSplit && (
                 <>
-                  {" "}<span className="text-emerald-500">{r.humans}</span>
-                  {" / "}<span className="text-rose-500">{r.bots}</span>
+                  {" "}
+                  <span className="text-emerald-500">{r.humans}</span>
+                  {" / "}
+                  <span className="text-rose-500">{r.bots}</span>
                 </>
               )}
               {showConversion && r.total > 0 && (

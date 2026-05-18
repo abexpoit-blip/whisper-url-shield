@@ -16,9 +16,9 @@ import {
 } from "@/lib/admin-protection.functions";
 
 export const Route = createFileRoute("/admin/protection")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: AdminProtectionPage,
 });
@@ -37,8 +37,7 @@ const DEFAULTS: Config = {
   ip_rate_limit_window_sec: 60,
   suspicious_action: "safe_page",
   block_threshold_score: 60,
-  safe_page_message:
-    "This article is temporarily unavailable. Please check back later.",
+  safe_page_message: "This article is temporarily unavailable. Please check back later.",
 };
 
 function AdminProtectionPage() {
@@ -49,7 +48,13 @@ function AdminProtectionPage() {
   const [cfg, setCfg] = useState<Config>(DEFAULTS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [s, setS] = useState<{ total: number; bots: number; blocked: number; safe: number; rateLimited: number } | null>(null);
+  const [s, setS] = useState<{
+    total: number;
+    bots: number;
+    blocked: number;
+    safe: number;
+    rateLimited: number;
+  } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -113,10 +118,28 @@ function AdminProtectionPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard icon={<Activity className="h-4 w-4" />} label="Clicks (24h)" value={s?.total ?? 0} />
-          <StatCard icon={<Bot className="h-4 w-4" />} label="Bots flagged" value={s?.bots ?? 0} tone="warn" />
-          <StatCard icon={<ShieldCheck className="h-4 w-4" />} label="Safe-paged" value={s?.safe ?? 0} />
-          <StatCard icon={<AlertTriangle className="h-4 w-4" />} label="Blocked" value={s?.blocked ?? 0} tone="danger" />
+          <StatCard
+            icon={<Activity className="h-4 w-4" />}
+            label="Clicks (24h)"
+            value={s?.total ?? 0}
+          />
+          <StatCard
+            icon={<Bot className="h-4 w-4" />}
+            label="Bots flagged"
+            value={s?.bots ?? 0}
+            tone="warn"
+          />
+          <StatCard
+            icon={<ShieldCheck className="h-4 w-4" />}
+            label="Safe-paged"
+            value={s?.safe ?? 0}
+          />
+          <StatCard
+            icon={<AlertTriangle className="h-4 w-4" />}
+            label="Blocked"
+            value={s?.blocked ?? 0}
+            tone="danger"
+          />
         </div>
 
         {/* Rate limit */}
@@ -134,7 +157,9 @@ function AdminProtectionPage() {
                 type="number"
                 min={1}
                 value={cfg.ip_rate_limit_per_min}
-                onChange={(e) => setCfg({ ...cfg, ip_rate_limit_per_min: Number(e.target.value) || 1 })}
+                onChange={(e) =>
+                  setCfg({ ...cfg, ip_rate_limit_per_min: Number(e.target.value) || 1 })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -143,7 +168,9 @@ function AdminProtectionPage() {
                 type="number"
                 min={5}
                 value={cfg.ip_rate_limit_window_sec}
-                onChange={(e) => setCfg({ ...cfg, ip_rate_limit_window_sec: Number(e.target.value) || 5 })}
+                onChange={(e) =>
+                  setCfg({ ...cfg, ip_rate_limit_window_sec: Number(e.target.value) || 5 })
+                }
               />
             </div>
           </CardContent>
@@ -154,7 +181,8 @@ function AdminProtectionPage() {
           <CardHeader>
             <CardTitle>Bot detection threshold</CardTitle>
             <CardDescription>
-              Higher = stricter (fewer false positives). Combines UA, headers, fingerprint, and behavior signals.
+              Higher = stricter (fewer false positives). Combines UA, headers, fingerprint, and
+              behavior signals.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -164,7 +192,9 @@ function AdminProtectionPage() {
                 type="number"
                 min={10}
                 value={cfg.block_threshold_score}
-                onChange={(e) => setCfg({ ...cfg, block_threshold_score: Number(e.target.value) || 10 })}
+                onChange={(e) =>
+                  setCfg({ ...cfg, block_threshold_score: Number(e.target.value) || 10 })
+                }
               />
               <p className="text-xs text-muted-foreground">Recommended: 60</p>
             </div>
@@ -175,7 +205,9 @@ function AdminProtectionPage() {
         <Card>
           <CardHeader>
             <CardTitle>Action for suspicious visitors</CardTitle>
-            <CardDescription>How should the system respond when a visitor is flagged?</CardDescription>
+            <CardDescription>
+              How should the system respond when a visitor is flagged?
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid sm:grid-cols-3 gap-3">
@@ -194,7 +226,8 @@ function AdminProtectionPage() {
                     {a === "safe_page" ? "Safe page" : a}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    {a === "safe_page" && "Show a neutral 'unavailable' page. Never reveal the destination."}
+                    {a === "safe_page" &&
+                      "Show a neutral 'unavailable' page. Never reveal the destination."}
                     {a === "block" && "Return an explicit Access Denied page."}
                     {a === "allow" && "Log only — let them through (use for soft monitoring)."}
                   </div>
@@ -225,17 +258,24 @@ function AdminProtectionPage() {
 }
 
 function StatCard({
-  icon, label, value, tone,
-}: { icon: React.ReactNode; label: string; value: number; tone?: "warn" | "danger" }) {
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone?: "warn" | "danger";
+}) {
   const color =
-    tone === "danger" ? "text-destructive" :
-    tone === "warn" ? "text-warning" :
-    "text-primary";
+    tone === "danger" ? "text-destructive" : tone === "warn" ? "text-warning" : "text-primary";
   return (
     <Card className="glass">
       <CardContent className="pt-6">
         <div className={`flex items-center gap-2 text-xs uppercase tracking-wider ${color}`}>
-          {icon}{label}
+          {icon}
+          {label}
         </div>
         <div className="mt-2 text-3xl font-bold">{value.toLocaleString()}</div>
       </CardContent>

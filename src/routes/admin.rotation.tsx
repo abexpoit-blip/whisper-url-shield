@@ -3,7 +3,15 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  Trophy, ArrowLeft, RotateCcw, Crown, FlaskConical, Search, TrendingUp, Bot, Users,
+  Trophy,
+  ArrowLeft,
+  RotateCcw,
+  Crown,
+  FlaskConical,
+  Search,
+  TrendingUp,
+  Bot,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,9 +24,9 @@ import {
 } from "@/lib/admin-rotation.functions";
 
 export const Route = createFileRoute("/admin/rotation")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: RotationPage,
 });
@@ -71,10 +79,13 @@ function RotationPage() {
     }
   };
 
-  useEffect(() => { void load(win); /* eslint-disable-next-line */ }, [win]);
+  useEffect(() => {
+    void load(win); /* eslint-disable-next-line */
+  }, [win]);
 
   const onPromote = async (slug: string) => {
-    if (!confirm(`Promote "${slug}" as the only active variant? Others will be deactivated.`)) return;
+    if (!confirm(`Promote "${slug}" as the only active variant? Others will be deactivated.`))
+      return;
     setBusy(slug);
     try {
       await promote({ data: { slug } });
@@ -124,9 +135,8 @@ function RotationPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Ad-approval rotation</h1>
             <p className="text-muted-foreground mt-2 max-w-2xl">
-              Every active landing variant is rotated automatically with an epsilon-greedy
-              bandit on real human conversions. Pick the time window and promote the winner
-              when you're ready.
+              Every active landing variant is rotated automatically with an epsilon-greedy bandit on
+              real human conversions. Pick the time window and promote the winner when you're ready.
             </p>
           </div>
           <div className="flex gap-2">
@@ -152,8 +162,17 @@ function RotationPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Stat icon={<Search className="h-4 w-4" />} label="Verify attempts" value={totals.attempts} />
-          <Stat icon={<Users className="h-4 w-4" />} label="Humans" value={totals.humans} tone="success" />
+          <Stat
+            icon={<Search className="h-4 w-4" />}
+            label="Verify attempts"
+            value={totals.attempts}
+          />
+          <Stat
+            icon={<Users className="h-4 w-4" />}
+            label="Humans"
+            value={totals.humans}
+            tone="success"
+          />
           <Stat icon={<Bot className="h-4 w-4" />} label="Bots" value={totals.bots} tone="warn" />
           <Stat
             icon={<TrendingUp className="h-4 w-4" />}
@@ -167,8 +186,8 @@ function RotationPage() {
           <CardHeader>
             <CardTitle>Leaderboard</CardTitle>
             <CardDescription>
-              Ranked by Laplace-smoothed conversion rate. Winner badge appears once the leader
-              has ≥100 verified attempts and ≥2 pp lead over the runner-up.
+              Ranked by Laplace-smoothed conversion rate. Winner badge appears once the leader has
+              ≥100 verified attempts and ≥2 pp lead over the runner-up.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -193,8 +212,8 @@ function RotationPage() {
                         r.isWinner
                           ? "border-primary bg-accent shadow-card"
                           : !r.is_active
-                          ? "border-border opacity-60"
-                          : "border-border"
+                            ? "border-border opacity-60"
+                            : "border-border"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -204,8 +223,12 @@ function RotationPage() {
                               #{i + 1}
                             </span>
                             <span className="font-semibold truncate">{r.title}</span>
-                            <Badge variant="outline" className="text-xs">{r.slug}</Badge>
-                            <Badge variant="secondary" className="text-xs">{r.category}</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {r.slug}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {r.category}
+                            </Badge>
                             {r.isWinner && (
                               <Badge className="text-xs bg-primary text-primary-foreground gap-1">
                                 <Crown className="h-3 w-3" /> Winner
@@ -278,23 +301,30 @@ function RotationPage() {
 }
 
 function Stat({
-  icon, label, value, suffix, tone,
+  icon,
+  label,
+  value,
+  suffix,
+  tone,
 }: {
-  icon: React.ReactNode; label: string; value: number; suffix?: string;
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  suffix?: string;
   tone?: "success" | "warn";
 }) {
   const color =
-    tone === "success" ? "text-success" :
-    tone === "warn" ? "text-warning" :
-    "text-primary";
+    tone === "success" ? "text-success" : tone === "warn" ? "text-warning" : "text-primary";
   return (
     <Card className="glass">
       <CardContent className="pt-6">
         <div className={`flex items-center gap-2 text-xs uppercase tracking-wider ${color}`}>
-          {icon}{label}
+          {icon}
+          {label}
         </div>
         <div className="mt-2 text-3xl font-bold">
-          {value.toLocaleString()}{suffix ?? ""}
+          {value.toLocaleString()}
+          {suffix ?? ""}
         </div>
       </CardContent>
     </Card>

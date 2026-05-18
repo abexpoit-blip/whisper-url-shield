@@ -29,9 +29,9 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { getAnalytics } from "@/lib/analytics.functions";
 
 export const Route = createFileRoute("/dashboard")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: Dashboard,
 });

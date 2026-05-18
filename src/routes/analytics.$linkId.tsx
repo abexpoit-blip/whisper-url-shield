@@ -2,27 +2,53 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Shield, ArrowLeft, Eye, Users, Bot, Target, AlertTriangle, TrendingUp,
-  Globe, Smartphone, Monitor, RefreshCw, Copy, ExternalLink, Fingerprint,
-  Megaphone, Radio,
+  Shield,
+  ArrowLeft,
+  Eye,
+  Users,
+  Bot,
+  Target,
+  AlertTriangle,
+  TrendingUp,
+  Globe,
+  Smartphone,
+  Monitor,
+  RefreshCw,
+  Copy,
+  ExternalLink,
+  Fingerprint,
+  Megaphone,
+  Radio,
 } from "lucide-react";
 import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getLinkMonitor } from "@/lib/link-monitor.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/analytics/$linkId")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: LinkMonitorPage,
 });
@@ -51,7 +77,9 @@ function LinkMonitorPage() {
       if (!silent) setLoading(false);
     }
   };
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [days, linkId]);
+  useEffect(() => {
+    void load(); /* eslint-disable-next-line */
+  }, [days, linkId]);
 
   // Realtime: subscribe to new clicks for this link and debounce-refetch.
   useEffect(() => {
@@ -77,7 +105,9 @@ function LinkMonitorPage() {
   }, [linkId, days]);
 
   const t = data?.totals;
-  const shortUrl = data ? `${typeof window !== "undefined" ? window.location.origin : ""}/r/${data.link.short_code}` : "";
+  const shortUrl = data
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/r/${data.link.short_code}`
+    : "";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -87,12 +117,16 @@ function LinkMonitorPage() {
             <Shield className="h-6 w-6 text-primary" />
             <div>
               <div className="font-bold tracking-tight text-lg leading-tight">Link Monitor</div>
-              <div className="text-xs text-muted-foreground font-mono">/r/{data?.link.short_code ?? "…"}</div>
+              <div className="text-xs text-muted-foreground font-mono">
+                /r/{data?.link.short_code ?? "…"}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
-              <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">Last 24h</SelectItem>
                 <SelectItem value="7">Last 7 days</SelectItem>
@@ -102,7 +136,9 @@ function LinkMonitorPage() {
               </SelectContent>
             </Select>
             <div className="hidden sm:flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border">
-              <span className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`} />
+              <span
+                className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`}
+              />
               {live ? "Live" : "Offline"}
               {pulse > 0 && <span className="text-muted-foreground tabular-nums">· {pulse}</span>}
             </div>
@@ -121,22 +157,38 @@ function LinkMonitorPage() {
         {data && (
           <Card className="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="min-w-0">
-              <div className="font-semibold truncate">{data.link.title || data.link.short_code}</div>
+              <div className="font-semibold truncate">
+                {data.link.title || data.link.short_code}
+              </div>
               <div className="flex items-center gap-2 mt-1">
                 <code className="text-sm font-mono text-primary truncate">{shortUrl}</code>
-                <Button size="icon" variant="ghost" className="h-7 w-7"
-                  onClick={() => { navigator.clipboard.writeText(shortUrl); toast.success("Copied"); }}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => {
+                    navigator.clipboard.writeText(shortUrl);
+                    toast.success("Copied");
+                  }}
+                >
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground mt-1 truncate">
                 → {data.link.destination_url}
-                <a href={data.link.destination_url} target="_blank" rel="noreferrer"
-                   className="inline-flex ml-2 text-primary"><ExternalLink className="h-3 w-3" /></a>
+                <a
+                  href={data.link.destination_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex ml-2 text-primary"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             </div>
             <div className="text-xs text-muted-foreground">
-              Status: <span className="text-foreground font-semibold uppercase">{data.link.status}</span>
+              Status:{" "}
+              <span className="text-foreground font-semibold uppercase">{data.link.status}</span>
               <span className="mx-2">·</span>
               Created {new Date(data.link.created_at).toLocaleDateString()}
             </div>
@@ -145,13 +197,36 @@ function LinkMonitorPage() {
 
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KpiCard icon={<Eye className="h-5 w-5" />} label="Impressions" value={t?.impressions ?? 0} accent="text-foreground" />
-          <KpiCard icon={<Users className="h-5 w-5" />} label="Real Clicks" value={t?.humans ?? 0} accent="text-emerald-500" />
-          <KpiCard icon={<Bot className="h-5 w-5" />} label="Bots" value={t?.bots ?? 0} accent="text-rose-500" />
-          <KpiCard icon={<AlertTriangle className="h-5 w-5" />} label="Bot Rate"
-            value={`${Math.round((t?.botRate ?? 0) * 1000) / 10}%`} accent="text-amber-500" />
-          <KpiCard icon={<Target className="h-5 w-5" />} label="Conversion"
-            value={`${Math.round((t?.conversionRate ?? 0) * 1000) / 10}%`} accent="text-primary" />
+          <KpiCard
+            icon={<Eye className="h-5 w-5" />}
+            label="Impressions"
+            value={t?.impressions ?? 0}
+            accent="text-foreground"
+          />
+          <KpiCard
+            icon={<Users className="h-5 w-5" />}
+            label="Real Clicks"
+            value={t?.humans ?? 0}
+            accent="text-emerald-500"
+          />
+          <KpiCard
+            icon={<Bot className="h-5 w-5" />}
+            label="Bots"
+            value={t?.bots ?? 0}
+            accent="text-rose-500"
+          />
+          <KpiCard
+            icon={<AlertTriangle className="h-5 w-5" />}
+            label="Bot Rate"
+            value={`${Math.round((t?.botRate ?? 0) * 1000) / 10}%`}
+            accent="text-amber-500"
+          />
+          <KpiCard
+            icon={<Target className="h-5 w-5" />}
+            label="Conversion"
+            value={`${Math.round((t?.conversionRate ?? 0) * 1000) / 10}%`}
+            accent="text-primary"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -187,13 +262,32 @@ function LinkMonitorPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
                   <Legend />
-                  <Area type="monotone" dataKey="impressions" stroke="hsl(var(--primary))" fill="url(#imp)" name="Impressions" />
-                  <Area type="monotone" dataKey="humans" stroke="#22c55e" fill="url(#hh)" name="Real clicks" />
+                  <Area
+                    type="monotone"
+                    dataKey="impressions"
+                    stroke="hsl(var(--primary))"
+                    fill="url(#imp)"
+                    name="Impressions"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="humans"
+                    stroke="#22c55e"
+                    fill="url(#hh)"
+                    name="Real clicks"
+                  />
                 </AreaChart>
               </ResponsiveContainer>
-            ) : <Empty />}
+            ) : (
+              <Empty />
+            )}
           </div>
         </Card>
 
@@ -210,12 +304,25 @@ function LinkMonitorPage() {
                   <BarChart data={data.rejectionReasons} layout="vertical" margin={{ left: 80 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis type="category" dataKey="reason" stroke="hsl(var(--muted-foreground))" fontSize={11} width={120} />
-                    <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                    <YAxis
+                      type="category"
+                      dataKey="reason"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={11}
+                      width={120}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                      }}
+                    />
                     <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
-              ) : <Empty msg="No rejections yet — nice!" />}
+              ) : (
+                <Empty msg="No rejections yet — nice!" />
+              )}
             </div>
           </Card>
 
@@ -232,19 +339,22 @@ function LinkMonitorPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Globe className="h-4 w-4 text-primary" /><h2 className="font-semibold">Countries</h2>
+              <Globe className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold">Countries</h2>
             </div>
             <BreakdownTable rows={data?.byCountry ?? []} />
           </Card>
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Smartphone className="h-4 w-4 text-primary" /><h2 className="font-semibold">Devices</h2>
+              <Smartphone className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold">Devices</h2>
             </div>
             <BreakdownTable rows={data?.byDevice ?? []} />
           </Card>
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
-              <Monitor className="h-4 w-4 text-primary" /><h2 className="font-semibold">Browsers</h2>
+              <Monitor className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold">Browsers</h2>
             </div>
             <BreakdownTable rows={data?.byBrowser ?? []} />
           </Card>
@@ -292,15 +402,45 @@ function LinkMonitorPage() {
               <>
                 <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={data.sourceFunnel} margin={{ left: 8, right: 8, top: 8, bottom: 8 }}>
+                    <BarChart
+                      data={data.sourceFunnel}
+                      margin={{ left: 8, right: 8, top: 8, bottom: 8 }}
+                    >
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="source" stroke="hsl(var(--muted-foreground))" fontSize={11} angle={-15} textAnchor="end" height={60} />
+                      <XAxis
+                        dataKey="source"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={11}
+                        angle={-15}
+                        textAnchor="end"
+                        height={60}
+                      />
                       <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                      <Tooltip
+                        contentStyle={{
+                          background: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                        }}
+                      />
                       <Legend />
-                      <Bar dataKey="impressions" name="Impressions" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="realClicks" name="Real clicks" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                      <Bar dataKey="conversions" name="Conversions" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                      <Bar
+                        dataKey="impressions"
+                        name="Impressions"
+                        fill="hsl(var(--primary))"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="realClicks"
+                        name="Real clicks"
+                        fill="#22c55e"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="conversions"
+                        name="Conversions"
+                        fill="#f59e0b"
+                        radius={[4, 4, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -321,12 +461,27 @@ function LinkMonitorPage() {
                     <tbody>
                       {data.sourceFunnel.map((r) => (
                         <tr key={r.source} className="border-b border-border/50">
-                          <td className="py-2 px-2 font-medium truncate max-w-[10rem]" title={r.source}>{r.source}</td>
-                          <td className="py-2 px-2 text-right tabular-nums">{r.impressions.toLocaleString()}</td>
-                          <td className="py-2 px-2 text-right tabular-nums text-emerald-500">{r.realClicks.toLocaleString()}</td>
-                          <td className="py-2 px-2 text-right tabular-nums text-amber-500">{r.conversions.toLocaleString()}</td>
-                          <td className="py-2 px-2 text-right tabular-nums">{(r.ctr * 100).toFixed(1)}%</td>
-                          <td className="py-2 px-2 text-right tabular-nums font-semibold text-primary">{(r.conversionRate * 100).toFixed(1)}%</td>
+                          <td
+                            className="py-2 px-2 font-medium truncate max-w-[10rem]"
+                            title={r.source}
+                          >
+                            {r.source}
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums">
+                            {r.impressions.toLocaleString()}
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums text-emerald-500">
+                            {r.realClicks.toLocaleString()}
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums text-amber-500">
+                            {r.conversions.toLocaleString()}
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums">
+                            {(r.ctr * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-2 px-2 text-right tabular-nums font-semibold text-primary">
+                            {(r.conversionRate * 100).toFixed(1)}%
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -346,14 +501,22 @@ function LinkMonitorPage() {
               <Megaphone className="h-4 w-4 text-primary" />
               <h2 className="font-semibold">Top ad sources (utm_source)</h2>
             </div>
-            <BreakdownTable rows={data?.bySource ?? []} showConversion emptyMsg="No tagged sources yet. Add ?utm_source=facebook to your links." />
+            <BreakdownTable
+              rows={data?.bySource ?? []}
+              showConversion
+              emptyMsg="No tagged sources yet. Add ?utm_source=facebook to your links."
+            />
           </Card>
           <Card className="p-5">
             <div className="flex items-center gap-2 mb-4">
               <Target className="h-4 w-4 text-primary" />
               <h2 className="font-semibold">Top campaigns (utm_campaign)</h2>
             </div>
-            <BreakdownTable rows={data?.byCampaign ?? []} showConversion emptyMsg="No campaign tags detected." />
+            <BreakdownTable
+              rows={data?.byCampaign ?? []}
+              showConversion
+              emptyMsg="No campaign tags detected."
+            />
           </Card>
         </div>
 
@@ -370,7 +533,11 @@ function LinkMonitorPage() {
               <Globe className="h-4 w-4 text-primary" />
               <h2 className="font-semibold">Referrer hosts</h2>
             </div>
-            <BreakdownTable rows={data?.byReferer ?? []} showConversion emptyMsg="Direct traffic only." />
+            <BreakdownTable
+              rows={data?.byReferer ?? []}
+              showConversion
+              emptyMsg="Direct traffic only."
+            />
           </Card>
         </div>
 
@@ -382,7 +549,9 @@ function LinkMonitorPage() {
               <h2 className="font-semibold">Latest visitors</h2>
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <span className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`} />
+              <span
+                className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`}
+              />
               {live ? "Live updates on" : "Connecting…"}
             </div>
           </div>
@@ -408,13 +577,22 @@ function LinkMonitorPage() {
                       {new Date(r.created_at).toLocaleString()}
                     </td>
                     <td className="py-2 px-2">
-                      {r.is_bot
-                        ? <span className="px-2 py-0.5 rounded bg-rose-500/15 text-rose-500 text-xs">BOT</span>
-                        : <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-xs">HUMAN</span>}
+                      {r.is_bot ? (
+                        <span className="px-2 py-0.5 rounded bg-rose-500/15 text-rose-500 text-xs">
+                          BOT
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-xs">
+                          HUMAN
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 px-2 text-xs">{r.utm_source ?? "—"}</td>
                     <td className="py-2 px-2 text-xs">{r.utm_campaign ?? "—"}</td>
-                    <td className="py-2 px-2 text-xs text-muted-foreground max-w-[12rem] truncate" title={r.referer_host ?? ""}>
+                    <td
+                      className="py-2 px-2 text-xs text-muted-foreground max-w-[12rem] truncate"
+                      title={r.referer_host ?? ""}
+                    >
                       {r.referer_host ?? "—"}
                     </td>
                     <td className="py-2 px-2">{r.country ?? "—"}</td>
@@ -424,7 +602,11 @@ function LinkMonitorPage() {
                   </tr>
                 ))}
                 {!data?.recent.length && (
-                  <tr><td colSpan={9} className="py-6 text-center text-muted-foreground">No clicks in this period</td></tr>
+                  <tr>
+                    <td colSpan={9} className="py-6 text-center text-muted-foreground">
+                      No clicks in this period
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -432,15 +614,25 @@ function LinkMonitorPage() {
         </Card>
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          <Link to="/analytics" className="hover:text-primary">← Back to all analytics</Link>
+          <Link to="/analytics" className="hover:text-primary">
+            ← Back to all analytics
+          </Link>
         </p>
       </main>
     </div>
   );
 }
 
-function KpiCard({ icon, label, value, accent }: {
-  icon: React.ReactNode; label: string; value: string | number; accent: string;
+function KpiCard({
+  icon,
+  label,
+  value,
+  accent,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  accent: string;
 }) {
   return (
     <Card className="p-4">
@@ -461,7 +653,11 @@ function Empty({ msg }: { msg?: string }) {
   );
 }
 
-function BreakdownTable({ rows, showConversion, emptyMsg }: {
+function BreakdownTable({
+  rows,
+  showConversion,
+  emptyMsg,
+}: {
   rows: { key: string; total: number; humans: number; bots: number }[];
   showConversion?: boolean;
   emptyMsg?: string;
@@ -475,9 +671,9 @@ function BreakdownTable({ rows, showConversion, emptyMsg }: {
           <div className="flex items-center justify-between text-sm">
             <span className="truncate">{r.key}</span>
             <span className="text-muted-foreground tabular-nums">
-              {r.total}{" "}
-              <span className="text-emerald-500">{r.humans}</span>
-              {" / "}<span className="text-rose-500">{r.bots}</span>
+              {r.total} <span className="text-emerald-500">{r.humans}</span>
+              {" / "}
+              <span className="text-rose-500">{r.bots}</span>
               {showConversion && r.total > 0 && (
                 <span className="ml-2 text-primary">
                   {Math.round((r.humans / r.total) * 1000) / 10}%

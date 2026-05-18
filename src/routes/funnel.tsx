@@ -3,28 +3,44 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { format } from "date-fns";
 import {
-  Shield, ArrowLeft, RefreshCw, GitCompare, TrendingDown, Target, BarChart3,
-  Calendar as CalendarIcon, Radio,
+  Shield,
+  ArrowLeft,
+  RefreshCw,
+  GitCompare,
+  TrendingDown,
+  Target,
+  BarChart3,
+  Calendar as CalendarIcon,
+  Radio,
 } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getCrossLinkFunnel } from "@/lib/cross-funnel.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 
 export const Route = createFileRoute("/funnel")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: FunnelPage,
 });
@@ -50,7 +66,9 @@ function FunnelPage() {
     d.setHours(23, 59, 59, 999);
     return d;
   });
-  const [sortBy, setSortBy] = useState<"impressions" | "realClicks" | "conversions" | "conversionRate">("impressions");
+  const [sortBy, setSortBy] = useState<
+    "impressions" | "realClicks" | "conversions" | "conversionRate"
+  >("impressions");
 
   const load = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -67,21 +85,19 @@ function FunnelPage() {
     }
   };
 
-  useEffect(() => { void load(); /* eslint-disable-next-line */ }, [from, to]);
+  useEffect(() => {
+    void load(); /* eslint-disable-next-line */
+  }, [from, to]);
 
   // Realtime: subscribe to all new clicks and debounce-refetch.
   useEffect(() => {
     const channel = supabase
       .channel("cross-funnel-live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "clicks" },
-        () => {
-          setPulse((p) => p + 1);
-          if (reloadTimer.current) clearTimeout(reloadTimer.current);
-          reloadTimer.current = setTimeout(() => void load(true), 800);
-        },
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "clicks" }, () => {
+        setPulse((p) => p + 1);
+        if (reloadTimer.current) clearTimeout(reloadTimer.current);
+        reloadTimer.current = setTimeout(() => void load(true), 800);
+      })
       .subscribe((status) => {
         setLive(status === "SUBSCRIBED");
       });
@@ -97,12 +113,16 @@ function FunnelPage() {
     return [...data.rows].sort((a, b) => (b[sortBy] as number) - (a[sortBy] as number));
   }, [data, sortBy]);
 
-  const chartData = useMemo(() => rows.slice(0, 12).map((r) => ({
-    name: r.title || `/r/${r.short_code}`,
-    Impressions: r.impressions,
-    "Real clicks": r.realClicks,
-    Conversions: r.conversions,
-  })), [rows]);
+  const chartData = useMemo(
+    () =>
+      rows.slice(0, 12).map((r) => ({
+        name: r.title || `/r/${r.short_code}`,
+        Impressions: r.impressions,
+        "Real clicks": r.realClicks,
+        Conversions: r.conversions,
+      })),
+    [rows],
+  );
 
   const t = data?.totals;
   const overallCtr = t && t.impressions ? (t.realClicks / t.impressions) * 100 : 0;
@@ -134,7 +154,9 @@ function FunnelPage() {
                 setTo(now);
               }}
             >
-              <SelectTrigger className="w-32"><SelectValue placeholder="Preset" /></SelectTrigger>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Preset" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">Last 24h</SelectItem>
                 <SelectItem value="7">Last 7 days</SelectItem>
@@ -145,29 +167,49 @@ function FunnelPage() {
             </Select>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[130px] justify-start text-left font-normal">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-[130px] justify-start text-left font-normal"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(from, "MMM d")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={from} onSelect={(d) => d && setFrom(d)} initialFocus />
+                <Calendar
+                  mode="single"
+                  selected={from}
+                  onSelect={(d) => d && setFrom(d)}
+                  initialFocus
+                />
               </PopoverContent>
             </Popover>
             <span className="text-muted-foreground text-sm">→</span>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="w-[130px] justify-start text-left font-normal">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-[130px] justify-start text-left font-normal"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {format(to, "MMM d")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={to} onSelect={(d) => d && setTo(d)} initialFocus />
+                <Calendar
+                  mode="single"
+                  selected={to}
+                  onSelect={(d) => d && setTo(d)}
+                  initialFocus
+                />
               </PopoverContent>
             </Popover>
             <div className="hidden sm:flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border border-border">
-              <span className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`} />
+              <span
+                className={`h-2 w-2 rounded-full ${live ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"}`}
+              />
               {live ? "Live" : "Offline"}
               {pulse > 0 && <span className="text-muted-foreground tabular-nums">· {pulse}</span>}
             </div>
@@ -184,11 +226,34 @@ function FunnelPage() {
       <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
         {/* Overall totals */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <Kpi icon={<BarChart3 className="h-5 w-5" />} label="Links" value={data?.rows.length ?? 0} />
-          <Kpi icon={<GitCompare className="h-5 w-5" />} label="Impressions" value={t?.impressions ?? 0} />
-          <Kpi icon={<Target className="h-5 w-5" />} label="Real clicks" value={t?.realClicks ?? 0} accent="text-emerald-500" />
-          <Kpi icon={<Target className="h-5 w-5" />} label="Conversions" value={t?.conversions ?? 0} accent="text-primary" />
-          <Kpi icon={<TrendingDown className="h-5 w-5" />} label="Overall drop-off" value={`${dropOff.toFixed(1)}%`} accent="text-rose-500" />
+          <Kpi
+            icon={<BarChart3 className="h-5 w-5" />}
+            label="Links"
+            value={data?.rows.length ?? 0}
+          />
+          <Kpi
+            icon={<GitCompare className="h-5 w-5" />}
+            label="Impressions"
+            value={t?.impressions ?? 0}
+          />
+          <Kpi
+            icon={<Target className="h-5 w-5" />}
+            label="Real clicks"
+            value={t?.realClicks ?? 0}
+            accent="text-emerald-500"
+          />
+          <Kpi
+            icon={<Target className="h-5 w-5" />}
+            label="Conversions"
+            value={t?.conversions ?? 0}
+            accent="text-primary"
+          />
+          <Kpi
+            icon={<TrendingDown className="h-5 w-5" />}
+            label="Overall drop-off"
+            value={`${dropOff.toFixed(1)}%`}
+            accent="text-rose-500"
+          />
         </div>
 
         {/* Overall funnel bars */}
@@ -218,9 +283,21 @@ function FunnelPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} angle={-20} textAnchor="end" height={70} />
+                  <XAxis
+                    dataKey="name"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={11}
+                    angle={-20}
+                    textAnchor="end"
+                    height={70}
+                  />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                    }}
+                  />
                   <Legend />
                   <Bar dataKey="Impressions" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Real clicks" fill="#22c55e" radius={[4, 4, 0, 0]} />
@@ -240,7 +317,9 @@ function FunnelPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold">Per-link funnel breakdown</h2>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="impressions">Sort: Impressions</SelectItem>
                 <SelectItem value="realClicks">Sort: Real clicks</SelectItem>
@@ -265,28 +344,54 @@ function FunnelPage() {
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const drop = r.impressions ? ((r.impressions - r.conversions) / r.impressions) * 100 : 0;
+                  const drop = r.impressions
+                    ? ((r.impressions - r.conversions) / r.impressions) * 100
+                    : 0;
                   return (
-                    <tr key={r.id} className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
-                        onClick={() => navigate({ to: "/analytics/$linkId", params: { linkId: r.id } })}>
+                    <tr
+                      key={r.id}
+                      className="border-b border-border/50 hover:bg-muted/40 cursor-pointer"
+                      onClick={() =>
+                        navigate({ to: "/analytics/$linkId", params: { linkId: r.id } })
+                      }
+                    >
                       <td className="py-2 px-2 font-mono text-primary underline-offset-2 hover:underline">
                         /r/{r.short_code}
-                        {r.title && <span className="ml-2 text-xs text-muted-foreground">{r.title}</span>}
+                        {r.title && (
+                          <span className="ml-2 text-xs text-muted-foreground">{r.title}</span>
+                        )}
                       </td>
-                      <td className="py-2 px-2 max-w-xs truncate text-muted-foreground" title={r.destination_url}>
+                      <td
+                        className="py-2 px-2 max-w-xs truncate text-muted-foreground"
+                        title={r.destination_url}
+                      >
                         {r.destination_url}
                       </td>
                       <td className="py-2 px-2 text-right tabular-nums">{r.impressions}</td>
-                      <td className="py-2 px-2 text-right tabular-nums text-emerald-500">{r.realClicks}</td>
-                      <td className="py-2 px-2 text-right tabular-nums text-primary">{r.conversions}</td>
-                      <td className="py-2 px-2 text-right tabular-nums">{(r.ctr * 100).toFixed(1)}%</td>
-                      <td className="py-2 px-2 text-right tabular-nums font-semibold">{(r.conversionRate * 100).toFixed(1)}%</td>
-                      <td className="py-2 px-2 text-right tabular-nums text-rose-500">{drop.toFixed(1)}%</td>
+                      <td className="py-2 px-2 text-right tabular-nums text-emerald-500">
+                        {r.realClicks}
+                      </td>
+                      <td className="py-2 px-2 text-right tabular-nums text-primary">
+                        {r.conversions}
+                      </td>
+                      <td className="py-2 px-2 text-right tabular-nums">
+                        {(r.ctr * 100).toFixed(1)}%
+                      </td>
+                      <td className="py-2 px-2 text-right tabular-nums font-semibold">
+                        {(r.conversionRate * 100).toFixed(1)}%
+                      </td>
+                      <td className="py-2 px-2 text-right tabular-nums text-rose-500">
+                        {drop.toFixed(1)}%
+                      </td>
                     </tr>
                   );
                 })}
                 {!rows.length && (
-                  <tr><td colSpan={8} className="py-6 text-center text-muted-foreground">No links yet</td></tr>
+                  <tr>
+                    <td colSpan={8} className="py-6 text-center text-muted-foreground">
+                      No links yet
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -294,15 +399,25 @@ function FunnelPage() {
         </Card>
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          <Link to="/analytics" className="hover:text-primary">← Back to analytics</Link>
+          <Link to="/analytics" className="hover:text-primary">
+            ← Back to analytics
+          </Link>
         </p>
       </main>
     </div>
   );
 }
 
-function Kpi({ icon, label, value, accent = "text-foreground" }: {
-  icon: React.ReactNode; label: string; value: string | number; accent?: string;
+function Kpi({
+  icon,
+  label,
+  value,
+  accent = "text-foreground",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  accent?: string;
 }) {
   return (
     <Card className="p-4">
@@ -315,14 +430,30 @@ function Kpi({ icon, label, value, accent = "text-foreground" }: {
   );
 }
 
-function FunnelBars({ impressions, realClicks, conversions }: {
-  impressions: number; realClicks: number; conversions: number;
+function FunnelBars({
+  impressions,
+  realClicks,
+  conversions,
+}: {
+  impressions: number;
+  realClicks: number;
+  conversions: number;
 }) {
   const max = Math.max(impressions, 1);
   const stages = [
     { label: "Impressions", count: impressions, color: "bg-primary", pct: 100 },
-    { label: "Real clicks", count: realClicks, color: "bg-emerald-500", pct: impressions ? (realClicks / impressions) * 100 : 0 },
-    { label: "Conversions", count: conversions, color: "bg-amber-500", pct: impressions ? (conversions / impressions) * 100 : 0 },
+    {
+      label: "Real clicks",
+      count: realClicks,
+      color: "bg-emerald-500",
+      pct: impressions ? (realClicks / impressions) * 100 : 0,
+    },
+    {
+      label: "Conversions",
+      count: conversions,
+      color: "bg-amber-500",
+      pct: impressions ? (conversions / impressions) * 100 : 0,
+    },
   ];
   return (
     <div className="space-y-3">

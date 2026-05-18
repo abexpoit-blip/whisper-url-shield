@@ -2,7 +2,19 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Shield, ArrowLeft, Plus, Trash2, Save, X, Lock, GripVertical, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import {
+  Shield,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Save,
+  X,
+  Lock,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
+  Eye,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +32,9 @@ import {
 } from "@/lib/admin-variants.functions";
 
 export const Route = createFileRoute("/admin/variants")({
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/login" });
+  beforeLoad: async ({ location }) => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
   },
   component: AdminVariantsPage,
 });
@@ -78,7 +90,9 @@ function AdminVariantsPage() {
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [search, setSearch] = useState("");
-  const [editing, setEditing] = useState<(Omit<VariantRow, "stats"> & { stats?: VariantRow["stats"] }) | null>(null);
+  const [editing, setEditing] = useState<
+    (Omit<VariantRow, "stats"> & { stats?: VariantRow["stats"] }) | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -193,7 +207,9 @@ function AdminVariantsPage() {
             <span className="font-bold">Admin · Variants</span>
           </div>
           <Button asChild variant="outline" size="sm" className="gap-2">
-            <Link to="/dashboard"><ArrowLeft className="h-4 w-4" /> Dashboard</Link>
+            <Link to="/dashboard">
+              <ArrowLeft className="h-4 w-4" /> Dashboard
+            </Link>
           </Button>
         </div>
       </header>
@@ -212,23 +228,31 @@ function AdminVariantsPage() {
             {variants.map((v) => {
               const cr = v.stats.total ? (v.stats.humans / v.stats.total) * 100 : 0;
               return (
-                <div key={v.id} className="border rounded-lg p-4 bg-card flex items-start justify-between gap-4">
+                <div
+                  key={v.id}
+                  className="border rounded-lg p-4 bg-card flex items-start justify-between gap-4"
+                >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <code className="text-xs bg-muted px-2 py-0.5 rounded">{v.slug}</code>
-                      {v.is_active
-                        ? <Badge variant="default">Active</Badge>
-                        : <Badge variant="secondary">Inactive</Badge>}
+                      {v.is_active ? (
+                        <Badge variant="default">Active</Badge>
+                      ) : (
+                        <Badge variant="secondary">Inactive</Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">{v.category}</span>
                     </div>
                     <h3 className="font-semibold mt-1 truncate">{v.title}</h3>
                     <div className="text-xs text-muted-foreground mt-1">
                       {v.sections.length} sections · {v.stats.humans}/{v.stats.total} verified
-                      {" · "}<span className="font-medium text-foreground">{cr.toFixed(1)}% conv</span>
+                      {" · "}
+                      <span className="font-medium text-foreground">{cr.toFixed(1)}% conv</span>
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <Button size="sm" variant="outline" onClick={() => setEditing(v)}>Edit</Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditing(v)}>
+                      Edit
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => remove(v.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -246,8 +270,8 @@ function AdminVariantsPage() {
         <section>
           <h2 className="text-2xl font-bold mb-2">Per-link winner override</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Force a specific variant for a link, bypassing the automatic A/B bandit.
-            Leave empty to let the bandit pick.
+            Force a specific variant for a link, bypassing the automatic A/B bandit. Leave empty to
+            let the bandit pick.
           </p>
 
           <div className="flex gap-2 mb-4">
@@ -255,9 +279,13 @@ function AdminVariantsPage() {
               placeholder="Search by short code, URL or title"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") onSearch(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") onSearch();
+              }}
             />
-            <Button onClick={onSearch} variant="outline">Search</Button>
+            <Button onClick={onSearch} variant="outline">
+              Search
+            </Button>
           </div>
 
           <div className="border rounded-lg overflow-hidden">
@@ -282,7 +310,10 @@ function AdminVariantsPage() {
                     </td>
                     <td className="p-3 text-right">
                       {l.clicks_count}
-                      <span className="text-xs text-muted-foreground"> · {l.bot_clicks_count} bots</span>
+                      <span className="text-xs text-muted-foreground">
+                        {" "}
+                        · {l.bot_clicks_count} bots
+                      </span>
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2 items-center">
@@ -292,9 +323,13 @@ function AdminVariantsPage() {
                           onChange={(e) => applyOverride(l.id, e.target.value)}
                         >
                           <option value="">Auto (bandit)</option>
-                          {variants.filter((v) => v.is_active).map((v) => (
-                            <option key={v.slug} value={v.slug}>{v.slug}</option>
-                          ))}
+                          {variants
+                            .filter((v) => v.is_active)
+                            .map((v) => (
+                              <option key={v.slug} value={v.slug}>
+                                {v.slug}
+                              </option>
+                            ))}
                         </select>
                         {l.override_variant && (
                           <Button size="sm" variant="ghost" onClick={() => applyOverride(l.id, "")}>
@@ -306,7 +341,11 @@ function AdminVariantsPage() {
                   </tr>
                 ))}
                 {links.length === 0 && (
-                  <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No links found.</td></tr>
+                  <tr>
+                    <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                      No links found.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -320,9 +359,7 @@ function AdminVariantsPage() {
           <div className="min-h-screen flex items-start justify-center p-4">
             <div className="bg-card border rounded-lg w-full max-w-6xl my-4 p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold">
-                  {editing.id ? "Edit variant" : "New variant"}
-                </h3>
+                <h3 className="text-lg font-bold">{editing.id ? "Edit variant" : "New variant"}</h3>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="sm" onClick={() => setEditing(null)}>
                     <X className="h-4 w-4" />
@@ -430,7 +467,9 @@ function AdminVariantsPage() {
                             >
                               <GripVertical className="h-4 w-4" />
                             </div>
-                            <span className="text-xs text-muted-foreground font-mono w-6">#{i + 1}</span>
+                            <span className="text-xs text-muted-foreground font-mono w-6">
+                              #{i + 1}
+                            </span>
                             <Input
                               placeholder="Heading"
                               value={s.heading}
@@ -511,9 +550,7 @@ function AdminVariantsPage() {
                         <input
                           type="checkbox"
                           checked={editing.is_active}
-                          onChange={(e) =>
-                            setEditing({ ...editing, is_active: e.target.checked })
-                          }
+                          onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })}
                         />
                         Active (served to traffic)
                       </label>
@@ -525,23 +562,35 @@ function AdminVariantsPage() {
                 <div className="border rounded-lg overflow-hidden bg-background flex flex-col h-[80vh]">
                   <div className="bg-muted/60 px-4 py-2 flex items-center gap-2 border-b">
                     <Eye className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live Preview</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Live Preview
+                    </span>
                   </div>
                   <div className="flex-1 overflow-y-auto p-6">
                     <div className="mx-auto max-w-2xl">
-                      <p className="text-sm uppercase tracking-wider text-primary mb-2">{editing.category || "Category"}</p>
+                      <p className="text-sm uppercase tracking-wider text-primary mb-2">
+                        {editing.category || "Category"}
+                      </p>
                       <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-2">
                         {editing.title || "Article Title"}
                       </h1>
-                      <p className="text-muted-foreground mb-6">{editing.subtitle || "Subtitle goes here..."}</p>
-                      <p className="mb-4 leading-relaxed text-sm">{editing.intro || "Intro paragraph..."}</p>
+                      <p className="text-muted-foreground mb-6">
+                        {editing.subtitle || "Subtitle goes here..."}
+                      </p>
+                      <p className="mb-4 leading-relaxed text-sm">
+                        {editing.intro || "Intro paragraph..."}
+                      </p>
                       {editing.sections.map((s, i) => (
                         <div key={`${s.heading}-${i}`}>
-                          <h2 className="text-lg font-semibold mt-6 mb-2">{s.heading || `Section ${i + 1}`}</h2>
+                          <h2 className="text-lg font-semibold mt-6 mb-2">
+                            {s.heading || `Section ${i + 1}`}
+                          </h2>
                           <p className="mb-4 leading-relaxed text-sm">{s.body || "Body text..."}</p>
                         </div>
                       ))}
-                      <p className="leading-relaxed text-sm">{editing.outro || "Outro paragraph..."}</p>
+                      <p className="leading-relaxed text-sm">
+                        {editing.outro || "Outro paragraph..."}
+                      </p>
 
                       <div className="mt-8 rounded-lg border border-border bg-card p-5 text-center">
                         <h3 className="text-base font-semibold mb-1">Continue reading</h3>
@@ -558,7 +607,9 @@ function AdminVariantsPage() {
               </div>
 
               <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => setEditing(null)}>
+                  Cancel
+                </Button>
                 <Button onClick={save} className="gap-2">
                   <Save className="h-4 w-4" /> Save
                 </Button>
