@@ -119,15 +119,21 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    setAnalyticsLoading(true);
+    setRefreshError(null);
     const days = range === "day" ? 1 : range === "week" ? 7 : 30;
     void fetchAnalytics({ data: { days, linkId: null } })
       .then((res) => {
         setAnalytics(res);
         setLastUpdated(new Date());
+        setRefreshError(null);
       })
-      .catch((error) =>
-        toast.error(error instanceof Error ? error.message : "Analytics failed to load"),
-      );
+      .catch((error) => {
+        const msg = error instanceof Error ? error.message : "Analytics failed to load";
+        setRefreshError(msg);
+        toast.error(msg);
+      })
+      .finally(() => setAnalyticsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, refreshTick]);
 
