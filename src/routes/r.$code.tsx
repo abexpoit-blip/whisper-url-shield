@@ -2,7 +2,56 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createServerFn, useServerFn } from "@tanstack/react-start";
-import { getRequestHeader } from "@tanstack/react-start/server";
+import { getRequestHeader, getRequestUrl } from "@tanstack/react-start/server";
+
+function extractAttribution(urlLike: string | null | undefined) {
+  const out = {
+    utm_source: null as string | null,
+    utm_medium: null as string | null,
+    utm_campaign: null as string | null,
+    utm_term: null as string | null,
+    utm_content: null as string | null,
+    referer_host: null as string | null,
+  };
+  if (!urlLike) return out;
+  try {
+    const u = new URL(urlLike);
+    const g = (k: string) => {
+      const v = u.searchParams.get(k);
+      return v ? v.slice(0, 120) : null;
+    };
+    out.utm_source = g("utm_source");
+    out.utm_medium = g("utm_medium");
+    out.utm_campaign = g("utm_campaign");
+    out.utm_term = g("utm_term");
+    out.utm_content = g("utm_content");
+  } catch { /* ignore */ }
+  return out;
+}
+
+function refererHost(ref: string | null | undefined) {
+  if (!ref) return null;
+  try { return new URL(ref).hostname.replace(/^www\./, "").slice(0, 120); }
+  catch { return null; }
+}
+
+function attributionFromRequestUrl() {
+  // The request URL on resolveLink is the /r/$code?utm_... URL during SSR
+  let urlStr: string | null = null;
+  try { urlStr = getRequestUrl().toString(); } catch { /* ignore */ }
+  const attr = extractAttribution(urlStr);
+  const ref = getRequestHeader("referer") || null;
+  attr.referer_host = refererHost(ref);
+  return attr;
+}
+
+function attributionFromReferer() {
+  // For verifyHuman: referer header is the lander URL carrying UTMs
+  const ref = getRequestHeader("referer") || null;
+  const attr = extractAttribution(ref);
+  attr.referer_host = refererHost(ref);
+  return attr;
+}
 import { z } from "zod";
 import { parseUA } from "@/lib/ua";
 import { pickVariant, type Variant, type VariantSection } from "@/lib/variants";
