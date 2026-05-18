@@ -465,21 +465,30 @@ function Dashboard() {
                       <TrendingUp className="h-3 w-3" /> Live
                     </span>
                   </div>
-                  <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    Total Clicks · {rangeLabel}
-                  </div>
-                  <div className="mt-1 font-display text-3xl font-bold tracking-tight">
-                    {rangeTotals.total.toLocaleString()}
-                  </div>
-                  <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
-                    <path
-                      d={linePath(chartValues.map((v, i) => v + (botChartValues[i] ?? 0)), 100, 24)}
-                      stroke="var(--color-primary)"
-                      strokeWidth="1.5"
-                      fill="none"
-                    />
-                  </svg>
-                </div>
+                  {analyticsLoading ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                      <div className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-6 w-full animate-pulse rounded bg-muted" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Total Clicks · {rangeLabel}
+                      </div>
+                      <div className="mt-1 font-display text-3xl font-bold tracking-tight">
+                        {rangeTotals.total.toLocaleString()}
+                      </div>
+                      <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
+                        <path
+                          d={linePath(chartValues.map((v, i) => v + (botChartValues[i] ?? 0)), 100, 24)}
+                          stroke="var(--color-primary)"
+                          strokeWidth="1.5"
+                          fill="none"
+                        />
+                      </svg>
+                    </>
+                  )}
 
                 {/* Real Humans */}
                 <div
