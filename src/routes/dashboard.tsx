@@ -489,6 +489,7 @@ function Dashboard() {
                       </svg>
                     </>
                   )}
+                </div>
 
                 {/* Real Humans */}
                 <div
