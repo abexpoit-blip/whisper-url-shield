@@ -25,7 +25,7 @@ export async function writeAuditLog(entry: AuditEntry): Promise<void> {
       resource: entry.resource ?? null,
       status: entry.status,
       reason: entry.reason ?? null,
-      metadata: entry.metadata ?? {},
+      metadata: (entry.metadata ?? {}) as never,
       ip_address: entry.ipAddress ?? null,
       user_agent: entry.userAgent ?? null,
     });
