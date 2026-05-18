@@ -142,7 +142,7 @@ function Dashboard() {
     if (!autoRefresh) return;
     const id = setInterval(() => {
       setRefreshTick((t) => t + 1);
-      void load();
+      void load().catch(() => {});
     }, 30_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,7 +151,7 @@ function Dashboard() {
   const manualRefresh = () => {
     setRefreshTick((t) => t + 1);
     void load();
-    toast.success("Refreshing...");
+    toast.success("Refreshing…");
   };
 
   const goToLinkAnalytics = (id: string) => {
