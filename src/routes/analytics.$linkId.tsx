@@ -170,7 +170,7 @@ function LinkMonitorPage() {
             <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics" })}>
+            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics", search: { days, linkId: "all" } })}>
               <ArrowLeft className="h-4 w-4 mr-1" /> All links
             </Button>
           </div>
@@ -639,7 +639,7 @@ function LinkMonitorPage() {
         </Card>
 
         <p className="text-xs text-muted-foreground text-center pt-4">
-          <Link to="/analytics" className="hover:text-primary">
+          <Link to="/analytics" search={{ days, linkId: "all" }} className="hover:text-primary">
             ← Back to all analytics
           </Link>
         </p>
