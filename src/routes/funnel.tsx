@@ -166,7 +166,7 @@ function FunnelPage() {
                 <Calendar mode="single" selected={to} onSelect={(d) => d && setTo(d)} initialFocus />
               </PopoverContent>
             </Popover>
-            <Button variant="outline" size="icon" onClick={load} disabled={loading}>
+            <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/dashboard" })}>
