@@ -5,11 +5,7 @@ import { createServerFn, useServerFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { parseUA } from "@/lib/ua";
-import {
-  VARIANTS, VARIANT_IDS, pickVariant, type VariantId,
-} from "@/lib/variants";
-
-const VariantSchema = z.enum(VARIANT_IDS as [VariantId, ...VariantId[]]);
+import { pickVariant, type Variant, type VariantSection } from "@/lib/variants";
 
 // ---------- Server-side helpers ----------
 
@@ -25,8 +21,6 @@ const BOT_UA_PATTERNS = [
   "preview", "monitor", "uptime", "validator", "checker", "fetcher", "scan",
 ];
 
-// Datacenter / hosting ASN ranges are hard without paid APIs.
-// Instead we score headers — real browsers send a consistent fingerprint.
 function analyzeRequest() {
   const ua = (getRequestHeader("user-agent") || "").toLowerCase();
   const accept = (getRequestHeader("accept") || "").toLowerCase();
@@ -51,22 +45,17 @@ function analyzeRequest() {
     if (ua.includes(p)) { score += 60; reasons.push(`ua:${p}`); break; }
   }
 
-  // Real browsers always send Accept with text/html on top-level navigation
   if (!accept.includes("text/html")) { score += 25; reasons.push("no-html-accept"); }
   if (!acceptLang) { score += 20; reasons.push("no-accept-lang"); }
   if (!acceptEnc.includes("gzip") && !acceptEnc.includes("br")) {
     score += 15; reasons.push("no-compression");
   }
 
-  // Modern Chromium/Firefox/Safari send sec-fetch-* on navigation
   const looksModern = /chrome\/|firefox\/|safari\//.test(ua);
   if (looksModern && !secFetchMode) { score += 15; reasons.push("no-sec-fetch"); }
   if (looksModern && !secFetchDest) { score += 10; reasons.push("no-sec-fetch-dest"); }
-
-  // Chromium sends sec-ch-ua
   if (ua.includes("chrome/") && !secChUa) { score += 20; reasons.push("chrome-no-ch-ua"); }
 
-  // Cloudflare signals (free, automatic on .lovable.app)
   if (cfVerifiedBot === "true") { score += 100; reasons.push("cf-verified-bot"); }
   if (cfBotMgmt) {
     const s = parseInt(cfBotMgmt, 10);
@@ -77,20 +66,31 @@ function analyzeRequest() {
     if (!isNaN(s) && s > 30) { score += 30; reasons.push(`cf-threat:${s}`); }
   }
 
-  // Direct hits with no referer from non-search engines = mildly suspicious for ad traffic
   if (!referer && secFetchSite === "none" && score === 0) {
-    // not penalized by itself, just noted
     reasons.push("direct-nav");
   }
 
   return {
-    ua,
-    isBot: score >= 50,
-    score,
+    ua, isBot: score >= 50, score,
     reasons: reasons.join(","),
-    acceptLang,
-    secChUaMobile,
-    dnt,
+    acceptLang, secChUaMobile, dnt,
+  };
+}
+
+const SectionSchema = z.object({
+  heading: z.string().max(300),
+  body: z.string().max(4000),
+});
+
+function rowToVariant(r: {
+  id: string; slug: string; category: string; title: string; subtitle: string;
+  intro: string; sections: unknown; outro: string;
+}): Variant {
+  const parsed = z.array(SectionSchema).safeParse(r.sections);
+  const sections: VariantSection[] = parsed.success ? parsed.data : [];
+  return {
+    id: r.id, slug: r.slug, category: r.category, title: r.title,
+    subtitle: r.subtitle, intro: r.intro, sections, outro: r.outro,
   };
 }
 
@@ -117,30 +117,54 @@ const resolveLink = createServerFn({ method: "POST" })
 
     if (!link || link.status !== "active") return { found: false as const };
 
-    // ---- A/B variant selection (epsilon-greedy per link) ----
-    // Winning metric = REAL conversion rate = successful human redirects
-    // out of total verify attempts (bot-blocks count as failures).
-    // We only look at verify rows (bot_reason starts with "verify:")
-    // because those are the rows where a real outcome was decided.
-    const { data: recent } = await supabaseAdmin
-      .from("clicks")
-      .select("variant,is_bot,bot_reason")
-      .eq("link_id", link.id)
-      .not("variant", "is", null)
-      .like("bot_reason", "verify:%")
-      .order("created_at", { ascending: false })
-      .limit(1500);
+    // Load active variants from DB
+    const { data: variantRows } = await supabaseAdmin
+      .from("prelander_variants")
+      .select("id,slug,category,title,subtitle,intro,sections,outro")
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true });
 
-    const statsMap = new Map<VariantId, { id: VariantId; total: number; humans: number }>();
-    for (const id of VARIANT_IDS) statsMap.set(id, { id, total: 0, humans: 0 });
-    for (const r of recent ?? []) {
-      const v = r.variant as VariantId | null;
-      if (!v || !statsMap.has(v)) continue;
-      const e = statsMap.get(v)!;
-      e.total += 1; // verify attempt
-      if (!r.is_bot) e.humans += 1; // successful redirect
+    const variants: Variant[] = (variantRows ?? []).map(rowToVariant);
+    if (variants.length === 0) {
+      // No content configured — bail out gracefully.
+      return { found: false as const };
     }
-    const chosenVariant = pickVariant([...statsMap.values()]);
+    const slugs = variants.map((v) => v.slug);
+
+    // Admin override (per-link forced winner) takes precedence
+    const { data: override } = await supabaseAdmin
+      .from("link_variant_overrides")
+      .select("variant_slug")
+      .eq("link_id", link.id)
+      .maybeSingle();
+
+    let chosenSlug: string;
+    if (override && slugs.includes(override.variant_slug)) {
+      chosenSlug = override.variant_slug;
+    } else {
+      // Bandit on REAL conversion (verify rows only)
+      const { data: recent } = await supabaseAdmin
+        .from("clicks")
+        .select("variant,is_bot,bot_reason")
+        .eq("link_id", link.id)
+        .not("variant", "is", null)
+        .like("bot_reason", "verify:%")
+        .order("created_at", { ascending: false })
+        .limit(1500);
+
+      const stats = slugs.map((slug) => {
+        let total = 0, humans = 0;
+        for (const r of recent ?? []) {
+          if (r.variant !== slug) continue;
+          total += 1;
+          if (!r.is_bot) humans += 1;
+        }
+        return { slug, total, humans };
+      });
+      chosenSlug = pickVariant(slugs, stats);
+    }
+
+    const chosenVariant = variants.find((v) => v.slug === chosenSlug) ?? variants[0];
 
     const uaInfo = parseUA(a.ua);
     await supabaseAdmin.from("clicks").insert({
@@ -154,7 +178,7 @@ const resolveLink = createServerFn({ method: "POST" })
       device: uaInfo.device,
       os: uaInfo.os,
       browser: uaInfo.browser,
-      variant: chosenVariant,
+      variant: chosenVariant.slug,
     });
 
     if (a.isBot) {
@@ -177,32 +201,10 @@ const resolveLink = createServerFn({ method: "POST" })
   });
 
 const verifyHuman = createServerFn({ method: "POST" })
-  .inputValidator((input: {
-    code: string;
-    variant: VariantId;
-    fp: {
-      ua: string;
-      webdriver: boolean;
-      languages: string[];
-      platform: string;
-      hwConcurrency: number;
-      deviceMemory: number;
-      screen: { w: number; h: number; cd: number };
-      tz: string;
-      plugins: number;
-      touchPoints: number;
-      hasChrome: boolean;
-      mouse: number;
-      scroll: number;
-      key: number;
-      touch: number;
-      timeOnPage: number;
-      canvasHash: string;
-    };
-  }) =>
+  .inputValidator((input: unknown) =>
     z.object({
       code: z.string().min(1).max(32),
-      variant: VariantSchema,
+      variant: z.string().min(1).max(64),
       fp: z.object({
         ua: z.string().max(500),
         webdriver: z.boolean(),
@@ -249,7 +251,6 @@ const verifyHuman = createServerFn({ method: "POST" })
     const reasons: string[] = a.reasons ? [a.reasons] : [];
     const fp = data.fp;
 
-    // Hard fails
     if (fp.webdriver) { score += 80; reasons.push("webdriver"); }
     if (fp.ua.toLowerCase().includes("headless")) { score += 80; reasons.push("fp-headless"); }
     if (!fp.languages.length) { score += 30; reasons.push("no-languages"); }
@@ -260,23 +261,17 @@ const verifyHuman = createServerFn({ method: "POST" })
     if (fp.canvasHash === "blocked" || fp.canvasHash.length < 4) {
       score += 25; reasons.push("canvas-blocked");
     }
-
-    // Chrome should have window.chrome
     if (fp.ua.toLowerCase().includes("chrome/") && !fp.hasChrome) {
       score += 40; reasons.push("chrome-spoof");
     }
-
-    // Mobile UA should report touch points
     if (/mobile|android|iphone/i.test(fp.ua) && fp.touchPoints === 0) {
       score += 30; reasons.push("mobile-no-touch");
     }
 
-    // Interaction requirement: at least one of mouse/scroll/key/touch must be non-trivial
     const interactions = fp.mouse + fp.scroll + fp.key + fp.touch;
     if (interactions < 2) { score += 50; reasons.push("no-interaction"); }
     if (fp.timeOnPage < 1500) { score += 30; reasons.push("too-fast"); }
 
-    // UA mismatch between request header and JS-reported UA
     if (fp.ua && a.ua && fp.ua.toLowerCase() !== a.ua) {
       score += 25; reasons.push("ua-mismatch");
     }
@@ -309,7 +304,6 @@ const verifyHuman = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "bot-detected" };
     }
 
-    // Verified human — count and reveal destination
     const { data: cur } = await supabaseAdmin
       .from("links").select("clicks_count").eq("id", link.id).single();
     if (cur) {
@@ -332,10 +326,10 @@ export const Route = createFileRoute("/r/$code")({
   component: PreLanderPage,
   head: () => ({
     meta: [
-      { title: "Health & Wellness Tips — Daily Reads" },
+      { title: "Daily Reads — Articles & Tips" },
       {
         name: "description",
-        content: "Practical lifestyle and wellness tips for everyday readers.",
+        content: "Practical lifestyle, wellness and productivity tips for everyday readers.",
       },
       { name: "robots", content: "noindex, nofollow" },
     ],
@@ -363,7 +357,6 @@ function collectFingerprint(metrics: {
   };
   const w = window as Window & { chrome?: unknown };
 
-  // Lightweight canvas fingerprint (just to confirm canvas works)
   let canvasHash = "blocked";
   try {
     const c = document.createElement("canvas");
@@ -376,10 +369,10 @@ function collectFingerprint(metrics: {
       ctx.fillRect(0, 0, 100, 20);
       ctx.fillStyle = "#069";
       ctx.fillText("dr-check", 2, 15);
-      const data = c.toDataURL();
+      const dataUrl = c.toDataURL();
       let h = 0;
-      for (let i = 0; i < data.length; i++) {
-        h = ((h << 5) - h) + data.charCodeAt(i);
+      for (let i = 0; i < dataUrl.length; i++) {
+        h = ((h << 5) - h) + dataUrl.charCodeAt(i);
         h |= 0;
       }
       canvasHash = Math.abs(h).toString(16);
@@ -416,8 +409,7 @@ function collectFingerprint(metrics: {
 function PreLanderPage() {
   const { code } = Route.useParams();
   const loaderData = Route.useLoaderData();
-  const variantId = (loaderData.variant ?? "wellness") as VariantId;
-  const variant = VARIANTS[variantId];
+  const variant = loaderData.variant;
   const verify = useServerFn(verifyHuman);
   const [status, setStatus] = useState<"reading" | "verifying" | "redirecting" | "blocked">("reading");
   const [countdown, setCountdown] = useState(3);
@@ -448,7 +440,7 @@ function PreLanderPage() {
     setStatus("verifying");
     try {
       const fp = collectFingerprint(metrics.current);
-      const res = await verify({ data: { code, variant: variantId, fp } });
+      const res = await verify({ data: { code, variant: variant.slug, fp } });
       if (res.ok) {
         destRef.current = res.destination;
         setStatus("redirecting");
@@ -460,7 +452,6 @@ function PreLanderPage() {
     }
   };
 
-  // Auto-trigger verify after the user has spent ~2.5s with at least some interaction
   useEffect(() => {
     const timer = window.setInterval(() => {
       const m = metrics.current;
@@ -508,8 +499,8 @@ function PreLanderPage() {
           </h1>
           <p className="text-muted-foreground mb-8">{variant.subtitle}</p>
           <p className="mb-4 leading-relaxed">{variant.intro}</p>
-          {variant.sections.map((s) => (
-            <div key={s.heading}>
+          {variant.sections.map((s: VariantSection, i: number) => (
+            <div key={`${s.heading}-${i}`}>
               <h2 className="text-xl font-semibold mt-8 mb-3">{s.heading}</h2>
               <p className="mb-4 leading-relaxed">{s.body}</p>
             </div>

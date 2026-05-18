@@ -73,6 +73,33 @@ export type Database = {
           },
         ]
       }
+      link_variant_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          link_id: string
+          note: string | null
+          updated_at: string
+          variant_slug: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          link_id: string
+          note?: string | null
+          updated_at?: string
+          variant_slug: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          link_id?: string
+          note?: string | null
+          updated_at?: string
+          variant_slug?: string
+        }
+        Relationships: []
+      }
       links: {
         Row: {
           bot_clicks_count: number
@@ -148,6 +175,51 @@ export type Database = {
           price_monthly?: number
           slug?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      prelander_variants: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          intro: string
+          is_active: boolean
+          outro: string
+          sections: Json
+          slug: string
+          sort_order: number
+          subtitle: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          intro?: string
+          is_active?: boolean
+          outro?: string
+          sections?: Json
+          slug: string
+          sort_order?: number
+          subtitle?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          intro?: string
+          is_active?: boolean
+          outro?: string
+          sections?: Json
+          slug?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
