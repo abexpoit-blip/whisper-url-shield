@@ -36,19 +36,45 @@ function LinkMonitorPage() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(7);
+  const [live, setLive] = useState(false);
+  const [pulse, setPulse] = useState(0);
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const res = await fetchMonitor({ data: { linkId, days } });
       setData(res);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load");
+      if (!silent) toast.error(e instanceof Error ? e.message : "Failed to load");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
   useEffect(() => { void load(); /* eslint-disable-next-line */ }, [days, linkId]);
+
+  // Realtime: subscribe to new clicks for this link and debounce-refetch.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`clicks-live-${linkId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "clicks", filter: `link_id=eq.${linkId}` },
+        () => {
+          setPulse((p) => p + 1);
+          if (reloadTimer.current) clearTimeout(reloadTimer.current);
+          reloadTimer.current = setTimeout(() => void load(true), 800);
+        },
+      )
+      .subscribe((status) => {
+        setLive(status === "SUBSCRIBED");
+      });
+    return () => {
+      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line
+  }, [linkId, days]);
 
   const t = data?.totals;
   const shortUrl = data ? `${typeof window !== "undefined" ? window.location.origin : ""}/r/${data.link.short_code}` : "";
