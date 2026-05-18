@@ -31,7 +31,7 @@ function SignupPage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -41,6 +41,12 @@ function SignupPage() {
     });
     setLoading(false);
     if (error) return toast.error(error.message);
+    // If email confirmation is required, no session is returned.
+    if (!data.session) {
+      toast.success("Check your email to confirm your account, then sign in.");
+      navigate({ to: "/login" });
+      return;
+    }
     toast.success("Account created! Welcome.");
     navigate({ to: "/dashboard" });
   };
