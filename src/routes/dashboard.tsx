@@ -21,6 +21,8 @@ import {
   RefreshCw,
   Pause,
   Play,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -89,6 +91,8 @@ function Dashboard() {
   const [search, setSearch] = useState("");
   const [range, setRange] = useState<"day" | "week" | "month">("week");
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -115,15 +119,21 @@ function Dashboard() {
   }, []);
 
   useEffect(() => {
+    setAnalyticsLoading(true);
+    setRefreshError(null);
     const days = range === "day" ? 1 : range === "week" ? 7 : 30;
     void fetchAnalytics({ data: { days, linkId: null } })
       .then((res) => {
         setAnalytics(res);
         setLastUpdated(new Date());
+        setRefreshError(null);
       })
-      .catch((error) =>
-        toast.error(error instanceof Error ? error.message : "Analytics failed to load"),
-      );
+      .catch((error) => {
+        const msg = error instanceof Error ? error.message : "Analytics failed to load";
+        setRefreshError(msg);
+        toast.error(msg);
+      })
+      .finally(() => setAnalyticsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, refreshTick]);
 
@@ -132,7 +142,7 @@ function Dashboard() {
     if (!autoRefresh) return;
     const id = setInterval(() => {
       setRefreshTick((t) => t + 1);
-      void load();
+      void load().catch(() => {});
     }, 30_000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -141,7 +151,7 @@ function Dashboard() {
   const manualRefresh = () => {
     setRefreshTick((t) => t + 1);
     void load();
-    toast.success("Refreshing...");
+    toast.success("Refreshing…");
   };
 
   const goToLinkAnalytics = (id: string) => {
@@ -260,12 +270,30 @@ function Dashboard() {
                   className="h-8 w-56 pl-8 text-sm"
                 />
               </div>
-              <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <span className={`flex h-1.5 w-1.5 rounded-full ${autoRefresh ? "bg-success animate-pulse" : "bg-muted-foreground/50"}`} />
-                <span>
-                  {autoRefresh ? "Auto · 30s" : "Paused"}
-                  {lastUpdated ? ` · ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}
-                </span>
+              <div className="hidden md:flex items-center gap-2 text-[11px] text-muted-foreground">
+                {analyticsLoading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin text-primary" />
+                    <span className="text-primary">Refreshing…</span>
+                  </>
+                ) : refreshError ? (
+                  <>
+                    <AlertCircle className="h-3 w-3 text-destructive" />
+                    <span className="text-destructive">Refresh failed</span>
+                  </>
+                ) : (
+                  <>
+                    <span className={`flex h-1.5 w-1.5 rounded-full ${autoRefresh ? "bg-success animate-pulse" : "bg-muted-foreground/50"}`} />
+                    <span>
+                      {autoRefresh ? "Auto · 30s" : "Paused"}
+                    </span>
+                  </>
+                )}
+                {lastUpdated && !analyticsLoading && (
+                  <span className="text-muted-foreground/70">
+                    · {lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                  </span>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -356,55 +384,69 @@ function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="mt-8 flex items-baseline gap-3">
-                      <span className="font-display text-7xl font-bold tracking-tight">
-                        {(rangeTotals.conversionRate * 100).toFixed(1)}
-                      </span>
-                      <span className="font-display text-3xl font-semibold text-white/80">%</span>
-                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
-                        <TrendingUp className="h-3 w-3" /> {rangeLabel}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-white/80">
-                      Verified humans vs. total traffic — live from your database.
-                    </p>
+                    {analyticsLoading ? (
+                      <div className="mt-8 space-y-4">
+                        <div className="h-20 w-48 animate-pulse rounded-xl bg-white/20" />
+                        <div className="h-24 w-full animate-pulse rounded-xl bg-white/10" />
+                        <div className="grid grid-cols-3 gap-4 border-t border-white/20 pt-5">
+                          <div className="h-14 animate-pulse rounded-lg bg-white/10" />
+                          <div className="h-14 animate-pulse rounded-lg bg-white/10" />
+                          <div className="h-14 animate-pulse rounded-lg bg-white/10" />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-8 flex items-baseline gap-3">
+                          <span className="font-display text-7xl font-bold tracking-tight">
+                            {(rangeTotals.conversionRate * 100).toFixed(1)}
+                          </span>
+                          <span className="font-display text-3xl font-semibold text-white/80">%</span>
+                          <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold backdrop-blur-sm">
+                            <TrendingUp className="h-3 w-3" /> {rangeLabel}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-white/80">
+                          Verified humans vs. total traffic — live from your database.
+                        </p>
 
-                    {/* Sparkline */}
-                    <div className="mt-8">
-                      <svg viewBox="0 0 100 32" className="h-24 w-full" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="heroSparkFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
-                            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        <path
-                          d={`${linePath(chartValues, 100, 32)} L100,32 L0,32 Z`}
-                          fill="url(#heroSparkFill)"
-                        />
-                        <path
-                          d={linePath(chartValues, 100, 32)}
-                          stroke="#ffffff"
-                          strokeWidth="1.5"
-                          fill="none"
-                        />
-                      </svg>
-                    </div>
+                        {/* Sparkline */}
+                        <div className="mt-8">
+                          <svg viewBox="0 0 100 32" className="h-24 w-full" preserveAspectRatio="none">
+                            <defs>
+                              <linearGradient id="heroSparkFill" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#ffffff" stopOpacity="0.55" />
+                                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+                              </linearGradient>
+                            </defs>
+                            <path
+                              d={`${linePath(chartValues, 100, 32)} L100,32 L0,32 Z`}
+                              fill="url(#heroSparkFill)"
+                            />
+                            <path
+                              d={linePath(chartValues, 100, 32)}
+                              stroke="#ffffff"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                          </svg>
+                        </div>
 
-                    <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/20 pt-5">
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/70">Real humans</div>
-                        <div className="mt-1 font-display text-xl font-bold">{rangeTotals.humans.toLocaleString()}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/70">Bots blocked</div>
-                        <div className="mt-1 font-display text-xl font-bold">{rangeTotals.bots.toLocaleString()}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] uppercase tracking-widest text-white/70">Total</div>
-                        <div className="mt-1 font-display text-xl font-bold">{rangeTotals.total.toLocaleString()}</div>
-                      </div>
-                    </div>
+                        <div className="mt-6 grid grid-cols-3 gap-4 border-t border-white/20 pt-5">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest text-white/70">Real humans</div>
+                            <div className="mt-1 font-display text-xl font-bold">{rangeTotals.humans.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest text-white/70">Bots blocked</div>
+                            <div className="mt-1 font-display text-xl font-bold">{rangeTotals.bots.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest text-white/70">Total</div>
+                            <div className="mt-1 font-display text-xl font-bold">{rangeTotals.total.toLocaleString()}</div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -423,20 +465,30 @@ function Dashboard() {
                       <TrendingUp className="h-3 w-3" /> Live
                     </span>
                   </div>
-                  <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    Total Clicks · {rangeLabel}
-                  </div>
-                  <div className="mt-1 font-display text-3xl font-bold tracking-tight">
-                    {rangeTotals.total.toLocaleString()}
-                  </div>
-                  <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
-                    <path
-                      d={linePath(chartValues.map((v, i) => v + (botChartValues[i] ?? 0)), 100, 24)}
-                      stroke="var(--color-primary)"
-                      strokeWidth="1.5"
-                      fill="none"
-                    />
-                  </svg>
+                  {analyticsLoading ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+                      <div className="h-8 w-32 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-6 w-full animate-pulse rounded bg-muted" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Total Clicks · {rangeLabel}
+                      </div>
+                      <div className="mt-1 font-display text-3xl font-bold tracking-tight">
+                        {rangeTotals.total.toLocaleString()}
+                      </div>
+                      <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
+                        <path
+                          d={linePath(chartValues.map((v, i) => v + (botChartValues[i] ?? 0)), 100, 24)}
+                          stroke="var(--color-primary)"
+                          strokeWidth="1.5"
+                          fill="none"
+                        />
+                      </svg>
+                    </>
+                  )}
                 </div>
 
                 {/* Real Humans */}
@@ -450,22 +502,36 @@ function Dashboard() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success">
                       <Activity className="h-4 w-4" />
                     </div>
-                    <span className="font-mono text-[10px] font-semibold text-success">
-                      {rangeTotals.total > 0 ? ((rangeTotals.humans / rangeTotals.total) * 100).toFixed(0) : 0}%
-                    </span>
+                    {analyticsLoading ? (
+                      <div className="h-4 w-10 animate-pulse rounded bg-muted" />
+                    ) : (
+                      <span className="font-mono text-[10px] font-semibold text-success">
+                        {rangeTotals.total > 0 ? ((rangeTotals.humans / rangeTotals.total) * 100).toFixed(0) : 0}%
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                    Real Humans
-                  </div>
-                  <div className="mt-1 font-display text-3xl font-bold tracking-tight">
-                    {rangeTotals.humans.toLocaleString()}
-                  </div>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full bg-success transition-all"
-                      style={{ width: `${rangeTotals.total ? (rangeTotals.humans / rangeTotals.total) * 100 : 0}%` }}
-                    />
-                  </div>
+                  {analyticsLoading ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="h-3 w-20 animate-pulse rounded bg-muted" />
+                      <div className="h-8 w-28 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-1.5 w-full animate-pulse rounded-full bg-muted" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-4 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Real Humans
+                      </div>
+                      <div className="mt-1 font-display text-3xl font-bold tracking-tight">
+                        {rangeTotals.humans.toLocaleString()}
+                      </div>
+                      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-success transition-all"
+                          style={{ width: `${rangeTotals.total ? (rangeTotals.humans / rangeTotals.total) * 100 : 0}%` }}
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -486,15 +552,28 @@ function Dashboard() {
                         Bots blocked
                       </span>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                      <TrendingDown className="h-3 w-3" />
-                      {(rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0).toFixed(1)}%
-                    </span>
+                    {analyticsLoading ? (
+                      <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                        <TrendingDown className="h-3 w-3" />
+                        {(rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0).toFixed(1)}%
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-3 font-display text-3xl font-bold">{rangeTotals.bots.toLocaleString()}</div>
-                  <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
-                    <path d={linePath(botChartValues, 100, 24)} stroke="var(--color-destructive)" strokeWidth="1.5" fill="none" />
-                  </svg>
+                  {analyticsLoading ? (
+                    <div className="mt-3 space-y-3">
+                      <div className="h-8 w-28 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-6 w-full animate-pulse rounded bg-muted" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-3 font-display text-3xl font-bold">{rangeTotals.bots.toLocaleString()}</div>
+                      <svg viewBox="0 0 100 24" className="mt-3 h-8 w-full" preserveAspectRatio="none">
+                        <path d={linePath(botChartValues, 100, 24)} stroke="var(--color-destructive)" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    </>
+                  )}
                 </div>
 
                 <div
@@ -511,8 +590,17 @@ function Dashboard() {
                       Active Links
                     </span>
                   </div>
-                  <div className="mt-3 font-display text-3xl font-bold">{stats.totalLinks}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">Total campaigns in rotation</div>
+                  {analyticsLoading ? (
+                    <div className="mt-3 space-y-2">
+                      <div className="h-8 w-16 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-3 font-display text-3xl font-bold">{stats.totalLinks}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Total campaigns in rotation</div>
+                    </>
+                  )}
                 </div>
 
                 <div
@@ -525,11 +613,21 @@ function Dashboard() {
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
                     <Sparkles className="h-3.5 w-3.5" /> Top performer
                   </div>
-                  <div className="mt-3 truncate font-mono text-sm font-semibold">
-                    /{topLink?.short_code ?? "—"}
-                  </div>
-                  <div className="mt-1 font-display text-2xl font-bold">{topLink?.clicks_count ?? 0}</div>
-                  <div className="mt-1 text-[11px] text-muted-foreground">verified clicks</div>
+                  {analyticsLoading ? (
+                    <div className="mt-3 space-y-2">
+                      <div className="h-5 w-24 animate-pulse rounded bg-muted" />
+                      <div className="h-8 w-20 animate-pulse rounded-lg bg-muted" />
+                      <div className="h-4 w-28 animate-pulse rounded bg-muted" />
+                    </div>
+                  ) : (
+                    <>
+                      <div className="mt-3 truncate font-mono text-sm font-semibold">
+                        /{topLink?.short_code ?? "—"}
+                      </div>
+                      <div className="mt-1 font-display text-2xl font-bold">{topLink?.clicks_count ?? 0}</div>
+                      <div className="mt-1 text-[11px] text-muted-foreground">verified clicks</div>
+                    </>
+                  )}
                 </div>
               </div>
 
