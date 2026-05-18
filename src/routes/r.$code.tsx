@@ -229,6 +229,7 @@ const resolveLink = createServerFn({ method: "POST" })
     // Hard block path
     if (suspicious && cfg.suspicious_action === "block") {
       const uaInfoB = parseUA(a.ua);
+      const attrB = attributionFromRequestUrl();
       await supabaseAdmin.from("clicks").insert({
         link_id: link.id,
         ip_address: ip || null,
@@ -241,6 +242,7 @@ const resolveLink = createServerFn({ method: "POST" })
         os: uaInfoB.os,
         browser: uaInfoB.browser,
         variant: null,
+        ...attrB,
       });
       return {
         found: true as const,
