@@ -44,7 +44,7 @@ export const getLinkMonitor = createServerFn({ method: "POST" })
 
     const { data: clicksRaw } = await supabase
       .from("clicks")
-      .select("is_bot,bot_reason,variant,country,device,browser,os,referer,ip_address,user_agent,created_at")
+      .select("is_bot,bot_reason,variant,country,device,browser,os,referer,ip_address,user_agent,created_at,utm_source,utm_medium,utm_campaign,utm_term,utm_content,referer_host")
       .eq("link_id", data.linkId)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
