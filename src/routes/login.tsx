@@ -22,12 +22,20 @@ function LoginPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (loading || googleLoading) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) return toast.error(error.message);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setLoading(false);
+      return toast.error("Login session was not saved. Please try again.");
+    }
     toast.success("Welcome back!");
-    navigate({ to: "/dashboard" });
+    window.location.assign("/dashboard");
   };
 
   const onGoogle = async () => {
@@ -41,7 +49,7 @@ function LoginPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    window.location.assign("/dashboard");
   };
 
   return (
