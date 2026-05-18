@@ -483,7 +483,7 @@ const verifyHuman = createServerFn({ method: "POST" })
 
     const { data: link } = await supabaseAdmin
       .from("links")
-      .select("id, destination_url, status")
+      .select("id, destination_url, status, targeting")
       .eq("short_code", data.code)
       .maybeSingle();
 
@@ -491,15 +491,26 @@ const verifyHuman = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "not-found" };
     }
 
-    // Re-check protection at verification time (fresh IP velocity)
+    // Re-check protection + targeting at verification time
     const cfg = await loadProtection();
     const rateHits = await ipExceedsRate(ip, cfg);
+
+    const uaInfo2 = parseUA(a.ua);
+    const targetingCheck2 = checkTargeting(link.targeting as Targeting | null, {
+      country: getRequestHeader("cf-ipcountry") || null,
+      device: uaInfo2.device,
+      lang: primaryLang(a.acceptLang),
+    });
 
     let score = a.score;
     const reasons: string[] = a.reasons ? [a.reasons] : [];
     if (rateHits > 0) {
       score += 60;
       reasons.push(`rate:${rateHits}/${cfg.ip_rate_limit_window_sec}s`);
+    }
+    if (targetingCheck2.blocked) {
+      score += 100;
+      reasons.push(`target:${targetingCheck2.reason}`);
     }
     const fp = data.fp;
 
