@@ -2,9 +2,22 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Plus, Copy, ExternalLink, Settings, TrendingUp, TrendingDown,
-  Activity, Bot, MousePointerClick, Link2, ArrowUpRight, Search, Bell,
-  Sparkles, Trash2, CheckCircle2,
+  Plus,
+  Copy,
+  ExternalLink,
+  Settings,
+  TrendingUp,
+  TrendingDown,
+  Activity,
+  Bot,
+  MousePointerClick,
+  Link2,
+  ArrowUpRight,
+  Search,
+  Bell,
+  Sparkles,
+  Trash2,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -46,11 +59,13 @@ function linePath(values: number[], w = 100, h = 28) {
     return `M0,${y.toFixed(1)} L${w},${y.toFixed(1)}`;
   }
   const max = Math.max(...values, 1);
-  return values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w;
-    const y = h - (v / max) * (h - 4) - 2;
-    return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
+  return values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = h - (v / max) * (h - 4) - 2;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
 }
 
 function Dashboard() {
@@ -80,21 +95,32 @@ function Dashboard() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   useEffect(() => {
     const days = range === "day" ? 1 : range === "week" ? 7 : 30;
     void fetchAnalytics({ data: { days, linkId: null } })
       .then(setAnalytics)
-      .catch((error) => toast.error(error instanceof Error ? error.message : "Analytics failed to load"));
-  }, [fetchAnalytics, range]);
+      .catch((error) =>
+        toast.error(error instanceof Error ? error.message : "Analytics failed to load"),
+      );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
-    try { new URL(url); } catch { toast.error("Invalid URL"); setCreating(false); return; }
+    try {
+      new URL(url);
+    } catch {
+      toast.error("Invalid URL");
+      setCreating(false);
+      return;
+    }
     const { error } = await supabase.from("links").insert({
       user_id: userData.user.id,
       short_code: genCode(),
@@ -104,7 +130,8 @@ function Dashboard() {
     setCreating(false);
     if (error) return toast.error(error.message);
     toast.success("Link created");
-    setUrl(""); setTitle("");
+    setUrl("");
+    setTitle("");
     load();
   };
 
@@ -136,23 +163,36 @@ function Dashboard() {
   }, [links]);
 
   const filtered = useMemo(
-    () => links.filter((l) =>
-      !search ||
-      l.short_code.toLowerCase().includes(search.toLowerCase()) ||
-      l.destination_url.toLowerCase().includes(search.toLowerCase()) ||
-      (l.title ?? "").toLowerCase().includes(search.toLowerCase())
-    ),
-    [links, search]
+    () =>
+      links.filter(
+        (l) =>
+          !search ||
+          l.short_code.toLowerCase().includes(search.toLowerCase()) ||
+          l.destination_url.toLowerCase().includes(search.toLowerCase()) ||
+          (l.title ?? "").toLowerCase().includes(search.toLowerCase()),
+      ),
+    [links, search],
   );
 
   const topLink = useMemo(
     () => [...links].sort((a, b) => b.clicks_count - a.clicks_count)[0],
-    [links]
+    [links],
   );
 
-  const chartValues = useMemo(() => (analytics?.timeseries ?? []).map((p) => p.humans), [analytics]);
-  const botChartValues = useMemo(() => (analytics?.timeseries ?? []).map((p) => p.bots), [analytics]);
-  const rangeTotals = analytics?.totals ?? { humans: stats.totalClicks, bots: stats.totalBots, total: stats.totalClicks + stats.totalBots, conversionRate: stats.cleanRate / 100 };
+  const chartValues = useMemo(
+    () => (analytics?.timeseries ?? []).map((p) => p.humans),
+    [analytics],
+  );
+  const botChartValues = useMemo(
+    () => (analytics?.timeseries ?? []).map((p) => p.bots),
+    [analytics],
+  );
+  const rangeTotals = analytics?.totals ?? {
+    humans: stats.totalClicks,
+    bots: stats.totalBots,
+    total: stats.totalClicks + stats.totalBots,
+    conversionRate: stats.cleanRate / 100,
+  };
   const rangeLabel = range === "day" ? "Today" : range === "week" ? "7 days" : "30 days";
 
   return (
@@ -207,7 +247,9 @@ function Dashboard() {
                   </div>
                   <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm" className="gap-1.5">
-                      <Link to="/analytics"><Activity className="h-3.5 w-3.5" /> View analytics</Link>
+                      <Link to="/analytics">
+                        <Activity className="h-3.5 w-3.5" /> View analytics
+                      </Link>
                     </Button>
                   </div>
                 </div>
@@ -226,19 +268,30 @@ function Dashboard() {
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
                           <MousePointerClick className="h-4 w-4" />
                         </div>
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Real clicks</span>
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Real clicks
+                        </span>
                       </div>
                       <div className="flex rounded-lg border border-border/60 bg-background/45 p-0.5">
                         {(["day", "week", "month"] as const).map((item) => (
-                          <button key={item} type="button" onClick={() => setRange(item)} className={`rounded-md px-2 py-1 text-[10px] font-semibold capitalize transition-colors ${range === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setRange(item)}
+                            className={`rounded-md px-2 py-1 text-[10px] font-semibold capitalize transition-colors ${range === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                          >
                             {item}
                           </button>
                         ))}
                       </div>
                     </div>
                     <div className="mt-6 flex items-baseline gap-2">
-                      <span className="font-display text-5xl font-bold tracking-tight">{rangeTotals.humans.toLocaleString()}</span>
-                      <span className="text-sm text-muted-foreground">verified humans · {rangeLabel}</span>
+                      <span className="font-display text-5xl font-bold tracking-tight">
+                        {rangeTotals.humans.toLocaleString()}
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        verified humans · {rangeLabel}
+                      </span>
                     </div>
                     <div className="mt-6">
                       <svg viewBox="0 0 100 28" className="h-16 w-full" preserveAspectRatio="none">
@@ -248,8 +301,16 @@ function Dashboard() {
                             <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
                           </linearGradient>
                         </defs>
-                        <path d={`${linePath(chartValues)} L100,28 L0,28 Z`} fill="url(#sparkFill)" />
-                        <path d={linePath(chartValues)} stroke="var(--color-primary)" strokeWidth="1.5" fill="none" />
+                        <path
+                          d={`${linePath(chartValues)} L100,28 L0,28 Z`}
+                          fill="url(#sparkFill)"
+                        />
+                        <path
+                          d={linePath(chartValues)}
+                          stroke="var(--color-primary)"
+                          strokeWidth="1.5"
+                          fill="none"
+                        />
                       </svg>
                     </div>
                     <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border/60 pt-4">
@@ -259,7 +320,9 @@ function Dashboard() {
                         { label: "Month", value: range === "month" ? rangeTotals.humans : "—" },
                       ].map((s) => (
                         <div key={s.label}>
-                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{s.label}</div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            {s.label}
+                          </div>
                           <div className="mt-0.5 font-mono text-sm font-semibold">{s.value}</div>
                         </div>
                       ))}
@@ -275,27 +338,47 @@ function Dashboard() {
                         <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
                           <Bot className="h-3.5 w-3.5" />
                         </div>
-                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Bots blocked</span>
+                        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                          Bots blocked
+                        </span>
                       </div>
                       <div className="mt-3 flex items-baseline gap-2">
-                        <span className="font-display text-3xl font-bold">{rangeTotals.bots.toLocaleString()}</span>
-                        <span className="text-xs text-muted-foreground">requests · {rangeLabel}</span>
+                        <span className="font-display text-3xl font-bold">
+                          {rangeTotals.bots.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          requests · {rangeLabel}
+                        </span>
                       </div>
                     </div>
                     <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive">
-                      <TrendingDown className="h-3 w-3" /> {(rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0).toFixed(1)}%
+                      <TrendingDown className="h-3 w-3" />{" "}
+                      {(rangeTotals.total
+                        ? (rangeTotals.bots / rangeTotals.total) * 100
+                        : 0
+                      ).toFixed(1)}
+                      %
                     </span>
                   </div>
                   <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-destructive to-warning transition-all"
-                      style={{ width: `${Math.min(100, rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0)}%` }}
+                      style={{
+                        width: `${Math.min(100, rangeTotals.total ? (rangeTotals.bots / rangeTotals.total) * 100 : 0)}%`,
+                      }}
                     />
                   </div>
                   <svg viewBox="0 0 100 28" className="mt-4 h-10 w-full" preserveAspectRatio="none">
-                    <path d={linePath(botChartValues)} stroke="var(--color-destructive)" strokeWidth="1.5" fill="none" />
+                    <path
+                      d={linePath(botChartValues)}
+                      stroke="var(--color-destructive)"
+                      strokeWidth="1.5"
+                      fill="none"
+                    />
                   </svg>
-                  <p className="mt-2 text-[11px] text-muted-foreground">Database-backed bot blocks for the selected period.</p>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Database-backed bot blocks for the selected period.
+                  </p>
                 </div>
 
                 {/* Total links */}
@@ -304,7 +387,9 @@ function Dashboard() {
                     <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       <Link2 className="h-3.5 w-3.5" />
                     </div>
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Links</span>
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      Links
+                    </span>
                   </div>
                   <div className="mt-3 font-display text-3xl font-bold">{stats.totalLinks}</div>
                   <div className="mt-1 text-[11px] text-muted-foreground">Active campaigns</div>
@@ -328,8 +413,12 @@ function Dashboard() {
                 <div className="p-5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="font-display text-base font-semibold">Create new short link</h2>
-                      <p className="text-xs text-muted-foreground">Cloaked, geo-aware, bot-filtered out of the box.</p>
+                      <h2 className="font-display text-base font-semibold">
+                        Create new short link
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Cloaked, geo-aware, bot-filtered out of the box.
+                      </p>
                     </div>
                     <div className="hidden md:flex items-center gap-1.5 text-[11px] text-muted-foreground">
                       <CheckCircle2 className="h-3 w-3 text-success" />
@@ -338,7 +427,9 @@ function Dashboard() {
                   </div>
                   <form onSubmit={create} className="mt-4 grid gap-2 md:grid-cols-[1fr_220px_auto]">
                     <div className="relative">
-                      <Label htmlFor="url" className="sr-only">Destination URL</Label>
+                      <Label htmlFor="url" className="sr-only">
+                        Destination URL
+                      </Label>
                       <Link2 className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         id="url"
@@ -350,8 +441,15 @@ function Dashboard() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="title" className="sr-only">Title</Label>
-                      <Input id="title" placeholder="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
+                      <Label htmlFor="title" className="sr-only">
+                        Title
+                      </Label>
+                      <Input
+                        id="title"
+                        placeholder="Title (optional)"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                      />
                     </div>
                     <Button type="submit" disabled={creating} className="gap-1.5 shadow-glow">
                       <Plus className="h-4 w-4" /> {creating ? "Creating..." : "Create link"}
@@ -365,7 +463,9 @@ function Dashboard() {
                 <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
                   <div>
                     <h2 className="font-display text-base font-semibold">Your links</h2>
-                    <p className="text-xs text-muted-foreground">{filtered.length} of {links.length} shown</p>
+                    <p className="text-xs text-muted-foreground">
+                      {filtered.length} of {links.length} shown
+                    </p>
                   </div>
                 </div>
 
@@ -380,9 +480,13 @@ function Dashboard() {
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                       <Link2 className="h-5 w-5" />
                     </div>
-                    <p className="mt-3 text-sm font-medium">{links.length === 0 ? "No links yet" : "No matches"}</p>
+                    <p className="mt-3 text-sm font-medium">
+                      {links.length === 0 ? "No links yet" : "No matches"}
+                    </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {links.length === 0 ? "Create your first cloaked short link above." : "Try a different search."}
+                      {links.length === 0
+                        ? "Create your first cloaked short link above."
+                        : "Try a different search."}
                     </p>
                   </div>
                 ) : (
@@ -391,7 +495,10 @@ function Dashboard() {
                       const total = l.clicks_count + l.bot_clicks_count;
                       const cleanPct = total > 0 ? (l.clicks_count / total) * 100 : 100;
                       return (
-                        <div key={l.id} className="group flex flex-wrap items-center gap-4 px-5 py-4 transition-colors hover:bg-accent/20">
+                        <div
+                          key={l.id}
+                          className="group flex flex-wrap items-center gap-4 px-5 py-4 transition-colors hover:bg-accent/20"
+                        >
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
                               <button
@@ -419,42 +526,77 @@ function Dashboard() {
                           <div className="hidden md:block w-40">
                             <div className="flex justify-between text-[10px] uppercase tracking-wider text-muted-foreground">
                               <span>Traffic</span>
-                              <span className="font-mono text-success">{cleanPct.toFixed(0)}% clean</span>
+                              <span className="font-mono text-success">
+                                {cleanPct.toFixed(0)}% clean
+                              </span>
                             </div>
                             <div className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-secondary">
                               <div className="bg-success" style={{ width: `${cleanPct}%` }} />
-                              <div className="bg-destructive" style={{ width: `${100 - cleanPct}%` }} />
+                              <div
+                                className="bg-destructive"
+                                style={{ width: `${100 - cleanPct}%` }}
+                              />
                             </div>
                           </div>
 
                           <div className="flex items-center gap-5">
                             <div className="text-right">
-                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Real</div>
-                              <div className="font-mono text-sm font-bold text-success">{l.clicks_count}</div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                Real
+                              </div>
+                              <div className="font-mono text-sm font-bold text-success">
+                                {l.clicks_count}
+                              </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Bots</div>
-                              <div className="font-mono text-sm font-bold text-destructive">{l.bot_clicks_count}</div>
+                              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                Bots
+                              </div>
+                              <div className="font-mono text-sm font-bold text-destructive">
+                                {l.bot_clicks_count}
+                              </div>
                             </div>
                           </div>
 
                           <div className="flex gap-0.5 opacity-60 transition-opacity group-hover:opacity-100">
-                            <Button asChild size="icon" variant="ghost" className="h-8 w-8" title="Analytics">
+                            <Button
+                              asChild
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="Analytics"
+                            >
                               <Link to="/analytics/$linkId" params={{ linkId: l.id }}>
                                 <Activity className="h-3.5 w-3.5" />
                               </Link>
                             </Button>
-                            <Button asChild size="icon" variant="ghost" className="h-8 w-8" title="Settings">
+                            <Button
+                              asChild
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="Settings"
+                            >
                               <Link to="/links/$linkId/settings" params={{ linkId: l.id }}>
                                 <Settings className="h-3.5 w-3.5" />
                               </Link>
                             </Button>
-                            <a href={`/r/${l.short_code}`} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={`/r/${l.short_code}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <Button size="icon" variant="ghost" className="h-8 w-8" title="Open">
                                 <ExternalLink className="h-3.5 w-3.5" />
                               </Button>
                             </a>
-                            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => remove(l.id)} title="Delete">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => remove(l.id)}
+                              title="Delete"
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
