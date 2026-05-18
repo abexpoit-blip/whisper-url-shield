@@ -83,7 +83,7 @@ function AdminVariantsPage() {
 
   const refresh = async () => {
     const [v, l] = await Promise.all([listVariants(), listLinks({ data: { search } })]);
-    setVariants(v.variants as VariantRow[]);
+    setVariants(v.variants as unknown as VariantRow[]);
     setLinks(l.links as LinkRow[]);
   };
 
