@@ -73,8 +73,8 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
         <Link to="/" className="flex items-center gap-2.5 font-display font-bold">
           <div className="relative">
             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary to-primary-glow blur-md opacity-60" />
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow">
-              <Shield className="h-4 w-4 text-primary-foreground" />
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary-glow overflow-hidden">
+              <img src="/favicon.png" alt="LinkShield" className="h-5 w-5" />
             </div>
           </div>
           {!collapsed && (
@@ -152,6 +152,15 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
             <Button size="sm" className="mt-3 h-7 w-full text-xs">
               Upgrade
             </Button>
+          </div>
+        )}
+
+        {/* ExpoIT Dev Credit */}
+        {!collapsed && (
+          <div className="mx-2 mt-2 flex justify-center">
+            <span className="inline-block rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-500 px-2.5 py-0.5 text-[9px] font-bold tracking-wider text-white shadow-glow">
+              Developed by ExpoIT
+            </span>
           </div>
         )}
       </SidebarContent>

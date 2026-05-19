@@ -178,13 +178,18 @@ function LandingPage() {
       <footer className="border-t border-border/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-primary" />
+            <img src="/favicon.png" alt="LinkShield" className="h-4 w-4 rounded" />
             <span>© 2026 LinkShield. All rights reserved.</span>
           </div>
-          <div className="flex gap-6">
+          <div className="flex items-center gap-6">
             <Link to="/pricing">Pricing</Link>
             <Link to="/login">Sign in</Link>
             <Link to="/signup">Sign up</Link>
+            <span
+              className="inline-block rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-500 px-3 py-1 text-[10px] font-bold tracking-wider text-white shadow-glow"
+            >
+              Developed by ExpoIT
+            </span>
           </div>
         </div>
       </footer>
