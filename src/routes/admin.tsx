@@ -90,7 +90,7 @@ function AdminLayout() {
                   {c.last ? (
                     <span className="truncate font-semibold text-foreground">{c.label}</span>
                   ) : (
-                    <Link to={c.href} className="truncate text-muted-foreground hover:text-foreground">
+                    <Link to={c.href as string} className="truncate text-muted-foreground hover:text-foreground">
                       {c.label}
                     </Link>
                   )}
