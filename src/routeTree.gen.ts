@@ -25,6 +25,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminRotationRouteImport } from './routes/admin.rotation'
 import { Route as AdminProtectionRouteImport } from './routes/admin.protection'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
+import { Route as AdminAsnBlocklistRouteImport } from './routes/admin.asn-blocklist'
 import { Route as LinksLinkIdTargetingRouteImport } from './routes/links.$linkId.targeting'
 import { Route as LinksLinkIdSettingsRouteImport } from './routes/links.$linkId.settings'
 
@@ -108,6 +109,11 @@ const AdminAuditRoute = AdminAuditRouteImport.update({
   path: '/admin/audit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAsnBlocklistRoute = AdminAsnBlocklistRouteImport.update({
+  id: '/admin/asn-blocklist',
+  path: '/admin/asn-blocklist',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LinksLinkIdTargetingRoute = LinksLinkIdTargetingRouteImport.update({
   id: '/links/$linkId/targeting',
   path: '/links/$linkId/targeting',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -149,6 +156,7 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -170,6 +178,7 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -192,6 +201,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/sitemap.xml'
+    | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/protection'
     | '/admin/rotation'
@@ -212,6 +222,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/sitemap.xml'
+    | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/protection'
     | '/admin/rotation'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/sitemap.xml'
+    | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/protection'
     | '/admin/rotation'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AdminAsnBlocklistRoute: typeof AdminAsnBlocklistRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminProtectionRoute: typeof AdminProtectionRoute
   AdminRotationRoute: typeof AdminRotationRoute
@@ -377,6 +390,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/asn-blocklist': {
+      id: '/admin/asn-blocklist'
+      path: '/admin/asn-blocklist'
+      fullPath: '/admin/asn-blocklist'
+      preLoaderRoute: typeof AdminAsnBlocklistRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/links/$linkId/targeting': {
       id: '/links/$linkId/targeting'
       path: '/links/$linkId/targeting'
@@ -416,6 +436,7 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AdminAsnBlocklistRoute: AdminAsnBlocklistRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminProtectionRoute: AdminProtectionRoute,
   AdminRotationRoute: AdminRotationRoute,
