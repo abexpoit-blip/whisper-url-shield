@@ -28,7 +28,6 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { redirect } = Route.useSearch();
-  const checkAdmin = useServerFn(getIsAdmin);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,20 +37,9 @@ function LoginPage() {
   useEffect(() => {
     void (async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) return;
-      try {
-        const r = await checkAdmin();
-        if (r.isAdmin) {
-          // Admin must use the dedicated portal — never expose admin via /login.
-          await supabase.auth.signOut();
-          return;
-        }
-      } catch {
-        /* ignore */
-      }
-      navigate({ to: redirect });
+      if (data.session) navigate({ to: redirect });
     })();
-  }, [navigate, redirect, checkAdmin]);
+  }, [navigate, redirect]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
