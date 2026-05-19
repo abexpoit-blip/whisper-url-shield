@@ -1,5 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!data) throw new Error("Forbidden");
+}
 
 export const getIsAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -18,7 +29,6 @@ export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
-    // RLS: only admins can read these aggregates (admin policies on each table)
     const [users, links, clicks, pending, domains, packages] = await Promise.all([
       (supabase as any).from("profiles").select("id", { count: "exact", head: true }),
       (supabase as any).from("links").select("id", { count: "exact", head: true }),
@@ -63,3 +73,151 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       recentLinks: recentLinks ?? [],
     };
   });
+
+// =============== ADVANCED STATS ===============
+
+export const getAdminAdvancedStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const now = new Date();
+    const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const since30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Pull last 30d clicks once (used for trend + top lists). Cap rows.
+    const { data: clicks30d } = await supabaseAdmin
+      .from("clicks")
+      .select("id,is_bot,country,referer_host,created_at,link_id,bot_reason")
+      .gte("created_at", since30d.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(20000);
+
+    const rows = clicks30d ?? [];
+
+    // Daily series (last 7 days)
+    const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+    const seriesMap: Record<string, { total: number; bot: number; human: number }> = {};
+    for (let i = 6; i >= 0; i--) {
+      const k = dayKey(new Date(now.getTime() - i * 86400000));
+      seriesMap[k] = { total: 0, bot: 0, human: 0 };
+    }
+    let last24hTotal = 0;
+    let last24hBot = 0;
+    let last24hHuman = 0;
+    const countryCounts: Record<string, number> = {};
+    const refererCounts: Record<string, number> = {};
+    const linkCounts: Record<string, { total: number; bot: number; human: number }> = {};
+    const botReasonCounts: Record<string, number> = {};
+
+    for (const r of rows) {
+      const created = new Date(r.created_at as string);
+      const k = dayKey(created);
+      if (seriesMap[k]) {
+        seriesMap[k].total++;
+        if (r.is_bot) seriesMap[k].bot++; else seriesMap[k].human++;
+      }
+      if (created >= since24h) {
+        last24hTotal++;
+        if (r.is_bot) last24hBot++; else last24hHuman++;
+      }
+      // 7d aggregates for top lists
+      if (created >= since7d) {
+        const cc = (r.country || "??").toUpperCase();
+        countryCounts[cc] = (countryCounts[cc] ?? 0) + 1;
+        const rh = (r.referer_host || "(direct)").toLowerCase();
+        refererCounts[rh] = (refererCounts[rh] ?? 0) + 1;
+        const lid = r.link_id as string;
+        if (!linkCounts[lid]) linkCounts[lid] = { total: 0, bot: 0, human: 0 };
+        linkCounts[lid].total++;
+        if (r.is_bot) linkCounts[lid].bot++; else linkCounts[lid].human++;
+        if (r.is_bot && r.bot_reason) {
+          const tag = String(r.bot_reason).split(":")[0];
+          botReasonCounts[tag] = (botReasonCounts[tag] ?? 0) + 1;
+        }
+      }
+    }
+
+    const dailySeries = Object.entries(seriesMap).map(([date, v]) => ({ date, ...v }));
+
+    const topCountries = Object.entries(countryCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([country, count]) => ({ country, count }));
+
+    const topReferers = Object.entries(refererCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([host, count]) => ({ host, count }));
+
+    const topBotReasons = Object.entries(botReasonCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([reason, count]) => ({ reason, count }));
+
+    // Resolve top link metadata
+    const topLinkIds = Object.entries(linkCounts)
+      .sort((a, b) => b[1].total - a[1].total)
+      .slice(0, 8)
+      .map(([id]) => id);
+    let topLinks: Array<{ id: string; short_code: string; title: string | null; total: number; bot: number; human: number }> = [];
+    if (topLinkIds.length) {
+      const { data: linkRows } = await supabaseAdmin
+        .from("links")
+        .select("id,short_code,title")
+        .in("id", topLinkIds);
+      const byId = new Map((linkRows ?? []).map((l: any) => [l.id, l]));
+      topLinks = topLinkIds.map((id) => {
+        const l: any = byId.get(id) || { id, short_code: id.slice(0, 8), title: null };
+        return { id: l.id, short_code: l.short_code, title: l.title, ...linkCounts[id] };
+      });
+    }
+
+    // Revenue (approved upgrade requests last 30d)
+    const { data: approvedReqs } = await supabaseAdmin
+      .from("upgrade_requests")
+      .select("amount,created_at,package_slug,status")
+      .eq("status", "approved")
+      .gte("created_at", since30d.toISOString())
+      .limit(5000);
+
+    const revenue30d = (approvedReqs ?? []).reduce((sum: number, r: any) => sum + Number(r.amount ?? 0), 0);
+    const revenueByPackage: Record<string, number> = {};
+    (approvedReqs ?? []).forEach((r: any) => {
+      revenueByPackage[r.package_slug] = (revenueByPackage[r.package_slug] ?? 0) + Number(r.amount ?? 0);
+    });
+
+    // New users last 7d / 30d
+    const { count: newUsers7d } = await supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since7d.toISOString());
+    const { count: newUsers30d } = await supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", since30d.toISOString());
+
+    // Banned + active link counts
+    const { count: bannedUsers } = await supabaseAdmin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("is_banned", true);
+    const { count: activeLinks } = await supabaseAdmin
+      .from("links")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active");
+
+    const total7d = dailySeries.reduce((a, b) => a + b.total, 0);
+    const bot7d = dailySeries.reduce((a, b) => a + b.bot, 0);
+    const human7d = dailySeries.reduce((a, b) => a + b.human, 0);
+
+    return {
+      dailySeries,
+      last24h: { total: last24hTotal, bot: last24hBot, human: last24hHuman },
+      last7d: { total: total7d, bot: bot7d, human: human7d, botPct: total7d ? Math.round((bot7d / total7d) * 100) : 0 },
+      topCountries,
+      topReferers,
+      topLinks,
+      topBotReasons,
+      revenue: { last
