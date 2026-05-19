@@ -412,8 +412,9 @@ function LinkSettingsPage() {
                       variant="ghost"
                       onClick={() => removeDest(d.id)}
                       className="text-destructive"
+                      aria-label="Delete destination"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
                 );
