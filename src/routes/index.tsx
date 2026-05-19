@@ -32,7 +32,7 @@ function LandingPage() {
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-            <Shield className="h-6 w-6 text-primary" />
+            <Logo className="h-7 w-7" />
             <span>LinkShield</span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm md:flex">
