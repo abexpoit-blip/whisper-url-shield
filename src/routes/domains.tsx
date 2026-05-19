@@ -285,8 +285,8 @@ function DnsRow({
           <div className="truncate font-mono text-xs">{name}</div>
           <div className="truncate font-mono text-xs text-muted-foreground">{value}</div>
         </div>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onCopy(value)}>
-          <Copy className="h-3.5 w-3.5" />
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onCopy(value)} aria-label={`Copy ${label}`}>
+          <Copy className="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
       </div>
     </div>
