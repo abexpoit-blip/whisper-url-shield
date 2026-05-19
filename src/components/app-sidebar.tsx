@@ -1,6 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
-  Shield,
   LayoutDashboard,
   BarChart3,
   Trophy,
@@ -16,6 +15,7 @@ import {
   CreditCard,
   Rocket,
 } from "lucide-react";
+import { Logo } from "@/components/logo";
 import {
   Sidebar,
   SidebarContent,
