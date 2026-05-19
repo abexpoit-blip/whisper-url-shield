@@ -240,8 +240,9 @@ function DomainCard({
             disabled={busy}
             onClick={onRemove}
             className="text-destructive hover:text-destructive"
+            aria-label={`Remove domain ${domain.domain}`}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
       </div>
