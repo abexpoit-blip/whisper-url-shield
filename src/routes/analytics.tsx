@@ -94,13 +94,43 @@ const PIE_COLORS = [
   "#84cc16", // lime
 ];
 
+const FONT_STACK =
+  'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif';
+
 const TOOLTIP_STYLE = {
   background: "#ffffff",
   border: "1px solid #e5e7eb",
   borderRadius: "12px",
   boxShadow: "0 10px 30px -10px rgba(124, 58, 237, 0.2)",
   fontSize: "12px",
+  fontFamily: FONT_STACK,
   padding: "8px 12px",
+} as const;
+
+const TOOLTIP_LABEL_STYLE = {
+  color: "#111827",
+  fontWeight: 600,
+  marginBottom: 4,
+} as const;
+
+const TOOLTIP_ITEM_STYLE = {
+  color: "#374151",
+  fontSize: 12,
+} as const;
+
+const AXIS_TICK = {
+  fill: "#6b7280",
+  fontSize: 11,
+  fontFamily: FONT_STACK,
+  fontWeight: 500,
+} as const;
+
+const LEGEND_WRAPPER = {
+  fontSize: "12px",
+  fontFamily: FONT_STACK,
+  fontWeight: 500,
+  paddingTop: "8px",
+  cursor: "pointer",
 } as const;
 
 type Analytics = Awaited<ReturnType<typeof getAnalytics>>;
