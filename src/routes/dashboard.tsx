@@ -305,14 +305,15 @@ function Dashboard() {
                 className="h-8 w-8"
                 onClick={() => setAutoRefresh((v) => !v)}
                 title={autoRefresh ? "Pause auto-refresh" : "Resume auto-refresh"}
+                aria-label={autoRefresh ? "Pause auto-refresh" : "Resume auto-refresh"}
               >
-                {autoRefresh ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                {autoRefresh ? <Pause className="h-4 w-4" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={manualRefresh} title="Refresh now">
-                <RefreshCw className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={manualRefresh} title="Refresh now" aria-label="Refresh now">
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 relative">
-                <Bell className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 relative" aria-label="Notifications">
+                <Bell className="h-4 w-4" aria-hidden="true" />
                 <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
               </Button>
             </div>
