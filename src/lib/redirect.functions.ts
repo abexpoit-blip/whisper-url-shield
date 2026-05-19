@@ -386,14 +386,15 @@ export const resolveLink = createServerFn({ method: "POST" })
 
     const uaInfo = parseUA(a.ua);
     const attr = attributionFromRequestUrl();
+    const silentBot = suspicious; // bots/targeting-blocked still get a real article, just no redirect
     await supabaseAdmin.from("clicks").insert({
       link_id: link.id,
       ip_address: ip || null,
       country,
       user_agent: a.ua || null,
       referer: referer || null,
-      is_bot: a.isBot,
-      bot_reason: suspicionReasons || null,
+      is_bot: silentBot || a.isBot,
+      bot_reason: silentBot ? `silent:${suspicionReasons}` : (suspicionReasons || null),
       device: uaInfo.device,
       os: uaInfo.os,
       browser: uaInfo.browser,
@@ -401,7 +402,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       ...attr,
     });
 
-    if (a.isBot) {
+    if (a.isBot || silentBot) {
       const { data: cur } = await supabaseAdmin
         .from("links").select("bot_clicks_count").eq("id", link.id).single();
       if (cur) {
@@ -415,6 +416,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       found: true as const,
       blocked: false as const,
       safe: false as const,
+      silentBot,
       linkId: link.id,
       variant: chosenVariant,
       preFlagBot: a.isBot,
