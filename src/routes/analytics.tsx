@@ -1,5 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useServerFn } from "@tanstack/react-start";
 import {
   Shield,
@@ -93,23 +94,57 @@ const PIE_COLORS = [
   "#84cc16", // lime
 ];
 
+const FONT_STACK =
+  'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto, "Helvetica Neue", sans-serif';
+
 const TOOLTIP_STYLE = {
   background: "#ffffff",
   border: "1px solid #e5e7eb",
   borderRadius: "12px",
   boxShadow: "0 10px 30px -10px rgba(124, 58, 237, 0.2)",
   fontSize: "12px",
+  fontFamily: FONT_STACK,
   padding: "8px 12px",
+} as const;
+
+const TOOLTIP_LABEL_STYLE = {
+  color: "#111827",
+  fontWeight: 600,
+  marginBottom: 4,
+} as const;
+
+const TOOLTIP_ITEM_STYLE = {
+  color: "#374151",
+  fontSize: 12,
+} as const;
+
+const AXIS_TICK = {
+  fill: "#6b7280",
+  fontSize: 11,
+  fontFamily: FONT_STACK,
+  fontWeight: 500,
+} as const;
+
+const LEGEND_WRAPPER = {
+  fontSize: "12px",
+  fontFamily: FONT_STACK,
+  fontWeight: 500,
+  paddingTop: "8px",
+  cursor: "pointer",
 } as const;
 
 type Analytics = Awaited<ReturnType<typeof getAnalytics>>;
 
 function AnalyticsPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const fetchAnalytics = useServerFn(getAnalytics);
   const { days, linkId } = Route.useSearch();
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const toggleSeries = (key: string) =>
+    setHidden((h) => ({ ...h, [key]: !h[key] }));
 
   const setDays = (n: number) =>
     navigate({ to: "/analytics", search: (prev: AnalyticsSearch) => ({ ...prev, days: n }), replace: true });
@@ -217,10 +252,13 @@ function AnalyticsPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
             <h2 className="font-semibold">Real users vs bots over time</h2>
           </div>
-          <div className="h-72">
+          <div className="h-72 sm:h-80 -mx-2 sm:mx-0">
             {data && data.timeseries.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.timeseries}>
+                <AreaChart
+                  data={data.timeseries}
+                  margin={{ top: 8, right: 12, left: isMobile ? -16 : 0, bottom: 0 }}
+                >
                   <defs>
                     <linearGradient id="h" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#22c55e" stopOpacity={0.6} />
@@ -231,24 +269,59 @@ function AnalyticsPage() {
                       <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
-                  <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Legend />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={AXIS_TICK}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                    minTickGap={isMobile ? 24 : 12}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={AXIS_TICK}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                    width={isMobile ? 32 : 44}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
+                    cursor={{ stroke: "#c4b5fd", strokeWidth: 1 }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={LEGEND_WRAPPER}
+                    onClick={(e) => toggleSeries(String(e.dataKey))}
+                    formatter={(value, entry) => {
+                      const key = String((entry as { dataKey?: string }).dataKey);
+                      const off = hidden[key];
+                      return (
+                        <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
+                          {value}
+                        </span>
+                      );
+                    }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="humans"
                     stroke="#22c55e"
+                    strokeWidth={2}
                     fill="url(#h)"
                     name="Real users"
+                    hide={hidden.humans}
                   />
                   <Area
                     type="monotone"
                     dataKey="bots"
                     stroke="#ef4444"
+                    strokeWidth={2}
                     fill="url(#b)"
                     name="Bots"
+                    hide={hidden.bots}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -265,21 +338,41 @@ function AnalyticsPage() {
               <AlertTriangle className="h-4 w-4 text-rose-500" />
               <h2 className="font-semibold">Top bot reject reasons</h2>
             </div>
-            <div className="h-72">
+            <div className="h-72 sm:h-80 -mx-2 sm:mx-0">
               {data && data.topReasons.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.topReasons} layout="vertical" margin={{ left: 80 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis type="number" stroke="#6b7280" fontSize={12} />
+                  <BarChart
+                    data={data.topReasons}
+                    layout="vertical"
+                    margin={{ top: 4, right: 16, left: 4, bottom: 4 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      tick={AXIS_TICK}
+                      tickLine={false}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                      allowDecimals={false}
+                    />
                     <YAxis
                       type="category"
                       dataKey="reason"
-                      stroke="#6b7280"
-                      fontSize={11}
-                      width={120}
+                      tick={AXIS_TICK}
+                      tickLine={false}
+                      axisLine={false}
+                      width={isMobile ? 90 : 140}
+                      interval={0}
+                      tickFormatter={(v: string) =>
+                        v.length > (isMobile ? 12 : 18) ? `${v.slice(0, isMobile ? 12 : 18)}…` : v
+                      }
                     />
-                    <Tooltip contentStyle={TOOLTIP_STYLE} />
-                    <Bar dataKey="count" fill="#7c3aed" radius={[0, 4, 4, 0]} />
+                    <Tooltip
+                      contentStyle={TOOLTIP_STYLE}
+                      labelStyle={TOOLTIP_LABEL_STYLE}
+                      itemStyle={TOOLTIP_ITEM_STYLE}
+                      cursor={{ fill: "rgba(124,58,237,0.06)" }}
+                    />
+                    <Bar dataKey="count" fill="#7c3aed" radius={[0, 6, 6, 0]} barSize={isMobile ? 14 : 20} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -294,25 +387,66 @@ function AnalyticsPage() {
               <Smartphone className="h-4 w-4 text-primary" />
               <h2 className="font-semibold">Device breakdown</h2>
             </div>
-            <div className="h-72">
+            <div className="h-80 sm:h-80">
               {data && data.byDevice.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
+                  <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                     <Pie
-                      data={data.byDevice}
+                      data={data.byDevice.filter((d) => !hidden[`dev:${d.key}`])}
                       dataKey="total"
                       nameKey="key"
                       cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label
+                      cy="45%"
+                      innerRadius={isMobile ? 38 : 50}
+                      outerRadius={isMobile ? 68 : 90}
+                      paddingAngle={2}
+                      label={
+                        isMobile
+                          ? false
+                          : ({ percent }) => `${Math.round((percent ?? 0) * 100)}%`
+                      }
+                      labelLine={false}
                     >
-                      {data.byDevice.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
+                      {data.byDevice
+                        .filter((d) => !hidden[`dev:${d.key}`])
+                        .map((d) => {
+                          const origIdx = data.byDevice.findIndex((x) => x.key === d.key);
+                          return (
+                            <Cell
+                              key={d.key}
+                              fill={PIE_COLORS[origIdx % PIE_COLORS.length]}
+                              stroke="#ffffff"
+                              strokeWidth={2}
+                            />
+                          );
+                        })}
                     </Pie>
-                    <Tooltip contentStyle={TOOLTIP_STYLE} />
-                    <Legend />
+                    <Tooltip
+                      contentStyle={TOOLTIP_STYLE}
+                      labelStyle={TOOLTIP_LABEL_STYLE}
+                      itemStyle={TOOLTIP_ITEM_STYLE}
+                      formatter={(value: number, name: string) => [`${value} clicks`, name]}
+                    />
+                    <Legend
+                      iconType="circle"
+                      verticalAlign="bottom"
+                      wrapperStyle={LEGEND_WRAPPER}
+                      onClick={(e) => toggleSeries(`dev:${String(e.value)}`)}
+                      payload={data.byDevice.map((d, i) => ({
+                        value: d.key,
+                        type: "circle",
+                        id: d.key,
+                        color: hidden[`dev:${d.key}`] ? "#d1d5db" : PIE_COLORS[i % PIE_COLORS.length],
+                      }))}
+                      formatter={(value) => {
+                        const off = hidden[`dev:${String(value)}`];
+                        return (
+                          <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
+                            {value}
+                          </span>
+                        );
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
