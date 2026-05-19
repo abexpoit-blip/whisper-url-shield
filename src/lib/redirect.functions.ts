@@ -511,9 +511,13 @@ export const verifyHuman = createServerFn({ method: "POST" })
       score += 30; reasons.push("mobile-no-touch");
     }
 
+    // Auto-redirect flow: real users no longer click "Continue", so
+    // zero interactions / sub-second time-on-page is the NORMAL human path.
+    // Keep as weak soft signals only — they stack with hard bot signals
+    // (webdriver, headless, canvas-blocked, cf-bot-score) but never block alone.
     const interactions = fp.mouse + fp.scroll + fp.key + fp.touch;
-    if (interactions < 2) { score += 50; reasons.push("no-interaction"); }
-    if (fp.timeOnPage < 1500) { score += 30; reasons.push("too-fast"); }
+    if (interactions === 0) { score += 10; reasons.push("no-interaction"); }
+    if (fp.timeOnPage < 100) { score += 10; reasons.push("too-fast"); }
 
     if (fp.ua && a.ua && fp.ua.toLowerCase() !== a.ua) {
       score += 25; reasons.push("ua-mismatch");
