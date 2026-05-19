@@ -152,6 +152,21 @@ function AuthSync() {
   const router = useRouter();
   const queryClient = useQueryClient();
   useEffect(() => {
+    // Verify the persisted session points to a real user. If the user was
+    // deleted server-side, the stored JWT is "valid" but every protected
+    // server fn 401s with "User from sub claim in JWT does not exist".
+    // Detect that case and clear the stale session.
+    (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) return;
+      const { error } = await supabase.auth.getUser();
+      if (error) {
+        await supabase.auth.signOut();
+        router.invalidate();
+        queryClient.clear();
+      }
+    })();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       router.invalidate();
       queryClient.invalidateQueries();
