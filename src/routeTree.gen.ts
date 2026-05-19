@@ -26,10 +26,13 @@ import { Route as AdminScoresRouteImport } from './routes/admin.scores'
 import { Route as AdminRotationRouteImport } from './routes/admin.rotation'
 import { Route as AdminRefererRulesRouteImport } from './routes/admin.referer-rules'
 import { Route as AdminProtectionRouteImport } from './routes/admin.protection'
+import { Route as AdminDomainHealthRouteImport } from './routes/admin.domain-health'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAsnBlocklistRouteImport } from './routes/admin.asn-blocklist'
+import { Route as LinksLinkIdTimeRulesRouteImport } from './routes/links.$linkId.time-rules'
 import { Route as LinksLinkIdTargetingRouteImport } from './routes/links.$linkId.targeting'
 import { Route as LinksLinkIdSettingsRouteImport } from './routes/links.$linkId.settings'
+import { Route as ApiPublicHooksDomainHealthRouteImport } from './routes/api/public/hooks/domain-health'
 import { Route as ApiPublicHooksAutopilotRouteImport } from './routes/api/public/hooks/autopilot'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -117,6 +120,11 @@ const AdminProtectionRoute = AdminProtectionRouteImport.update({
   path: '/admin/protection',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDomainHealthRoute = AdminDomainHealthRouteImport.update({
+  id: '/admin/domain-health',
+  path: '/admin/domain-health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/admin/audit',
   path: '/admin/audit',
@@ -125,6 +133,11 @@ const AdminAuditRoute = AdminAuditRouteImport.update({
 const AdminAsnBlocklistRoute = AdminAsnBlocklistRouteImport.update({
   id: '/admin/asn-blocklist',
   path: '/admin/asn-blocklist',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LinksLinkIdTimeRulesRoute = LinksLinkIdTimeRulesRouteImport.update({
+  id: '/links/$linkId/time-rules',
+  path: '/links/$linkId/time-rules',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LinksLinkIdTargetingRoute = LinksLinkIdTargetingRouteImport.update({
@@ -137,6 +150,12 @@ const LinksLinkIdSettingsRoute = LinksLinkIdSettingsRouteImport.update({
   path: '/links/$linkId/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksDomainHealthRoute =
+  ApiPublicHooksDomainHealthRouteImport.update({
+    id: '/api/public/hooks/domain-health',
+    path: '/api/public/hooks/domain-health',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutopilotRoute = ApiPublicHooksAutopilotRouteImport.update({
   id: '/api/public/hooks/autopilot',
   path: '/api/public/hooks/autopilot',
@@ -155,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -165,7 +185,9 @@ export interface FileRoutesByFullPath {
   '/r/$code': typeof RCodeRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
+  '/links/$linkId/time-rules': typeof LinksLinkIdTimeRulesRoute
   '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
+  '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -179,6 +201,7 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -189,7 +212,9 @@ export interface FileRoutesByTo {
   '/r/$code': typeof RCodeRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
+  '/links/$linkId/time-rules': typeof LinksLinkIdTimeRulesRoute
   '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
+  '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -204,6 +229,7 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -214,7 +240,9 @@ export interface FileRoutesById {
   '/r/$code': typeof RCodeRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
+  '/links/$linkId/time-rules': typeof LinksLinkIdTimeRulesRoute
   '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
+  '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -230,6 +258,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin/asn-blocklist'
     | '/admin/audit'
+    | '/admin/domain-health'
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
@@ -240,7 +269,9 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
+    | '/links/$linkId/time-rules'
     | '/api/public/hooks/autopilot'
+    | '/api/public/hooks/domain-health'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,6 +285,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin/asn-blocklist'
     | '/admin/audit'
+    | '/admin/domain-health'
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
@@ -264,7 +296,9 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
+    | '/links/$linkId/time-rules'
     | '/api/public/hooks/autopilot'
+    | '/api/public/hooks/domain-health'
   id:
     | '__root__'
     | '/'
@@ -278,6 +312,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/admin/asn-blocklist'
     | '/admin/audit'
+    | '/admin/domain-health'
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
@@ -288,7 +323,9 @@ export interface FileRouteTypes {
     | '/r/$code'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
+    | '/links/$linkId/time-rules'
     | '/api/public/hooks/autopilot'
+    | '/api/public/hooks/domain-health'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -303,6 +340,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   AdminAsnBlocklistRoute: typeof AdminAsnBlocklistRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminDomainHealthRoute: typeof AdminDomainHealthRoute
   AdminProtectionRoute: typeof AdminProtectionRoute
   AdminRefererRulesRoute: typeof AdminRefererRulesRoute
   AdminRotationRoute: typeof AdminRotationRoute
@@ -312,7 +350,9 @@ export interface RootRouteChildren {
   RCodeRoute: typeof RCodeRoute
   LinksLinkIdSettingsRoute: typeof LinksLinkIdSettingsRoute
   LinksLinkIdTargetingRoute: typeof LinksLinkIdTargetingRoute
+  LinksLinkIdTimeRulesRoute: typeof LinksLinkIdTimeRulesRoute
   ApiPublicHooksAutopilotRoute: typeof ApiPublicHooksAutopilotRoute
+  ApiPublicHooksDomainHealthRoute: typeof ApiPublicHooksDomainHealthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -436,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProtectionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/domain-health': {
+      id: '/admin/domain-health'
+      path: '/admin/domain-health'
+      fullPath: '/admin/domain-health'
+      preLoaderRoute: typeof AdminDomainHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/admin/audit'
@@ -450,6 +497,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAsnBlocklistRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/links/$linkId/time-rules': {
+      id: '/links/$linkId/time-rules'
+      path: '/links/$linkId/time-rules'
+      fullPath: '/links/$linkId/time-rules'
+      preLoaderRoute: typeof LinksLinkIdTimeRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/links/$linkId/targeting': {
       id: '/links/$linkId/targeting'
       path: '/links/$linkId/targeting'
@@ -462,6 +516,13 @@ declare module '@tanstack/react-router' {
       path: '/links/$linkId/settings'
       fullPath: '/links/$linkId/settings'
       preLoaderRoute: typeof LinksLinkIdSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/domain-health': {
+      id: '/api/public/hooks/domain-health'
+      path: '/api/public/hooks/domain-health'
+      fullPath: '/api/public/hooks/domain-health'
+      preLoaderRoute: typeof ApiPublicHooksDomainHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/autopilot': {
@@ -498,6 +559,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   AdminAsnBlocklistRoute: AdminAsnBlocklistRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminDomainHealthRoute: AdminDomainHealthRoute,
   AdminProtectionRoute: AdminProtectionRoute,
   AdminRefererRulesRoute: AdminRefererRulesRoute,
   AdminRotationRoute: AdminRotationRoute,
@@ -507,7 +569,9 @@ const rootRouteChildren: RootRouteChildren = {
   RCodeRoute: RCodeRoute,
   LinksLinkIdSettingsRoute: LinksLinkIdSettingsRoute,
   LinksLinkIdTargetingRoute: LinksLinkIdTargetingRoute,
+  LinksLinkIdTimeRulesRoute: LinksLinkIdTimeRulesRoute,
   ApiPublicHooksAutopilotRoute: ApiPublicHooksAutopilotRoute,
+  ApiPublicHooksDomainHealthRoute: ApiPublicHooksDomainHealthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -325,6 +325,18 @@ async function checkRefererRule(host: string | null): Promise<"safe" | "cloak" |
   return null;
 }
 
+async function checkTimeRule(linkId: string): Promise<"safe" | "cloak" | "pass" | null> {
+  const { data } = await supabaseAdmin
+    .from("link_time_rules")
+    .select("days_mask,start_minute,end_minute,action,timezone,priority")
+    .eq("link_id", linkId)
+    .eq("is_active", true)
+    .order("priority", { ascending: true });
+  if (!data || data.length === 0) return null;
+  const { pickActiveTimeRule } = await import("@/lib/time-rule-eval");
+  return pickActiveTimeRule(data as any);
+}
+
 async function pickGeoDeviceDestination(
   linkId: string,
   country: string | null,
@@ -545,12 +557,15 @@ export const resolveLink = createServerFn({ method: "POST" })
     const fbHit = await checkFbBlocklist(ip, asn);
     const refHost = refererHost(referer);
     const refAction = await checkRefererRule(refHost);
+    const timeAction = await checkTimeRule(link.id);
     const refSafe = refAction === "safe" || refAction === "cloak";
-    const silentBot = suspicious || Boolean(fbHit) || refSafe;
+    const timeSafe = timeAction === "safe" || timeAction === "cloak";
+    const silentBot = suspicious || Boolean(fbHit) || refSafe || timeSafe;
     const defenseReasons = [
       suspicionReasons,
       fbHit || "",
       refAction ? `referer:${refAction}:${refHost}` : "",
+      timeAction ? `time:${timeAction}` : "",
     ].filter(Boolean).join(",");
     await supabaseAdmin.from("clicks").insert({
       link_id: link.id,
@@ -641,7 +656,8 @@ export const verifyHuman = createServerFn({ method: "POST" })
     const fbHit = await checkFbBlocklist(ip, asn);
     const refHost = refererHost(getRequestHeader("referer"));
     const refAction = await checkRefererRule(refHost);
-    if (fbHit || refAction === "safe" || refAction === "cloak") {
+    const timeAction = await checkTimeRule(link.id);
+    if (fbHit || refAction === "safe" || refAction === "cloak" || timeAction === "safe" || timeAction === "cloak") {
       await supabaseAdmin.from("clicks").insert({
         link_id: link.id,
         ip_address: ip || null,
@@ -649,7 +665,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
         user_agent: a.ua || null,
         referer: getRequestHeader("referer") || null,
         is_bot: true,
-        bot_reason: `verify-silent:${fbHit || ""}${refAction ? `|referer:${refAction}:${refHost}` : ""}`,
+        bot_reason: `verify-silent:${fbHit || ""}${refAction ? `|referer:${refAction}:${refHost}` : ""}${timeAction ? `|time:${timeAction}` : ""}`,
         device: parseUA(a.ua).device,
         os: parseUA(a.ua).os,
         browser: parseUA(a.ua).browser,
