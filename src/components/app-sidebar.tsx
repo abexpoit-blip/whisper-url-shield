@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Settings,
   GitBranch,
-  Sparkles,
   LogOut,
   Globe2,
   ScrollText,
@@ -14,6 +13,7 @@ import {
   Package,
   CreditCard,
   Rocket,
+  LayoutGrid,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import {
@@ -30,7 +30,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { LayoutGrid } from "lucide-react";
 
 const mainNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -71,10 +70,7 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
       <SidebarHeader className="border-b border-sidebar-border/60 px-4 py-5">
         <Link to="/" className="flex items-center gap-2.5 font-display font-bold">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-primary to-primary-glow blur-md opacity-50" />
-            <Logo className="relative h-8 w-8 drop-shadow-sm" />
-          </div>
+          <Logo glow glowSize="sm" className="h-8 w-8 drop-shadow-sm" />
           {!collapsed && (
             <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent text-lg tracking-tight">
               LinkShield
