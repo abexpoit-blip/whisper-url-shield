@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, Link, redirect, useRouter, useRouterState, use
 import { useEffect, useState, useMemo } from "react";
 import {
   ArrowLeft, ChevronRight, ChevronLeft, Shield, LayoutGrid,
-  LogOut, User as UserIcon, LayoutDashboard,
+  LogOut, LayoutDashboard,
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
