@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useIsAdmin } from "@/hooks/use-is-admin";
+import { LayoutGrid } from "lucide-react";
 
 const mainNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -41,6 +43,7 @@ const mainNav = [
 ];
 
 const adminNav = [
+  { title: "Admin Dashboard", url: "/admin", icon: LayoutGrid },
   { title: "Packages", url: "/admin/packages", icon: Package },
   { title: "Payments", url: "/admin/payments", icon: CreditCard },
   { title: "Rotation", url: "/admin/rotation", icon: Trophy },
@@ -56,6 +59,7 @@ export function AppSidebar({ email }: { email?: string }) {
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
+  const isAdmin = useIsAdmin();
 
   const isActive = (path: string) =>
     path === "/dashboard" ? currentPath === path : currentPath.startsWith(path);
