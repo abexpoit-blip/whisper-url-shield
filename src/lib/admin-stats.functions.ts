@@ -220,4 +220,12 @@ export const getAdminAdvancedStats = createServerFn({ method: "GET" })
       topReferers,
       topLinks,
       topBotReasons,
-      revenue: { last
+      revenue: { last30d: revenue30d, byPackage: revenueByPackage },
+      growth: {
+        newUsers7d: newUsers7d ?? 0,
+        newUsers30d: newUsers30d ?? 0,
+        bannedUsers: bannedUsers ?? 0,
+        activeLinks: activeLinks ?? 0,
+      },
+    };
+  });
