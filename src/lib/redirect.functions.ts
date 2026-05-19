@@ -445,7 +445,7 @@ export const resolveLink = createServerFn({ method: "POST" })
 
     const { data: link } = await supabaseAdmin
       .from("links")
-      .select("id, status, targeting")
+      .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes")
       .eq("short_code", data.code)
       .maybeSingle();
 
@@ -502,12 +502,78 @@ export const resolveLink = createServerFn({ method: "POST" })
       };
     }
 
-    // NOTE: "safe page" path no longer renders a separate "Article unavailable"
-    // screen — that was a giveaway cloaking signal to Facebook's ad reviewer
-    // bot. Instead we fall through and render a real prelander variant, but
-    // set silentBot:true so the client never auto-triggers verifyHuman and
-    // never reveals the real destination. To the reviewer this looks like a
-    // legitimate article page that simply isn't auto-redirecting.
+    const uaInfo = parseUA(a.ua);
+    const attr = attributionFromRequestUrl();
+    // Batch-1: FB blocklist + referer rule check (treat as silent cloak)
+    const asn = asnFromHeaders();
+    const fbHitRaw = await checkFbBlocklist(ip, asn);
+    // IMPORTANT: Facebook's mobile in-app browser routes REAL users through
+    // FB's own IP ranges. If the UA looks like a real browser (Chrome/Safari/
+    // Firefox) and has no scraper signal, do NOT cloak based on IP alone.
+    const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
+    const refHost = refererHost(referer);
+    const refAction = await checkRefererRule(refHost);
+    const timeAction = await checkTimeRule(link.id);
+    const refSafe = refAction === "safe" || refAction === "cloak";
+    const timeSafe = timeAction === "safe" || timeAction === "cloak";
+    const silentBot = a.hardBot || Boolean(fbHit) || refSafe || timeSafe || targetingCheck.blocked;
+    const defenseReasons = [
+      suspicionReasons,
+      fbHit || "",
+      refAction ? `referer:${refAction}:${refHost}` : "",
+      timeAction ? `time:${timeAction}` : "",
+    ].filter(Boolean).join(",");
+
+    if (!silentBot) {
+      let duplicateClick = false;
+      if (link.duplicate_protection) {
+        const dup = await isDuplicateClick(ip, link.id, link.duplicate_window_minutes ?? 30);
+        if (dup) {
+          await recordDuplicateClick(ip, link.id);
+          duplicateClick = true;
+        }
+      }
+
+      await supabaseAdmin.from("clicks").insert({
+        link_id: link.id,
+        ip_address: ip || null,
+        country,
+        user_agent: a.ua || null,
+        referer: referer || null,
+        is_bot: false,
+        bot_reason: ["direct", duplicateClick ? "duplicate" : "", defenseReasons].filter(Boolean).join(":"),
+        device: uaInfo.device,
+        os: uaInfo.os,
+        browser: uaInfo.browser,
+        variant: null,
+        ...attr,
+      });
+
+      if (!duplicateClick) {
+        const { data: cur } = await supabaseAdmin
+          .from("links").select("clicks_count").eq("id", link.id).single();
+        if (cur) {
+          await supabaseAdmin.from("links")
+            .update({ clicks_count: cur.clicks_count + 1 })
+            .eq("id", link.id);
+        }
+      }
+      if (link.duplicate_protection && !duplicateClick) await recordDuplicateClick(ip, link.id);
+
+      const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo.device, uaInfo.os);
+      if (geoDev) {
+        return { found: true as const, blocked: false as const, direct: true as const, redirectTo: geoDev };
+      }
+      const { data: destRows } = await supabaseAdmin
+        .from("link_destinations")
+        .select("url,weight,is_active")
+        .eq("link_id", link.id);
+      const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
+      return { found: true as const, blocked: false as const, direct: true as const, redirectTo: destination };
+    }
+
+    // NOTE: silent bot path renders a real prelander variant, but never
+    // auto-triggers verifyHuman and never reveals the real destination.
 
     // Load active variants from DB
     const { data: variantRows } = await supabaseAdmin
@@ -555,34 +621,6 @@ export const resolveLink = createServerFn({ method: "POST" })
 
     const chosenVariant = variants.find((v) => v.slug === chosenSlug) ?? variants[0];
 
-    const uaInfo = parseUA(a.ua);
-    const attr = attributionFromRequestUrl();
-    // Batch-1: FB blocklist + referer rule check (treat as silent cloak)
-    const asn = asnFromHeaders();
-    const fbHitRaw = await checkFbBlocklist(ip, asn);
-    // IMPORTANT: Facebook's mobile in-app browser routes REAL users through
-    // FB's own IP ranges. If the UA looks like a real browser (Chrome/Safari/
-    // Firefox) and has no scraper signal, do NOT cloak based on IP alone —
-    // otherwise we silently lose every FB in-app browser human click.
-    // Only honor the FB-IP hit when the UA itself is also a known scraper.
-    const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
-    const refHost = refererHost(referer);
-    const refAction = await checkRefererRule(refHost);
-    const timeAction = await checkTimeRule(link.id);
-    const refSafe = refAction === "safe" || refAction === "cloak";
-    const timeSafe = timeAction === "safe" || timeAction === "cloak";
-    // Only silent-cloak when we have a STRONG bot signal. Soft score-based
-    // suspicion alone keeps the human path open — we'd rather risk one bot
-    // click reaching the offer than burn a real $0.50 FB ad click on the
-    // silent page. The client-side fingerprint check in verifyHuman is the
-    // safety net for borderline cases.
-    const silentBot = a.hardBot || Boolean(fbHit) || refSafe || timeSafe || targetingCheck.blocked;
-    const defenseReasons = [
-      suspicionReasons,
-      fbHit || "",
-      refAction ? `referer:${refAction}:${refHost}` : "",
-      timeAction ? `time:${timeAction}` : "",
-    ].filter(Boolean).join(",");
     await supabaseAdmin.from("clicks").insert({
       link_id: link.id,
       ip_address: ip || null,
