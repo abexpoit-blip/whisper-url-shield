@@ -121,10 +121,8 @@ function PreLanderPage() {
 
 function PreLanderInner({ code, variant, silent }: { code: string; variant: Variant; silent: boolean }) {
   const verify = useServerFn(verifyHuman);
-  const [status, setStatus] = useState<"reading" | "verifying" | "redirecting" | "blocked">("reading");
-  const [countdown, setCountdown] = useState(3);
+  const [status, setStatus] = useState<"verifying" | "redirecting" | "blocked">("verifying");
   const metrics = useRef({ mouse: 0, scroll: 0, key: 0, touch: 0, startedAt: Date.now() });
-  const destRef = useRef<string | null>(null);
   const triggered = useRef(false);
 
   useEffect(() => {
@@ -145,16 +143,16 @@ function PreLanderInner({ code, variant, silent }: { code: string; variant: Vari
   }, []);
 
   const runVerify = async () => {
-    if (silent) return; // silent bot: never call verify, never reveal destination
+    if (silent) return;
     if (triggered.current) return;
     triggered.current = true;
-    setStatus("verifying");
     try {
       const fp = collectFingerprint(metrics.current);
       const res = await verify({ data: { code, variant: variant.slug, fp } });
       if (res.ok) {
-        destRef.current = res.destination;
         setStatus("redirecting");
+        // Auto-redirect immediately — no click, no countdown. Don't waste paid traffic.
+        window.location.replace(res.destination);
       } else {
         setStatus("blocked");
       }
@@ -164,33 +162,12 @@ function PreLanderInner({ code, variant, silent }: { code: string; variant: Vari
   };
 
   useEffect(() => {
-    if (silent) return; // silent bot: no auto-trigger either
-    const timer = window.setInterval(() => {
-      const m = metrics.current;
-      const interactions = m.mouse + m.scroll + m.key + m.touch;
-      const elapsed = Date.now() - m.startedAt;
-      if (elapsed > 2500 && interactions >= 2 && !triggered.current) {
-        void runVerify();
-      }
-    }, 500);
-    return () => window.clearInterval(timer);
+    if (silent) return;
+    // Fire verify on mount. Small delay lets the page paint + collect a tick of signal.
+    const t = window.setTimeout(() => { void runVerify(); }, 200);
+    return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [silent]);
-
-  useEffect(() => {
-    if (status !== "redirecting" || !destRef.current) return;
-    const t = window.setInterval(() => {
-      setCountdown((c) => {
-        if (c <= 1) {
-          window.clearInterval(t);
-          window.location.replace(destRef.current!);
-          return 0;
-        }
-        return c - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(t);
-  }, [status]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -220,58 +197,25 @@ function PreLanderInner({ code, variant, silent }: { code: string; variant: Vari
           <p className="leading-relaxed">{variant.outro}</p>
         </article>
 
-        <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
-          {silent ? (
-            <>
-              <h3 className="text-lg font-semibold mb-2">Thanks for reading</h3>
-              <p className="text-sm text-muted-foreground">
-                Browse more articles on our homepage.
-              </p>
-            </>
-          ) : (
-            <>
-              {status === "reading" && (
-                <>
-                  <h3 className="text-lg font-semibold mb-2">Continue reading</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Scroll or interact with the page to load the next article.
-                  </p>
-                  <button
-                    onClick={runVerify}
-                    className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
-                  >
-                    Continue
-                  </button>
-                </>
-              )}
-              {status === "verifying" && (
-                <>
-                  <h3 className="text-lg font-semibold mb-2">Loading next article...</h3>
-                  <div className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                </>
-              )}
-              {status === "redirecting" && (
-                <>
-                  <h3 className="text-lg font-semibold mb-2">Continuing in {countdown}...</h3>
-                  <button
-                    onClick={() => destRef.current && window.location.replace(destRef.current)}
-                    className="inline-flex items-center justify-center rounded-md bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90 transition"
-                  >
-                    Continue now
-                  </button>
-                </>
-              )}
-              {status === "blocked" && (
-                <>
-                  <h3 className="text-lg font-semibold mb-2">Thanks for reading</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Browse more articles on our homepage.
-                  </p>
-                </>
-              )}
-            </>
-          )}
-        </div>
+        {silent ? (
+          <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
+            <h3 className="text-lg font-semibold mb-2">Thanks for reading</h3>
+            <p className="text-sm text-muted-foreground">
+              Browse more articles on our homepage.
+            </p>
+          </div>
+        ) : status === "blocked" ? (
+          <div className="mt-10 rounded-lg border border-border bg-card p-6 text-center">
+            <h3 className="text-lg font-semibold mb-2">Thanks for reading</h3>
+            <p className="text-sm text-muted-foreground">
+              Browse more articles on our homepage.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-10 flex items-center justify-center py-4" aria-hidden="true">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        )}
       </main>
 
       <footer className="border-t border-border mt-10">
