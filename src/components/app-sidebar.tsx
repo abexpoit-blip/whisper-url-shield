@@ -12,6 +12,9 @@ import {
   Globe2,
   ScrollText,
   Users,
+  Package,
+  CreditCard,
+  Rocket,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,9 +37,12 @@ const mainNav = [
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Funnel", url: "/funnel", icon: GitBranch },
   { title: "Domains", url: "/domains", icon: Globe2 },
+  { title: "Upgrade", url: "/upgrade", icon: Rocket },
 ];
 
 const adminNav = [
+  { title: "Packages", url: "/admin/packages", icon: Package },
+  { title: "Payments", url: "/admin/payments", icon: CreditCard },
   { title: "Rotation", url: "/admin/rotation", icon: Trophy },
   { title: "Protection", url: "/admin/protection", icon: ShieldCheck },
   { title: "Variants", url: "/admin/variants", icon: Settings },
