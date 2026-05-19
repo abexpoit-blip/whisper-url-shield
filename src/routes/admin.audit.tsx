@@ -6,7 +6,13 @@ import { listAuditLogs } from "@/lib/admin-audit.functions";
 import { isAdmin as isAdminFn } from "@/lib/admin-variants.functions";
 
 export const Route = createFileRoute("/admin/audit")({
-  head: () => ({ meta: [{ title: "Admin Audit Logs" }] }),
+  head: () => ({
+    meta: [
+      { title: "Audit Logs — LinkShield Admin" },
+      { name: "description", content: "Admin-only audit trail of sensitive actions across the LinkShield workspace." },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+  }),
   component: AuditPage,
 });
 

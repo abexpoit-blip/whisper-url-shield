@@ -26,6 +26,17 @@ import {
 } from "@/lib/domain.functions";
 
 export const Route = createFileRoute("/domains")({
+  head: () => ({
+    meta: [
+      { title: "Custom Domains — LinkShield" },
+      { name: "description", content: "Connect your own domain to LinkShield short links for branded, trustworthy URLs in every ad campaign." },
+      { property: "og:title", content: "Custom Domains — LinkShield" },
+      { property: "og:description", content: "Branded short links on your own domain — verified with one click." },
+      { property: "og:url", content: "https://sleepox.com/domains" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://sleepox.com/domains" }],
+  }),
   beforeLoad: async ({ location }) => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login", search: { redirect: location.href } });
