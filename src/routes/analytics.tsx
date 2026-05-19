@@ -49,6 +49,17 @@ const RANGE_TO_DAYS = { day: 1, week: 7, month: 30 } as const;
 type AnalyticsSearch = { days: number; linkId: string };
 
 export const Route = createFileRoute("/analytics")({
+  head: () => ({
+    meta: [
+      { title: "Analytics — LinkShield" },
+      { name: "description", content: "Real-time analytics: real users vs bots, devices, countries, and conversions for your short links." },
+      { property: "og:title", content: "Analytics — LinkShield" },
+      { property: "og:description", content: "Real-time analytics: real users vs bots, devices, countries, and conversions for your short links." },
+      { property: "og:url", content: "https://sleepox.com/analytics" },
+      { name: "robots", content: "noindex" },
+    ],
+    links: [{ rel: "canonical", href: "https://sleepox.com/analytics" }],
+  }),
   validateSearch: (s: Record<string, unknown>): AnalyticsSearch => {
     let days = 7;
     const d = s.days;
