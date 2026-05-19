@@ -29,9 +29,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { useIsAdmin } from "@/hooks/use-is-admin";
 import { LayoutGrid } from "lucide-react";
 
 const mainNav = [
@@ -54,17 +52,17 @@ const adminNav = [
   { title: "Audit Logs", url: "/admin/audit", icon: ScrollText },
 ];
 
-export function AppSidebar({ email }: { email?: string }) {
+export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin?: boolean }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
-  const isAdmin = useIsAdmin();
 
   const isActive = (path: string) =>
     path === "/dashboard" ? currentPath === path : currentPath.startsWith(path);
 
   const logout = async () => {
+    const { supabase } = await import("@/integrations/supabase/client");
     await supabase.auth.signOut();
     navigate({ to: "/" });
   };
