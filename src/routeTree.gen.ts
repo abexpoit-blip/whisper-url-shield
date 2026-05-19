@@ -23,6 +23,7 @@ import { Route as AnalyticsLinkIdRouteImport } from './routes/analytics.$linkId'
 import { Route as AdminVariantsRouteImport } from './routes/admin.variants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminRotationRouteImport } from './routes/admin.rotation'
+import { Route as AdminRefererRulesRouteImport } from './routes/admin.referer-rules'
 import { Route as AdminProtectionRouteImport } from './routes/admin.protection'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAsnBlocklistRouteImport } from './routes/admin.asn-blocklist'
@@ -99,6 +100,11 @@ const AdminRotationRoute = AdminRotationRouteImport.update({
   path: '/admin/rotation',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRefererRulesRoute = AdminRefererRulesRouteImport.update({
+  id: '/admin/referer-rules',
+  path: '/admin/referer-rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminProtectionRoute = AdminProtectionRouteImport.update({
   id: '/admin/protection',
   path: '/admin/protection',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/protection': typeof AdminProtectionRoute
+  '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/variants': typeof AdminVariantsRoute
@@ -159,6 +166,7 @@ export interface FileRoutesByTo {
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/protection': typeof AdminProtectionRoute
+  '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/variants': typeof AdminVariantsRoute
@@ -181,6 +189,7 @@ export interface FileRoutesById {
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/protection': typeof AdminProtectionRoute
+  '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/variants': typeof AdminVariantsRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/protection'
+    | '/admin/referer-rules'
     | '/admin/rotation'
     | '/admin/users'
     | '/admin/variants'
@@ -225,6 +235,7 @@ export interface FileRouteTypes {
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/protection'
+    | '/admin/referer-rules'
     | '/admin/rotation'
     | '/admin/users'
     | '/admin/variants'
@@ -246,6 +257,7 @@ export interface FileRouteTypes {
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/protection'
+    | '/admin/referer-rules'
     | '/admin/rotation'
     | '/admin/users'
     | '/admin/variants'
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   AdminAsnBlocklistRoute: typeof AdminAsnBlocklistRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminProtectionRoute: typeof AdminProtectionRoute
+  AdminRefererRulesRoute: typeof AdminRefererRulesRoute
   AdminRotationRoute: typeof AdminRotationRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminVariantsRoute: typeof AdminVariantsRoute
@@ -376,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRotationRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/referer-rules': {
+      id: '/admin/referer-rules'
+      path: '/admin/referer-rules'
+      fullPath: '/admin/referer-rules'
+      preLoaderRoute: typeof AdminRefererRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/protection': {
       id: '/admin/protection'
       path: '/admin/protection'
@@ -439,6 +459,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminAsnBlocklistRoute: AdminAsnBlocklistRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminProtectionRoute: AdminProtectionRoute,
+  AdminRefererRulesRoute: AdminRefererRulesRoute,
   AdminRotationRoute: AdminRotationRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminVariantsRoute: AdminVariantsRoute,
@@ -449,3 +470,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
