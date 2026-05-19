@@ -653,7 +653,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
 
     const { data: link } = await supabaseAdmin
       .from("links")
-      .select("id, destination_url, adsterra_direct_link, status, targeting, duplicate_protection, duplicate_window_minutes")
+      .select("id, destination_url, status, targeting, duplicate_protection, duplicate_window_minutes")
       .eq("short_code", data.code)
       .maybeSingle();
 
@@ -786,9 +786,8 @@ export const verifyHuman = createServerFn({ method: "POST" })
 
     // Final destination priority (cascade):
     //   1) Geo / device-OS specific Adsterra link (per-link rules)
-    //   2) Default Adsterra direct link on the link row
-    //   3) Weighted rotator over link_destinations
-    //   4) Plain destination_url fallback
+    //   2) Weighted rotator over link_destinations
+    //   3) Plain destination_url (THE Adsterra link the user pasted)
     const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo2.device, uaInfo2.os);
     if (geoDev) return { ok: true as const, destination: geoDev };
 
@@ -796,8 +795,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
       .from("link_destinations")
       .select("url,weight,is_active")
       .eq("link_id", link.id);
-    const rotated = pickWeightedDestination(destRows ?? [], link.destination_url);
-    const destination = link.adsterra_direct_link?.trim() || rotated;
+    const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
 
     return { ok: true as const, destination };
   });
