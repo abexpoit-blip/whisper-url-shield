@@ -31,9 +31,9 @@ function LandingPage() {
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold">
-            <Logo className="h-7 w-7" />
-            <span>LinkShield</span>
+          <Link to="/" className="flex items-center gap-2.5 font-display text-lg font-bold">
+            <Logo glow glowSize="sm" className="h-8 w-8" />
+            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">LinkShield</span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm md:flex">
             <a href="#features" className="text-muted-foreground hover:text-foreground">Features</a>
@@ -113,12 +113,13 @@ function LandingPage() {
             { icon: Zap, title: "Lightning redirects", desc: "Sub-100ms global edge redirects. Your real users never wait." },
             { icon: Lock, title: "Click limits & expiry", desc: "Cap clicks, set expiry, pause links instantly when a campaign ends." },
           ].map((f) => (
-            <div key={f.title} className="group rounded-2xl border border-border bg-card-gradient p-6 transition-all hover:border-primary/40 hover:shadow-glow">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <f.icon className="h-5 w-5" />
+            <div key={f.title} className="group relative overflow-hidden rounded-2xl border border-border bg-card-gradient p-6 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-elegant">
+              <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-gradient-to-br from-primary/20 to-primary-glow/10 opacity-0 blur-2xl transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-glow text-primary-foreground shadow-glow">
+                <f.icon className="h-5 w-5" strokeWidth={2.25} />
               </div>
-              <h3 className="mt-4 font-display text-lg font-semibold">{f.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
+              <h3 className="relative mt-5 font-display text-lg font-semibold tracking-tight">{f.title}</h3>
+              <p className="relative mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
             </div>
           ))}
         </div>
@@ -179,7 +180,7 @@ function LandingPage() {
       <footer className="border-t border-border/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2">
-            <Logo className="h-5 w-5" />
+            <Logo glow glowSize="sm" className="h-6 w-6" />
             <span>© 2026 LinkShield. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
