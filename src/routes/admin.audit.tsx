@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { ScrollText, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
+import { ScrollText, RefreshCw, ShieldAlert, CheckCircle2, XCircle } from "lucide-react";
 import { listAuditLogs } from "@/lib/admin-audit.functions";
 
 export const Route = createFileRoute("/admin/audit")({
