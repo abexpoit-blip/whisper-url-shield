@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /analytics
+Disallow: /funnel
+Disallow: /domains
+Disallow: /links/
+
+Sitemap: https://sleepox.com/sitemap.xml
