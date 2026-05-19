@@ -420,6 +420,51 @@ export type Database = {
         }
         Relationships: []
       }
+      link_variant_tests: {
+        Row: {
+          bot_clicks: number
+          created_at: string
+          human_clicks: number
+          id: string
+          last_evaluated_at: string | null
+          link_id: string
+          paused_reason: string | null
+          score: number
+          status: string
+          total_clicks: number
+          updated_at: string
+          variant_slug: string
+        }
+        Insert: {
+          bot_clicks?: number
+          created_at?: string
+          human_clicks?: number
+          id?: string
+          last_evaluated_at?: string | null
+          link_id: string
+          paused_reason?: string | null
+          score?: number
+          status?: string
+          total_clicks?: number
+          updated_at?: string
+          variant_slug: string
+        }
+        Update: {
+          bot_clicks?: number
+          created_at?: string
+          human_clicks?: number
+          id?: string
+          last_evaluated_at?: string | null
+          link_id?: string
+          paused_reason?: string | null
+          score?: number
+          status?: string
+          total_clicks?: number
+          updated_at?: string
+          variant_slug?: string
+        }
+        Relationships: []
+      }
       links: {
         Row: {
           adsterra_direct_link: string | null
@@ -430,6 +475,8 @@ export type Database = {
           duplicate_protection: boolean
           duplicate_window_minutes: number
           expires_at: string | null
+          health_score: number | null
+          health_updated_at: string | null
           id: string
           short_code: string
           status: Database["public"]["Enums"]["link_status"]
@@ -447,6 +494,8 @@ export type Database = {
           duplicate_protection?: boolean
           duplicate_window_minutes?: number
           expires_at?: string | null
+          health_score?: number | null
+          health_updated_at?: string | null
           id?: string
           short_code: string
           status?: Database["public"]["Enums"]["link_status"]
@@ -464,6 +513,8 @@ export type Database = {
           duplicate_protection?: boolean
           duplicate_window_minutes?: number
           expires_at?: string | null
+          health_score?: number | null
+          health_updated_at?: string | null
           id?: string
           short_code?: string
           status?: Database["public"]["Enums"]["link_status"]

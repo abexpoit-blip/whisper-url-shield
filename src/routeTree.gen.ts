@@ -22,6 +22,7 @@ import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as AnalyticsLinkIdRouteImport } from './routes/analytics.$linkId'
 import { Route as AdminVariantsRouteImport } from './routes/admin.variants'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminScoresRouteImport } from './routes/admin.scores'
 import { Route as AdminRotationRouteImport } from './routes/admin.rotation'
 import { Route as AdminRefererRulesRouteImport } from './routes/admin.referer-rules'
 import { Route as AdminProtectionRouteImport } from './routes/admin.protection'
@@ -29,6 +30,7 @@ import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAsnBlocklistRouteImport } from './routes/admin.asn-blocklist'
 import { Route as LinksLinkIdTargetingRouteImport } from './routes/links.$linkId.targeting'
 import { Route as LinksLinkIdSettingsRouteImport } from './routes/links.$linkId.settings'
+import { Route as ApiPublicHooksAutopilotRouteImport } from './routes/api/public/hooks/autopilot'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -95,6 +97,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminScoresRoute = AdminScoresRouteImport.update({
+  id: '/admin/scores',
+  path: '/admin/scores',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRotationRoute = AdminRotationRouteImport.update({
   id: '/admin/rotation',
   path: '/admin/rotation',
@@ -130,6 +137,11 @@ const LinksLinkIdSettingsRoute = LinksLinkIdSettingsRouteImport.update({
   path: '/links/$linkId/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksAutopilotRoute = ApiPublicHooksAutopilotRouteImport.update({
+  id: '/api/public/hooks/autopilot',
+  path: '/api/public/hooks/autopilot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -146,12 +158,14 @@ export interface FileRoutesByFullPath {
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
+  '/admin/scores': typeof AdminScoresRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/variants': typeof AdminVariantsRoute
   '/analytics/$linkId': typeof AnalyticsLinkIdRoute
   '/r/$code': typeof RCodeRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
+  '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -168,12 +182,14 @@ export interface FileRoutesByTo {
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
+  '/admin/scores': typeof AdminScoresRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/variants': typeof AdminVariantsRoute
   '/analytics/$linkId': typeof AnalyticsLinkIdRoute
   '/r/$code': typeof RCodeRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
+  '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -191,12 +207,14 @@ export interface FileRoutesById {
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
+  '/admin/scores': typeof AdminScoresRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/variants': typeof AdminVariantsRoute
   '/analytics/$linkId': typeof AnalyticsLinkIdRoute
   '/r/$code': typeof RCodeRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
+  '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -215,12 +233,14 @@ export interface FileRouteTypes {
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
+    | '/admin/scores'
     | '/admin/users'
     | '/admin/variants'
     | '/analytics/$linkId'
     | '/r/$code'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
+    | '/api/public/hooks/autopilot'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -237,12 +257,14 @@ export interface FileRouteTypes {
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
+    | '/admin/scores'
     | '/admin/users'
     | '/admin/variants'
     | '/analytics/$linkId'
     | '/r/$code'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
+    | '/api/public/hooks/autopilot'
   id:
     | '__root__'
     | '/'
@@ -259,12 +281,14 @@ export interface FileRouteTypes {
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
+    | '/admin/scores'
     | '/admin/users'
     | '/admin/variants'
     | '/analytics/$linkId'
     | '/r/$code'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
+    | '/api/public/hooks/autopilot'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -282,11 +306,13 @@ export interface RootRouteChildren {
   AdminProtectionRoute: typeof AdminProtectionRoute
   AdminRefererRulesRoute: typeof AdminRefererRulesRoute
   AdminRotationRoute: typeof AdminRotationRoute
+  AdminScoresRoute: typeof AdminScoresRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminVariantsRoute: typeof AdminVariantsRoute
   RCodeRoute: typeof RCodeRoute
   LinksLinkIdSettingsRoute: typeof LinksLinkIdSettingsRoute
   LinksLinkIdTargetingRoute: typeof LinksLinkIdTargetingRoute
+  ApiPublicHooksAutopilotRoute: typeof ApiPublicHooksAutopilotRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -382,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/scores': {
+      id: '/admin/scores'
+      path: '/admin/scores'
+      fullPath: '/admin/scores'
+      preLoaderRoute: typeof AdminScoresRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/rotation': {
       id: '/admin/rotation'
       path: '/admin/rotation'
@@ -431,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LinksLinkIdSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/autopilot': {
+      id: '/api/public/hooks/autopilot'
+      path: '/api/public/hooks/autopilot'
+      fullPath: '/api/public/hooks/autopilot'
+      preLoaderRoute: typeof ApiPublicHooksAutopilotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -461,11 +501,13 @@ const rootRouteChildren: RootRouteChildren = {
   AdminProtectionRoute: AdminProtectionRoute,
   AdminRefererRulesRoute: AdminRefererRulesRoute,
   AdminRotationRoute: AdminRotationRoute,
+  AdminScoresRoute: AdminScoresRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminVariantsRoute: AdminVariantsRoute,
   RCodeRoute: RCodeRoute,
   LinksLinkIdSettingsRoute: LinksLinkIdSettingsRoute,
   LinksLinkIdTargetingRoute: LinksLinkIdTargetingRoute,
+  ApiPublicHooksAutopilotRoute: ApiPublicHooksAutopilotRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
