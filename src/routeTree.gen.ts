@@ -17,6 +17,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as FunnelRouteImport } from './routes/funnel'
 import { Route as DomainsRouteImport } from './routes/domains'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ControlPanelRouteImport } from './routes/control-panel'
 import { Route as AnalyticsRouteImport } from './routes/analytics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -78,6 +79,11 @@ const DomainsRoute = DomainsRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ControlPanelRoute = ControlPanelRouteImport.update({
+  id: '/control-panel',
+  path: '/control-panel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AnalyticsRoute = AnalyticsRouteImport.update({
@@ -195,6 +201,7 @@ const ApiPublicHooksAutopilotRoute = ApiPublicHooksAutopilotRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRouteWithChildren
+  '/control-panel': typeof ControlPanelRoute
   '/dashboard': typeof DashboardRoute
   '/domains': typeof DomainsRoute
   '/funnel': typeof FunnelRoute
@@ -227,6 +234,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRouteWithChildren
+  '/control-panel': typeof ControlPanelRoute
   '/dashboard': typeof DashboardRoute
   '/domains': typeof DomainsRoute
   '/funnel': typeof FunnelRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/analytics': typeof AnalyticsRouteWithChildren
+  '/control-panel': typeof ControlPanelRoute
   '/dashboard': typeof DashboardRoute
   '/domains': typeof DomainsRoute
   '/funnel': typeof FunnelRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/analytics'
+    | '/control-panel'
     | '/dashboard'
     | '/domains'
     | '/funnel'
@@ -326,6 +336,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/analytics'
+    | '/control-panel'
     | '/dashboard'
     | '/domains'
     | '/funnel'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/analytics'
+    | '/control-panel'
     | '/dashboard'
     | '/domains'
     | '/funnel'
@@ -391,6 +403,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AnalyticsRoute: typeof AnalyticsRouteWithChildren
+  ControlPanelRoute: typeof ControlPanelRoute
   DashboardRoute: typeof DashboardRoute
   DomainsRoute: typeof DomainsRoute
   FunnelRoute: typeof FunnelRoute
@@ -476,6 +489,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/control-panel': {
+      id: '/control-panel'
+      path: '/control-panel'
+      fullPath: '/control-panel'
+      preLoaderRoute: typeof ControlPanelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/analytics': {
@@ -650,6 +670,7 @@ const AnalyticsRouteWithChildren = AnalyticsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AnalyticsRoute: AnalyticsRouteWithChildren,
+  ControlPanelRoute: ControlPanelRoute,
   DashboardRoute: DashboardRoute,
   DomainsRoute: DomainsRoute,
   FunnelRoute: FunnelRoute,
