@@ -128,7 +128,7 @@ function AdminLayout() {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar email={email} />
+        <AppSidebar email={email} isAdmin />
 
         <div className="relative flex min-w-0 flex-1 flex-col">
           {/* Sky-blue ambient wash */}
