@@ -18,11 +18,20 @@ export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 function AdminDashboard() {
   const isAdmin = useIsAdmin();
   const fn = useServerFn(getAdminOverview);
+  const advFn = useServerFn(getAdminAdvancedStats);
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => fn(),
     enabled: isAdmin === true,
+    refetchInterval: 30000,
   });
+  const { data: adv, isLoading: advLoading } = useQuery({
+    queryKey: ["admin", "advanced"],
+    queryFn: () => advFn(),
+    enabled: isAdmin === true,
+    refetchInterval: 30000,
+  });
+
 
   if (isAdmin === null) {
     return <div className="p-8 text-sm text-muted-foreground">Checking access…</div>;
