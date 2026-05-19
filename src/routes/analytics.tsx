@@ -252,10 +252,13 @@ function AnalyticsPage() {
             <TrendingUp className="h-4 w-4 text-primary" />
             <h2 className="font-semibold">Real users vs bots over time</h2>
           </div>
-          <div className="h-72">
+          <div className="h-72 sm:h-80 -mx-2 sm:mx-0">
             {data && data.timeseries.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.timeseries}>
+                <AreaChart
+                  data={data.timeseries}
+                  margin={{ top: 8, right: 12, left: isMobile ? -16 : 0, bottom: 0 }}
+                >
                   <defs>
                     <linearGradient id="h" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#22c55e" stopOpacity={0.6} />
@@ -266,24 +269,59 @@ function AnalyticsPage() {
                       <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
-                  <YAxis stroke="#6b7280" fontSize={12} />
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
-                  <Legend />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={AXIS_TICK}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                    minTickGap={isMobile ? 24 : 12}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={AXIS_TICK}
+                    tickLine={false}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                    width={isMobile ? 32 : 44}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={TOOLTIP_STYLE}
+                    labelStyle={TOOLTIP_LABEL_STYLE}
+                    itemStyle={TOOLTIP_ITEM_STYLE}
+                    cursor={{ stroke: "#c4b5fd", strokeWidth: 1 }}
+                  />
+                  <Legend
+                    iconType="circle"
+                    wrapperStyle={LEGEND_WRAPPER}
+                    onClick={(e) => toggleSeries(String(e.dataKey))}
+                    formatter={(value, entry) => {
+                      const key = String((entry as { dataKey?: string }).dataKey);
+                      const off = hidden[key];
+                      return (
+                        <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
+                          {value}
+                        </span>
+                      );
+                    }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="humans"
                     stroke="#22c55e"
+                    strokeWidth={2}
                     fill="url(#h)"
                     name="Real users"
+                    hide={hidden.humans}
                   />
                   <Area
                     type="monotone"
                     dataKey="bots"
                     stroke="#ef4444"
+                    strokeWidth={2}
                     fill="url(#b)"
                     name="Bots"
+                    hide={hidden.bots}
                   />
                 </AreaChart>
               </ResponsiveContainer>
