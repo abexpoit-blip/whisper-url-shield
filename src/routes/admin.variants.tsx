@@ -22,7 +22,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  isAdmin as isAdminFn,
   listVariantsAdmin,
   upsertVariant,
   deleteVariant,
@@ -78,7 +77,6 @@ const EMPTY_VARIANT: Omit<VariantRow, "stats"> = {
 };
 
 function AdminVariantsPage() {
-  const checkAdmin = useServerFn(isAdminFn);
   const listVariants = useServerFn(listVariantsAdmin);
   const upsert = useServerFn(upsertVariant);
   const del = useServerFn(deleteVariant);
@@ -86,7 +84,6 @@ function AdminVariantsPage() {
   const setOv = useServerFn(setLinkOverride);
   const clearOv = useServerFn(clearLinkOverride);
 
-  const [admin, setAdmin] = useState<boolean | null>(null);
   const [variants, setVariants] = useState<VariantRow[]>([]);
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [search, setSearch] = useState("");
@@ -114,11 +111,9 @@ function AdminVariantsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await checkAdmin();
-        setAdmin(r.isAdmin);
-        if (r.isAdmin) await refresh();
+        await refresh();
       } catch {
-        setAdmin(false);
+        toast.error("Could not load variants");
       } finally {
         setLoading(false);
       }
@@ -180,22 +175,6 @@ function AdminVariantsPage() {
 
   if (loading) {
     return <div className="p-10 text-center text-muted-foreground">Loading...</div>;
-  }
-  if (!admin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Lock className="mx-auto h-10 w-10 text-muted-foreground" />
-          <h1 className="mt-4 text-2xl font-bold">Admins only</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            You need the admin role to access this page.
-          </p>
-          <Button asChild className="mt-4">
-            <Link to="/dashboard">Back to dashboard</Link>
-          </Button>
-        </div>
-      </div>
-    );
   }
 
   return (
