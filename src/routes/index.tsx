@@ -179,7 +179,7 @@ function LandingPage() {
       <footer className="border-t border-border/40">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground md:flex-row">
           <div className="flex items-center gap-2">
-            <img src="/favicon.png" alt="LinkShield" className="h-4 w-4 rounded" />
+            <Logo className="h-5 w-5" />
             <span>© 2026 LinkShield. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
