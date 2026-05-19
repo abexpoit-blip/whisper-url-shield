@@ -10,6 +10,7 @@ import {
 import { useEffect } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { supabase } from "@/integrations/supabase/client";
 import appCss from "../styles.css?url";
 
@@ -165,6 +166,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
+      <ImpersonationBanner />
       <main>
         <Outlet />
       </main>
