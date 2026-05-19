@@ -116,12 +116,13 @@ function Dashboard() {
 
   const load = async () => {
     setLoading(true);
-    const { data: userData } = await supabase.auth.getUser();
-    setEmail(userData.user?.email ?? "");
+    const { data: userData } = await supabase.auth.getSession();
+    setEmail(userData.session?.user.email ?? "");
     const { data, error } = await supabase
       .from("links")
       .select("id, short_code, destination_url, title, clicks_count, bot_clicks_count, created_at")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (error) toast.error(error.message);
     else setLinks(data ?? []);
     setLoading(false);
@@ -150,15 +151,14 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, refreshTick]);
 
-  // Auto-refresh every 30s
+  // Auto-refresh only while the tab is visible; keep it lightweight.
   useEffect(() => {
     if (!autoRefresh) return;
     const id = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
       setRefreshTick((t) => t + 1);
-      void load().catch(() => {});
-    }, 30_000);
+    }, 60_000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh]);
 
   const manualRefresh = () => {
@@ -179,8 +179,8 @@ function Dashboard() {
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
+    const { data: userData } = await supabase.auth.getSession();
+    if (!userData.session?.user) return;
     try {
       new URL(url);
     } catch {
@@ -189,7 +189,7 @@ function Dashboard() {
       return;
     }
     const { error } = await supabase.from("links").insert({
-      user_id: userData.user.id,
+      user_id: userData.session.user.id,
       short_code: genCode(),
       destination_url: url,
       title: title || null,
@@ -263,7 +263,7 @@ function Dashboard() {
   const rangeLabel = range === "day" ? "Today" : range === "week" ? "7 days" : "30 days";
 
   return (
-    <SidebarProvider>
+      <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar email={email} />
 

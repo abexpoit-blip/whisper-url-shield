@@ -11,6 +11,7 @@ export const listMembers = createServerFn({ method: "POST" })
       .object({
         search: z.string().max(255).optional().default(""),
         limit: z.number().int().min(1).max(500).default(200),
+        includePackages: z.boolean().optional().default(false),
       })
       .parse(input ?? {}),
   )
@@ -28,8 +29,17 @@ export const listMembers = createServerFn({ method: "POST" })
       q = q.or(`email.ilike.${s},full_name.ilike.${s}`);
     }
 
-    const { data: profiles, error } = await q;
+    const packagesPromise = data.includePackages
+      ? supabaseAdmin
+          .from("packages")
+          .select("slug, name, link_limit, price_monthly")
+          .eq("is_active", true)
+          .order("sort_order")
+      : Promise.resolve({ data: null, error: null });
+
+    const [{ data: profiles, error }, packagesRes] = await Promise.all([q, packagesPromise]);
     if (error) throw new Error(error.message);
+    if (packagesRes.error) throw new Error(packagesRes.error.message);
 
     const ids = (profiles ?? []).map((p) => p.id);
     let rolesByUser = new Map<string, string[]>();
@@ -51,6 +61,7 @@ export const listMembers = createServerFn({ method: "POST" })
         ...p,
         roles: rolesByUser.get(p.id) ?? [],
       })),
+      packages: packagesRes.data ?? undefined,
     };
   });
 

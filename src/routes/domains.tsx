@@ -77,8 +77,8 @@ function DomainsPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.auth.getUser();
-    setEmail(data.user?.email ?? "");
+    const { data } = await supabase.auth.getSession();
+    setEmail(data.session?.user.email ?? "");
     try {
       setDomains(await fetchDomains());
     } catch (e) {

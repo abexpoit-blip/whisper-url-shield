@@ -6,7 +6,7 @@ import {
   MoreVertical, KeyRound, Package, PlusCircle, LogIn,
 } from "lucide-react";
 import {
-  listMembers, setMemberRole, listPackages, updateMemberPlan,
+  listMembers, setMemberRole, updateMemberPlan,
   topUpMemberQuota, changeMemberPassword, impersonateMember,
 } from "@/lib/admin-users.functions";
 import { beginImpersonation } from "@/lib/impersonation";
@@ -45,7 +45,6 @@ type ActionKind = "plan" | "topup" | "password" | null;
 
 function AdminUsersPage() {
   const fetchMembers = useServerFn(listMembers);
-  const fetchPackages = useServerFn(listPackages);
   const mutateRole = useServerFn(setMemberRole);
   const mutatePlan = useServerFn(updateMemberPlan);
   const mutateTopUp = useServerFn(topUpMemberQuota);
@@ -68,12 +67,13 @@ function AdminUsersPage() {
   const [newPass, setNewPass] = useState("");
   const [modalBusy, setModalBusy] = useState(false);
 
-  const refresh = async (q = search) => {
+  const refresh = async (q = search, includePackages = false) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchMembers({ data: { search: q, limit: 200 } });
+      const res = await fetchMembers({ data: { search: q, limit: 100, includePackages } });
       setMembers(res.members as Member[]);
+      if (includePackages && res.packages) setPackages(res.packages as Pkg[]);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -82,10 +82,7 @@ function AdminUsersPage() {
   };
 
   useEffect(() => {
-    void Promise.all([
-      refresh(""),
-      fetchPackages().then((p) => setPackages(p.packages as Pkg[])).catch(() => undefined),
-    ]);
+    void refresh("", true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,7 +95,12 @@ function AdminUsersPage() {
     try {
       await mutateRole({ data: { userId: m.id, role: "admin", action } });
       toast.success(`Admin role ${action === "grant" ? "granted" : "revoked"}.`);
-      await refresh();
+      setMembers((rows) => rows.map((row) => row.id === m.id ? {
+        ...row,
+        roles: action === "grant"
+          ? Array.from(new Set([...row.roles, "admin"]))
+          : row.roles.filter((r) => r !== "admin"),
+      } : row));
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
@@ -125,7 +127,11 @@ function AdminUsersPage() {
       await mutatePlan({ data: { userId: target.id, planSlug, linkQuota: Number.isFinite(q) ? q : undefined } });
       toast.success("Plan updated");
       setOpenKind(null);
-      await refresh();
+      setMembers((rows) => rows.map((row) => row.id === target.id ? {
+        ...row,
+        plan_slug: planSlug,
+        link_quota: Number.isFinite(q) ? (q as number) : row.link_quota,
+      } : row));
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally { setModalBusy(false); }
@@ -140,7 +146,7 @@ function AdminUsersPage() {
       const res = await mutateTopUp({ data: { userId: target.id, addQuota: n } });
       toast.success(`Quota topped up. New total: ${res.newQuota}`);
       setOpenKind(null);
-      await refresh();
+      setMembers((rows) => rows.map((row) => row.id === target.id ? { ...row, link_quota: res.newQuota } : row));
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally { setModalBusy(false); }
