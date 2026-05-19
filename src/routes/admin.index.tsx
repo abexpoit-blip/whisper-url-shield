@@ -3,13 +3,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import {
   Users, Link2, MousePointerClick, Clock, Globe2, Package,
-  ArrowRight, ShieldCheck, TrendingUp, Activity,
+  ArrowRight, ShieldCheck, TrendingUp, Activity, Bot, UserCheck,
+  DollarSign, UserPlus, Ban, Flame, Globe, ExternalLink,
 } from "lucide-react";
-import { getAdminOverview } from "@/lib/admin-stats.functions";
+import { getAdminOverview, getAdminAdvancedStats } from "@/lib/admin-stats.functions";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+
 
 export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 
