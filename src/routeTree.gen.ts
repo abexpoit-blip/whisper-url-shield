@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -26,6 +27,8 @@ import { Route as AdminScoresRouteImport } from './routes/admin.scores'
 import { Route as AdminRotationRouteImport } from './routes/admin.rotation'
 import { Route as AdminRefererRulesRouteImport } from './routes/admin.referer-rules'
 import { Route as AdminProtectionRouteImport } from './routes/admin.protection'
+import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
+import { Route as AdminPackagesRouteImport } from './routes/admin.packages'
 import { Route as AdminDomainsRouteImport } from './routes/admin.domains'
 import { Route as AdminDomainHealthRouteImport } from './routes/admin.domain-health'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
@@ -36,6 +39,11 @@ import { Route as LinksLinkIdSettingsRouteImport } from './routes/links.$linkId.
 import { Route as ApiPublicHooksDomainHealthRouteImport } from './routes/api/public/hooks/domain-health'
 import { Route as ApiPublicHooksAutopilotRouteImport } from './routes/api/public/hooks/autopilot'
 
+const UpgradeRoute = UpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -121,6 +129,16 @@ const AdminProtectionRoute = AdminProtectionRouteImport.update({
   path: '/admin/protection',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/admin/payments',
+  path: '/admin/payments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminPackagesRoute = AdminPackagesRouteImport.update({
+  id: '/admin/packages',
+  path: '/admin/packages',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDomainsRoute = AdminDomainsRouteImport.update({
   id: '/admin/domains',
   path: '/admin/domains',
@@ -178,10 +196,13 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/upgrade': typeof UpgradeRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/domains': typeof AdminDomainsRoute
+  '/admin/packages': typeof AdminPackagesRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -206,10 +227,13 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/upgrade': typeof UpgradeRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/domains': typeof AdminDomainsRoute
+  '/admin/packages': typeof AdminPackagesRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -235,10 +259,13 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/upgrade': typeof UpgradeRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/domains': typeof AdminDomainsRoute
+  '/admin/packages': typeof AdminPackagesRoute
+  '/admin/payments': typeof AdminPaymentsRoute
   '/admin/protection': typeof AdminProtectionRoute
   '/admin/referer-rules': typeof AdminRefererRulesRoute
   '/admin/rotation': typeof AdminRotationRoute
@@ -265,10 +292,13 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/sitemap.xml'
+    | '/upgrade'
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/domain-health'
     | '/admin/domains'
+    | '/admin/packages'
+    | '/admin/payments'
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
@@ -293,10 +323,13 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/sitemap.xml'
+    | '/upgrade'
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/domain-health'
     | '/admin/domains'
+    | '/admin/packages'
+    | '/admin/payments'
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
@@ -321,10 +354,13 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/signup'
     | '/sitemap.xml'
+    | '/upgrade'
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/domain-health'
     | '/admin/domains'
+    | '/admin/packages'
+    | '/admin/payments'
     | '/admin/protection'
     | '/admin/referer-rules'
     | '/admin/rotation'
@@ -350,10 +386,13 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   SignupRoute: typeof SignupRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  UpgradeRoute: typeof UpgradeRoute
   AdminAsnBlocklistRoute: typeof AdminAsnBlocklistRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminDomainHealthRoute: typeof AdminDomainHealthRoute
   AdminDomainsRoute: typeof AdminDomainsRoute
+  AdminPackagesRoute: typeof AdminPackagesRoute
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
   AdminProtectionRoute: typeof AdminProtectionRoute
   AdminRefererRulesRoute: typeof AdminRefererRulesRoute
   AdminRotationRoute: typeof AdminRotationRoute
@@ -370,6 +409,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/upgrade': {
+      id: '/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof UpgradeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -489,6 +535,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProtectionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/admin/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/packages': {
+      id: '/admin/packages'
+      path: '/admin/packages'
+      fullPath: '/admin/packages'
+      preLoaderRoute: typeof AdminPackagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/domains': {
       id: '/admin/domains'
       path: '/admin/domains'
@@ -577,10 +637,13 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   SignupRoute: SignupRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  UpgradeRoute: UpgradeRoute,
   AdminAsnBlocklistRoute: AdminAsnBlocklistRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminDomainHealthRoute: AdminDomainHealthRoute,
   AdminDomainsRoute: AdminDomainsRoute,
+  AdminPackagesRoute: AdminPackagesRoute,
+  AdminPaymentsRoute: AdminPaymentsRoute,
   AdminProtectionRoute: AdminProtectionRoute,
   AdminRefererRulesRoute: AdminRefererRulesRoute,
   AdminRotationRoute: AdminRotationRoute,

@@ -639,6 +639,33 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_settings: {
+        Row: {
+          id: number
+          payment_instructions: string | null
+          plisio_api_key: string | null
+          plisio_enabled: boolean
+          plisio_webhook_secret: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          payment_instructions?: string | null
+          plisio_api_key?: string | null
+          plisio_enabled?: boolean
+          plisio_webhook_secret?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          payment_instructions?: string | null
+          plisio_api_key?: string | null
+          plisio_enabled?: boolean
+          plisio_webhook_secret?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prelander_variants: {
         Row: {
           category: string
@@ -789,6 +816,48 @@ export type Database = {
           label?: string | null
           notes?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      upgrade_requests: {
+        Row: {
+          amount: number | null
+          created_at: string
+          id: string
+          note: string | null
+          package_slug: string
+          payment_method: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          transaction_ref: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          package_slug: string
+          payment_method?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          transaction_ref?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          package_slug?: string
+          payment_method?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          transaction_ref?: string | null
+          user_id?: string
         }
         Relationships: []
       }
