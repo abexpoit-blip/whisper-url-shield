@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { FaqSection, buildFaqSchema, type FaqItem } from "@/components/faq-section";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
 export interface PlatformLandingProps {
   platform: string;
@@ -20,6 +21,7 @@ export interface PlatformLandingProps {
 export function PlatformLanding(props: PlatformLandingProps) {
   const { platform, tagline, heroTitle, heroSub, painPoints, benefits, faq, accent } =
     props;
+  const breadcrumbItems = [{ label: `${platform} Ads` }];
 
   return (
     <div className="min-h-screen bg-background">
