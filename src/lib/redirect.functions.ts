@@ -289,6 +289,9 @@ type ProtectionConfig = {
   suspicious_action: "block" | "safe_page" | "allow";
   block_threshold_score: number;
   safe_page_message: string;
+  signal_weights: Record<string, number>;
+  soft_reasons: string[];
+  inapp_browser_relief: boolean;
 };
 
 const DEFAULT_PROTECTION: ProtectionConfig = {
@@ -298,12 +301,15 @@ const DEFAULT_PROTECTION: ProtectionConfig = {
   block_threshold_score: 60,
   safe_page_message:
     "This article is temporarily unavailable. Please check back later.",
+  signal_weights: {},
+  soft_reasons: [],
+  inapp_browser_relief: true,
 };
 
 async function loadProtection(): Promise<ProtectionConfig> {
   const { data } = await supabaseAdmin
     .from("bot_protection_config")
-    .select("ip_rate_limit_per_min,ip_rate_limit_window_sec,suspicious_action,block_threshold_score,safe_page_message")
+    .select("ip_rate_limit_per_min,ip_rate_limit_window_sec,suspicious_action,block_threshold_score,safe_page_message,signal_weights,soft_reasons,inapp_browser_relief")
     .eq("id", 1)
     .maybeSingle();
   if (!data) return DEFAULT_PROTECTION;
@@ -311,8 +317,101 @@ async function loadProtection(): Promise<ProtectionConfig> {
     ...DEFAULT_PROTECTION,
     ...data,
     suspicious_action: (data.suspicious_action as ProtectionConfig["suspicious_action"]) ?? "safe_page",
+    signal_weights: (data.signal_weights as Record<string, number> | null) ?? {},
+    soft_reasons: (data.soft_reasons as string[] | null) ?? [],
+    inapp_browser_relief: data.inapp_browser_relief ?? true,
   };
 }
+
+// ---------- Phase 3.5: tunable weight adjustments + structured logging ----------
+
+const DEFAULT_REASON_WEIGHTS: Record<string, number> = {
+  "no-ua": 50,
+  "no-html-accept": 25,
+  "no-accept-lang": 20,
+  "no-compression": 15,
+  "no-sec-fetch": 15,
+  "no-sec-fetch-dest": 10,
+  "chrome-no-ch-ua": 20,
+  "cf-verified-bot": 100,
+  "cf-bot-score": 40,
+  "cf-threat": 30,
+  "ua": 60, // matches "ua:<pattern>" prefix
+};
+
+// FB/IG/Line in-app browsers strip many of these headers — heavily penalize = false positives.
+const INAPP_SOFT_BASES = new Set([
+  "no-html-accept", "no-accept-lang", "no-compression",
+  "no-sec-fetch", "no-sec-fetch-dest", "chrome-no-ch-ua",
+]);
+
+const INAPP_UA_RE = /fbav|fban|fbios|instagram|line\/|fb_iab|; wv\)|\(.*; wv\)/i;
+
+function isInAppBrowserUA(ua: string): boolean {
+  return INAPP_UA_RE.test(ua);
+}
+
+function applyConfigAdjustments(
+  a: ReturnType<typeof analyzeRequest>,
+  cfg: ProtectionConfig,
+): { score: number; hardBot: boolean; inapp: boolean; adjustments: Array<{ reason: string; delta: number; rule: string }> } {
+  const reasons = a.reasons ? a.reasons.split(",").filter(Boolean) : [];
+  let score = a.score;
+  let hardBot = a.hardBot;
+  const adjustments: Array<{ reason: string; delta: number; rule: string }> = [];
+  const overrides = cfg.signal_weights || {};
+  const soft = new Set(cfg.soft_reasons || []);
+  const inapp = isInAppBrowserUA(a.ua);
+
+  for (const reason of reasons) {
+    const base = reason.split(":")[0];
+    const def = DEFAULT_REASON_WEIGHTS[reason] ?? DEFAULT_REASON_WEIGHTS[base] ?? 0;
+
+    // 1) Admin-marked soft reason: zero it out, clear hard flag if it came from this reason.
+    if (soft.has(reason) || soft.has(base)) {
+      if (def) {
+        score -= def;
+        adjustments.push({ reason, delta: -def, rule: "soft" });
+      }
+      if (base === "no-ua" || base === "ua" || reason === "cf-verified-bot") {
+        hardBot = false;
+      }
+      continue;
+    }
+
+    // 2) Explicit weight override (exact key or base key).
+    if (overrides[reason] != null || overrides[base] != null) {
+      const want = Number(overrides[reason] ?? overrides[base] ?? def);
+      const delta = want - def;
+      if (delta) {
+        score += delta;
+        adjustments.push({ reason, delta, rule: "override" });
+      }
+      continue;
+    }
+
+    // 3) In-app browser relief: cut header-based signals to 1/3.
+    if (inapp && cfg.inapp_browser_relief && INAPP_SOFT_BASES.has(base)) {
+      const cut = Math.floor((def * 2) / 3);
+      if (cut) {
+        score -= cut;
+        adjustments.push({ reason, delta: -cut, rule: "inapp-relief" });
+      }
+    }
+  }
+
+  if (score < 0) score = 0;
+  return { score, hardBot, inapp, adjustments };
+}
+
+function logRedirectEvent(evt: string, payload: Record<string, unknown>) {
+  try {
+    console.log(JSON.stringify({ evt, ts: new Date().toISOString(), ...payload }));
+  } catch {
+    // swallow JSON.stringify failures (circular refs etc.) — logging must never throw
+  }
+}
+
 
 async function ipExceedsRate(ip: string, cfg: ProtectionConfig): Promise<number> {
   if (!ip) return 0;
@@ -569,7 +668,7 @@ export const resolveLink = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(1).max(32) }).parse(input),
   )
   .handler(async ({ data }) => {
-    const a = analyzeRequest();
+    const aRaw = analyzeRequest();
     const ip =
       getRequestHeader("cf-connecting-ip") ||
       getRequestHeader("x-forwarded-for") ||
@@ -597,7 +696,27 @@ export const resolveLink = createServerFn({ method: "POST" })
     }
     const link = linkRes.data;
 
-    if (!link || link.status !== "active") return { found: false as const };
+    if (!link || link.status !== "active") {
+      logRedirectEvent("resolve.not_found", { code: data.code, ip, country });
+      return { found: false as const };
+    }
+
+    // Apply admin-tuned signal_weights, soft_reasons, and FB/IG in-app browser relief.
+    const adj = applyConfigAdjustments(aRaw, cfg);
+    const a = { ...aRaw, score: adj.score, hardBot: adj.hardBot, isBot: adj.score >= 50 };
+
+    logRedirectEvent("resolve.start", {
+      code: data.code,
+      ip, country,
+      ua: aRaw.ua.slice(0, 120),
+      rawScore: aRaw.score,
+      adjustedScore: adj.score,
+      hardBot: adj.hardBot,
+      inapp: adj.inapp,
+      adjustments: adj.adjustments,
+      reasons: aRaw.reasons,
+    });
+
 
     // Targeting check (geo/device/lang/time)
     const uaInfoT = parseUA(a.ua);
@@ -661,6 +780,10 @@ export const resolveLink = createServerFn({ method: "POST" })
         challenge_passed: false,
         ...attrB,
       });
+      logRedirectEvent("resolve.decision", {
+        code: data.code, branch: "blocked", verifyExpected: false,
+        score: a.score, reasons: suspicionReasons,
+      });
       return {
         found: true as const,
         blocked: true as const,
@@ -668,6 +791,7 @@ export const resolveLink = createServerFn({ method: "POST" })
         message: cfg.safe_page_message,
       };
     }
+
 
     const uaInfo = parseUA(a.ua);
     const attr = attributionFromRequestUrl();
@@ -732,6 +856,7 @@ export const resolveLink = createServerFn({ method: "POST" })
 
       const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo.device, uaInfo.os);
       if (geoDev) {
+        logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: geoDev, duplicateClick });
         return { found: true as const, blocked: false as const, direct: true as const, redirectTo: geoDev };
       }
       const { data: destRows } = await supabaseAdmin
@@ -739,8 +864,10 @@ export const resolveLink = createServerFn({ method: "POST" })
         .select("url,weight,is_active")
         .eq("link_id", link.id);
       const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
+      logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination, duplicateClick });
       return { found: true as const, blocked: false as const, direct: true as const, redirectTo: destination };
     }
+
 
     // NOTE: silent bot path renders a real prelander variant, but never
     // auto-triggers verifyHuman and never reveals the real destination.
@@ -847,6 +974,13 @@ export const resolveLink = createServerFn({ method: "POST" })
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
     }
 
+    logRedirectEvent("resolve.decision", {
+      code: data.code,
+      branch: silentBot ? "silent" : "verify",
+      verifyExpected: !silentBot, // verifyHuman should be called when this is true
+      score: a.score, reasons: defenseReasons, variant: chosenVariant.slug,
+    });
+
     return {
       found: true as const,
       blocked: false as const,
@@ -864,6 +998,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       },
     };
   });
+
 
 export const verifyHuman = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
@@ -896,11 +1031,18 @@ export const verifyHuman = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const a = analyzeRequest();
+    const aRaw = analyzeRequest();
     const ip =
       getRequestHeader("cf-connecting-ip") ||
       getRequestHeader("x-forwarded-for") ||
       "";
+
+    logRedirectEvent("verify.start", {
+      code: data.code, ip,
+      ua: aRaw.ua.slice(0, 120),
+      rawScore: aRaw.score,
+      reasons: aRaw.reasons,
+    });
 
     const { data: link, error: linkError } = await supabaseAdmin
       .from("links")
@@ -919,8 +1061,15 @@ export const verifyHuman = createServerFn({ method: "POST" })
     }
 
     if (!link || link.status !== "active") {
+      logRedirectEvent("verify.decision", { code: data.code, branch: "not-found" });
       return { ok: false as const, reason: "not-found" };
     }
+
+    // Load config + apply tunable weight adjustments (matches resolveLink behaviour).
+    const cfgEarly = await loadProtection();
+    const adj = applyConfigAdjustments(aRaw, cfgEarly);
+    const a = { ...aRaw, score: adj.score, hardBot: adj.hardBot, isBot: adj.score >= 50 };
+
 
     // Parallel: FB blocklist + referer rule + time rule are independent
     const asn = asnFromHeaders();
@@ -958,6 +1107,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
         }),
         challenge_passed: false,
       });
+      logRedirectEvent("verify.decision", { code: data.code, branch: "verify-silent", score: a.score, fbHit, refAction, timeAction });
       return { ok: false as const, reason: "blocklist" };
     }
 
@@ -971,9 +1121,10 @@ export const verifyHuman = createServerFn({ method: "POST" })
       }
     }
 
-    // Re-check protection + targeting at verification time (parallel)
-    const cfg = await loadProtection();
+    // Re-use config loaded early in handler for adjustments
+    const cfg = cfgEarly;
     const rateHits = await ipExceedsRate(ip, cfg);
+
 
 
     const uaInfo2 = parseUA(a.ua);
@@ -1083,6 +1234,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
 
     if (isBot) {
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
+      logRedirectEvent("verify.decision", { code: data.code, branch: "bot-detected", score, reasons });
       return { ok: false as const, reason: "bot-detected" };
     }
 
@@ -1100,7 +1252,10 @@ export const verifyHuman = createServerFn({ method: "POST" })
     //   2) Weighted rotator over link_destinations
     //   3) Plain destination_url (THE Adsterra link the user pasted)
     const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo2.device, uaInfo2.os);
-    if (geoDev) return { ok: true as const, destination: geoDev };
+    if (geoDev) {
+      logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: geoDev });
+      return { ok: true as const, destination: geoDev };
+    }
 
     const { data: destRows } = await supabaseAdmin
       .from("link_destinations")
@@ -1108,6 +1263,8 @@ export const verifyHuman = createServerFn({ method: "POST" })
       .eq("link_id", link.id);
     const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
 
+    logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination });
     return { ok: true as const, destination };
   });
+
 

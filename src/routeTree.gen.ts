@@ -46,6 +46,7 @@ import { Route as LinksLinkIdTimeRulesRouteImport } from './routes/links.$linkId
 import { Route as LinksLinkIdTargetingRouteImport } from './routes/links.$linkId.targeting'
 import { Route as LinksLinkIdSettingsRouteImport } from './routes/links.$linkId.settings'
 import { Route as ApiPublicHooksDomainHealthRouteImport } from './routes/api/public/hooks/domain-health'
+import { Route as ApiPublicHooksBackfillClicksRouteImport } from './routes/api/public/hooks/backfill-clicks'
 import { Route as ApiPublicHooksAutopilotRouteImport } from './routes/api/public/hooks/autopilot'
 
 const UpgradeRoute = UpgradeRouteImport.update({
@@ -234,6 +235,12 @@ const ApiPublicHooksDomainHealthRoute =
     path: '/api/public/hooks/domain-health',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksBackfillClicksRoute =
+  ApiPublicHooksBackfillClicksRouteImport.update({
+    id: '/api/public/hooks/backfill-clicks',
+    path: '/api/public/hooks/backfill-clicks',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksAutopilotRoute = ApiPublicHooksAutopilotRouteImport.update({
   id: '/api/public/hooks/autopilot',
   path: '/api/public/hooks/autopilot',
@@ -278,6 +285,7 @@ export interface FileRoutesByFullPath {
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
   '/links/$linkId/time-rules': typeof LinksLinkIdTimeRulesRoute
   '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
+  '/api/public/hooks/backfill-clicks': typeof ApiPublicHooksBackfillClicksRoute
   '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
 }
 export interface FileRoutesByTo {
@@ -317,6 +325,7 @@ export interface FileRoutesByTo {
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
   '/links/$linkId/time-rules': typeof LinksLinkIdTimeRulesRoute
   '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
+  '/api/public/hooks/backfill-clicks': typeof ApiPublicHooksBackfillClicksRoute
   '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
 }
 export interface FileRoutesById {
@@ -358,6 +367,7 @@ export interface FileRoutesById {
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
   '/links/$linkId/time-rules': typeof LinksLinkIdTimeRulesRoute
   '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
+  '/api/public/hooks/backfill-clicks': typeof ApiPublicHooksBackfillClicksRoute
   '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
 }
 export interface FileRouteTypes {
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/links/$linkId/targeting'
     | '/links/$linkId/time-rules'
     | '/api/public/hooks/autopilot'
+    | '/api/public/hooks/backfill-clicks'
     | '/api/public/hooks/domain-health'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -439,6 +450,7 @@ export interface FileRouteTypes {
     | '/links/$linkId/targeting'
     | '/links/$linkId/time-rules'
     | '/api/public/hooks/autopilot'
+    | '/api/public/hooks/backfill-clicks'
     | '/api/public/hooks/domain-health'
   id:
     | '__root__'
@@ -479,6 +491,7 @@ export interface FileRouteTypes {
     | '/links/$linkId/targeting'
     | '/links/$linkId/time-rules'
     | '/api/public/hooks/autopilot'
+    | '/api/public/hooks/backfill-clicks'
     | '/api/public/hooks/domain-health'
   fileRoutesById: FileRoutesById
 }
@@ -506,6 +519,7 @@ export interface RootRouteChildren {
   LinksLinkIdTargetingRoute: typeof LinksLinkIdTargetingRoute
   LinksLinkIdTimeRulesRoute: typeof LinksLinkIdTimeRulesRoute
   ApiPublicHooksAutopilotRoute: typeof ApiPublicHooksAutopilotRoute
+  ApiPublicHooksBackfillClicksRoute: typeof ApiPublicHooksBackfillClicksRoute
   ApiPublicHooksDomainHealthRoute: typeof ApiPublicHooksDomainHealthRoute
 }
 
@@ -770,6 +784,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksDomainHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/backfill-clicks': {
+      id: '/api/public/hooks/backfill-clicks'
+      path: '/api/public/hooks/backfill-clicks'
+      fullPath: '/api/public/hooks/backfill-clicks'
+      preLoaderRoute: typeof ApiPublicHooksBackfillClicksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/autopilot': {
       id: '/api/public/hooks/autopilot'
       path: '/api/public/hooks/autopilot'
@@ -850,6 +871,7 @@ const rootRouteChildren: RootRouteChildren = {
   LinksLinkIdTargetingRoute: LinksLinkIdTargetingRoute,
   LinksLinkIdTimeRulesRoute: LinksLinkIdTimeRulesRoute,
   ApiPublicHooksAutopilotRoute: ApiPublicHooksAutopilotRoute,
+  ApiPublicHooksBackfillClicksRoute: ApiPublicHooksBackfillClicksRoute,
   ApiPublicHooksDomainHealthRoute: ApiPublicHooksDomainHealthRoute,
 }
 export const routeTree = rootRouteImport
