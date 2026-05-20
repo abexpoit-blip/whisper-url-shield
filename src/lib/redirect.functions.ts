@@ -1234,6 +1234,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
 
     if (isBot) {
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
+      logRedirectEvent("verify.decision", { code: data.code, branch: "bot-detected", score, reasons });
       return { ok: false as const, reason: "bot-detected" };
     }
 
@@ -1251,7 +1252,10 @@ export const verifyHuman = createServerFn({ method: "POST" })
     //   2) Weighted rotator over link_destinations
     //   3) Plain destination_url (THE Adsterra link the user pasted)
     const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo2.device, uaInfo2.os);
-    if (geoDev) return { ok: true as const, destination: geoDev };
+    if (geoDev) {
+      logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: geoDev });
+      return { ok: true as const, destination: geoDev };
+    }
 
     const { data: destRows } = await supabaseAdmin
       .from("link_destinations")
@@ -1259,6 +1263,9 @@ export const verifyHuman = createServerFn({ method: "POST" })
       .eq("link_id", link.id);
     const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
 
+    logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination });
     return { ok: true as const, destination };
+  });
+
   });
 
