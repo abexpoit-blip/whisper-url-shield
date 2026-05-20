@@ -18,7 +18,9 @@ export const Route = createFileRoute("/r/$code")({
     // Twitter share previews look like a legitimate article — NOT a redirect.
     // Intentionally NO `noindex` here: that's a giveaway flag to ad scanners.
     const v = loaderData && "variant" in loaderData ? loaderData.variant : null;
-    const title = v?.title ?? "Daily Reads — Articles & Tips";
+    const b = loaderData && "branding" in loaderData ? loaderData.branding : null;
+    const siteName = b?.brandName || "Daily Reads";
+    const title = v?.title ?? `${siteName} — Articles & Tips`;
     const desc =
       v?.subtitle ||
       (v?.intro ? v.intro.slice(0, 155) : "Practical lifestyle, wellness and productivity tips for everyday readers.");
@@ -29,11 +31,12 @@ export const Route = createFileRoute("/r/$code")({
         { property: "og:title", content: title },
         { property: "og:description", content: desc },
         { property: "og:type", content: "article" },
-        { property: "og:site_name", content: "Daily Reads" },
+        { property: "og:site_name", content: siteName },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: desc },
-        { name: "author", content: "Daily Reads Editorial" },
+        { name: "author", content: `${siteName} Editorial` },
+        ...(b?.logoUrl ? [{ property: "og:image", content: b.logoUrl }] : []),
       ],
     };
   },
