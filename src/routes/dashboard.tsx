@@ -1306,13 +1306,17 @@ function Dashboard() {
       <Dialog open={!!countryDrillCode} onOpenChange={(o) => { if (!o) { setCountryDrillCode(null); setCountryDrill(null); setDrillFilters({ device: null, browser: null, os: null }); } }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle className="font-display flex items-center gap-2">
+            <DialogTitle className="font-display flex items-center gap-2.5">
               {countryDrillCode && (() => {
                 const up = countryDrillCode.toUpperCase();
-                const A = 0x1f1e6;
-                let f = "🌐";
-                try { f = String.fromCodePoint(A + up.charCodeAt(0) - 65, A + up.charCodeAt(1) - 65); } catch {}
-                return <><span className="text-2xl leading-none">{f}</span><span>{up} · Country drilldown</span></>;
+                const name = COUNTRY_NAMES[up];
+                return (
+                  <>
+                    <CountryFlag cc={up} className="h-6 w-8 !rounded-md" />
+                    <span>{up}{name ? ` · ${name}` : ""}</span>
+                    <span className="text-xs font-normal text-muted-foreground">· Country drilldown</span>
+                  </>
+                );
               })()}
             </DialogTitle>
             <DialogDescription>
