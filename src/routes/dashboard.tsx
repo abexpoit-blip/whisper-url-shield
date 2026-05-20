@@ -649,14 +649,10 @@ function Dashboard() {
                   </div>
                   <div className="p-5 space-y-3">
                     {(() => {
-                      const flag = (cc: string) => {
-                        if (!cc || cc.length !== 2) return "🌐";
-                        const up = cc.toUpperCase();
-                        const A = 0x1f1e6;
-                        try {
-                          return String.fromCodePoint(A + up.charCodeAt(0) - 65, A + up.charCodeAt(1) - 65);
-                        } catch { return "🌐"; }
-                      };
+                      const flagUrl = (cc: string) =>
+                        cc && /^[A-Za-z]{2}$/.test(cc)
+                          ? `https://flagcdn.com/w40/${cc.toLowerCase()}.png`
+                          : null;
                       const rows = (analytics?.byCountry ?? [])
                         .filter((r) => r.key && r.key !== "unknown")
                         .slice(0, 6);
@@ -672,6 +668,7 @@ function Dashboard() {
                       return rows.map((row) => {
                         const pct = (row.total / max) * 100;
                         const share = rangeTotals.total ? (row.total / rangeTotals.total) * 100 : 0;
+                        const url = flagUrl(row.key);
                         return (
                           <button
                             key={row.key}
@@ -682,8 +679,20 @@ function Dashboard() {
                           >
                             <div className="flex items-center justify-between text-xs gap-2">
                               <span className="flex items-center gap-2 min-w-0">
-                                <span className="text-base leading-none">{flag(row.key)}</span>
-                                <span className="font-semibold uppercase tracking-wide">{row.key}</span>
+                                {url ? (
+                                  <img
+                                    src={url}
+                                    srcSet={`https://flagcdn.com/w80/${row.key.toLowerCase()}.png 2x`}
+                                    alt={row.key}
+                                    width={20}
+                                    height={15}
+                                    loading="lazy"
+                                    className="h-[15px] w-5 rounded-sm object-cover ring-1 ring-border/60 shadow-sm shrink-0"
+                                  />
+                                ) : (
+                                  <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                                )}
+                                <span className="font-mono font-semibold uppercase tracking-wider">{row.key}</span>
                               </span>
                               <span className="flex items-center gap-1.5 font-mono text-muted-foreground">
                                 {share.toFixed(0)}%
