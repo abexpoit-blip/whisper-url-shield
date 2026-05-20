@@ -208,10 +208,13 @@ function LandingPage() {
             <Logo glow glowSize="sm" className="h-6 w-6" />
             <span>© 2026 LinkShield. All rights reserved.</span>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link to="/facebook-ads">Facebook Ads</Link>
+            <Link to="/instagram-ads">Instagram Ads</Link>
+            <Link to="/tiktok-ads">TikTok Ads</Link>
+            <Link to="/google-ads">Google Ads</Link>
             <Link to="/pricing">Pricing</Link>
             <Link to="/login">Sign in</Link>
-            <Link to="/signup">Sign up</Link>
             <span
               className="inline-block rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-600 px-3 py-1 text-[10px] font-bold tracking-wider text-white shadow-glow"
             >
