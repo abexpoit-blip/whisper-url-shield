@@ -60,27 +60,36 @@ export type Database = {
         Row: {
           block_threshold_score: number
           id: number
+          inapp_browser_relief: boolean
           ip_rate_limit_per_min: number
           ip_rate_limit_window_sec: number
           safe_page_message: string
+          signal_weights: Json
+          soft_reasons: string[]
           suspicious_action: string
           updated_at: string
         }
         Insert: {
           block_threshold_score?: number
           id?: number
+          inapp_browser_relief?: boolean
           ip_rate_limit_per_min?: number
           ip_rate_limit_window_sec?: number
           safe_page_message?: string
+          signal_weights?: Json
+          soft_reasons?: string[]
           suspicious_action?: string
           updated_at?: string
         }
         Update: {
           block_threshold_score?: number
           id?: number
+          inapp_browser_relief?: boolean
           ip_rate_limit_per_min?: number
           ip_rate_limit_window_sec?: number
           safe_page_message?: string
+          signal_weights?: Json
+          soft_reasons?: string[]
           suspicious_action?: string
           updated_at?: string
         }
