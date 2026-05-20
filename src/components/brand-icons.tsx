@@ -224,6 +224,59 @@ export const COUNTRY_NAMES: Record<string, string> = {
   CO: "Colombia", PE: "Peru", VE: "Venezuela", UA: "Ukraine",
 };
 
+function CachedImage({
+  src,
+  srcSet,
+  alt,
+  width,
+  height,
+  className,
+  fallback,
+}: {
+  src: string;
+  srcSet?: string;
+  alt: string;
+  width: number;
+  height: number;
+  className?: string;
+  fallback: React.ReactNode;
+}) {
+  // Skip remote calls we already know are broken in this session.
+  const initiallyFailed = isKnownFailed(src);
+  const initiallyLoaded = isKnownLoaded(src);
+  const [state, setState] = React.useState<"loading" | "loaded" | "failed">(
+    initiallyFailed ? "failed" : initiallyLoaded ? "loaded" : "loading",
+  );
+
+  React.useEffect(() => {
+    if (state !== "loading") return;
+    let cancelled = false;
+    loadImage(src).then((ok) => {
+      if (!cancelled) setState(ok ? "loaded" : "failed");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [src, state]);
+
+  if (state === "failed") return <>{fallback}</>;
+  // Only render the <img> after the throttled loader resolves; the browser
+  // HTTP cache then serves the bytes from memory/disk.
+  if (state !== "loaded") return <>{fallback}</>;
+  return (
+    <img
+      src={src}
+      srcSet={srcSet}
+      alt={alt}
+      width={width}
+      height={height}
+      loading="lazy"
+      decoding="async"
+      className={className}
+    />
+  );
+}
+
 export function CountryFlag({ cc, className }: { cc: string; className?: string }) {
   const up = (cc || "").toUpperCase();
   if (!/^[A-Z]{2}$/.test(up)) {
@@ -234,16 +287,18 @@ export function CountryFlag({ cc, className }: { cc: string; className?: string 
     );
   }
   const lo = up.toLowerCase();
+  const src = `https://flagcdn.com/w40/${lo}.png`;
+  const srcSet = `https://flagcdn.com/w80/${lo}.png 2x`;
   return (
     <span className={`${BADGE_CLASS} ${className ?? ""}`}>
-      <img
-        src={`https://flagcdn.com/w40/${lo}.png`}
-        srcSet={`https://flagcdn.com/w80/${lo}.png 2x`}
+      <CachedImage
+        src={src}
+        srcSet={srcSet}
         alt={up}
         width={20}
         height={15}
-        loading="lazy"
         className="h-full w-full object-cover"
+        fallback={<Globe className="h-3 w-3 text-muted-foreground" />}
       />
     </span>
   );
@@ -268,19 +323,21 @@ export function ReferrerFavicon({ host, className }: { host: string; className?:
     );
   }
   const domain = h.replace(/^www\./, "").split("/")[0];
+  const src = `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`;
   return (
     <span className={`${BADGE_CLASS} ${className ?? ""}`}>
-      <img
-        src={`https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`}
+      <CachedImage
+        src={src}
         alt={domain}
         width={16}
         height={16}
-        loading="lazy"
         className="h-4 w-4"
+        fallback={<Globe className="h-3 w-3 text-primary" />}
       />
     </span>
   );
 }
+
 
 export function prettyReferrer(host: string) {
   const h = (host || "").toLowerCase().trim();
