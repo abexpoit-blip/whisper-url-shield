@@ -56,6 +56,7 @@ function LandingPage() {
             <Link to="/instagram-ads" className="text-muted-foreground hover:text-foreground">Instagram</Link>
             <Link to="/tiktok-ads" className="text-muted-foreground hover:text-foreground">TikTok</Link>
             <Link to="/google-ads" className="text-muted-foreground hover:text-foreground">Google Ads</Link>
+            <Link to="/blog" className="text-muted-foreground hover:text-foreground">Blog</Link>
             <Link to="/pricing" className="text-muted-foreground hover:text-foreground">Pricing</Link>
           </nav>
           <div className="flex items-center gap-2">
