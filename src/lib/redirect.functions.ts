@@ -668,7 +668,7 @@ export const resolveLink = createServerFn({ method: "POST" })
     z.object({ code: z.string().min(1).max(32) }).parse(input),
   )
   .handler(async ({ data }) => {
-    const a = analyzeRequest();
+    const aRaw = analyzeRequest();
     const ip =
       getRequestHeader("cf-connecting-ip") ||
       getRequestHeader("x-forwarded-for") ||
@@ -696,7 +696,27 @@ export const resolveLink = createServerFn({ method: "POST" })
     }
     const link = linkRes.data;
 
-    if (!link || link.status !== "active") return { found: false as const };
+    if (!link || link.status !== "active") {
+      logRedirectEvent("resolve.not_found", { code: data.code, ip, country });
+      return { found: false as const };
+    }
+
+    // Apply admin-tuned signal_weights, soft_reasons, and FB/IG in-app browser relief.
+    const adj = applyConfigAdjustments(aRaw, cfg);
+    const a = { ...aRaw, score: adj.score, hardBot: adj.hardBot, isBot: adj.score >= 50 };
+
+    logRedirectEvent("resolve.start", {
+      code: data.code,
+      ip, country,
+      ua: aRaw.ua.slice(0, 120),
+      rawScore: aRaw.score,
+      adjustedScore: adj.score,
+      hardBot: adj.hardBot,
+      inapp: adj.inapp,
+      adjustments: adj.adjustments,
+      reasons: aRaw.reasons,
+    });
+
 
     // Targeting check (geo/device/lang/time)
     const uaInfoT = parseUA(a.ua);
