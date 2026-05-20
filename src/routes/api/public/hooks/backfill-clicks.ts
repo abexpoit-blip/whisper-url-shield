@@ -103,7 +103,11 @@ export const Route = createFileRoute("/api/public/hooks/backfill-clicks")({
               ].join("|")
             ));
 
-          const patch: Record<string, unknown> = {};
+          const patch: {
+            fingerprint_hash?: string;
+            bot_score?: number;
+            signals?: Record<string, unknown>;
+          } = {};
           if (!r.fingerprint_hash) patch.fingerprint_hash = fp;
           if (r.bot_score == null) patch.bot_score = Math.min(score, 500);
           if (!r.signals) {
@@ -131,6 +135,7 @@ export const Route = createFileRoute("/api/public/hooks/backfill-clicks")({
             updated++;
           }
         }
+
 
         console.log(
           JSON.stringify({
