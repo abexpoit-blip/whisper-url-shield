@@ -458,39 +458,39 @@ function AnalyticsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Country */}
-          <Card className="p-5">
+          <Card className="p-5 bg-gradient-to-br from-card via-card to-primary/5 border-primary/10 shadow-lg shadow-primary/5 hover:shadow-primary/10 transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <Globe className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold">Top countries</h2>
+              <h2 className="font-semibold tracking-tight">Top countries</h2>
             </div>
-            <BreakdownTable rows={data?.byCountry ?? []} keyLabel="Country" />
+            <BreakdownTable rows={data?.byCountry ?? []} keyLabel="Country" kind="country" />
           </Card>
 
           {/* Browser */}
-          <Card className="p-5">
+          <Card className="p-5 bg-gradient-to-br from-card via-card to-primary/5 border-primary/10 shadow-lg shadow-primary/5 hover:shadow-primary/10 transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <Monitor className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold">Browsers</h2>
+              <h2 className="font-semibold tracking-tight">Browsers</h2>
             </div>
-            <BreakdownTable rows={data?.byBrowser ?? []} keyLabel="Browser" />
+            <BreakdownTable rows={data?.byBrowser ?? []} keyLabel="Browser" kind="browser" />
           </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* OS */}
-          <Card className="p-5">
+          <Card className="p-5 bg-gradient-to-br from-card via-card to-primary/5 border-primary/10 shadow-lg shadow-primary/5 hover:shadow-primary/10 transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <Tablet className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold">Operating systems</h2>
+              <h2 className="font-semibold tracking-tight">Operating systems</h2>
             </div>
-            <BreakdownTable rows={data?.byOS ?? []} keyLabel="OS" />
+            <BreakdownTable rows={data?.byOS ?? []} keyLabel="OS" kind="os" />
           </Card>
 
           {/* Variants */}
-          <Card className="p-5">
+          <Card className="p-5 bg-gradient-to-br from-card via-card to-primary/5 border-primary/10 shadow-lg shadow-primary/5 hover:shadow-primary/10 transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="h-4 w-4 text-primary" />
-              <h2 className="font-semibold">Pre-lander variant performance</h2>
+              <h2 className="font-semibold tracking-tight">Pre-lander variant performance</h2>
             </div>
             <BreakdownTable rows={data?.byVariant ?? []} keyLabel="Variant" showConversion />
           </Card>
