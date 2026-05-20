@@ -564,6 +564,7 @@ function AnalyticsPage() {
               bots: 0,
             }))}
             keyLabel="Source"
+            kind="referrer"
             hideSplit
           />
         </Card>
