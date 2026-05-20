@@ -1,27 +1,30 @@
-// Captures the original Error out-of-band so server.ts can recover the stack
-// when h3 has already swallowed the throw into a generic 500 Response.
+// Captures the last unhandled error in the SSR runtime so server.ts can
+// surface it when h3 swallows an in-handler throw into a generic 500.
+let lastCapturedError: unknown = null;
 
-let lastCapturedError: { error: unknown; at: number } | undefined;
-const TTL_MS = 5_000;
-
-function record(error: unknown) {
-  lastCapturedError = { error, at: Date.now() };
+function capture(err: unknown) {
+  lastCapturedError = err;
 }
 
-if (typeof globalThis.addEventListener === "function") {
-  globalThis.addEventListener("error", (event) => record((event as ErrorEvent).error ?? event));
-  globalThis.addEventListener("unhandledrejection", (event) =>
-    record((event as PromiseRejectionEvent).reason),
-  );
+// Side-effect: install global listeners on the Worker runtime.
+try {
+  const g = globalThis as unknown as {
+    addEventListener?: (type: string, listener: (e: unknown) => void) => void;
+  };
+  g.addEventListener?.("error", (e) => {
+    const ev = e as { error?: unknown; message?: unknown };
+    capture(ev.error ?? ev.message);
+  });
+  g.addEventListener?.("unhandledrejection", (e) => {
+    const ev = e as { reason?: unknown };
+    capture(ev.reason);
+  });
+} catch {
+  /* ignore – not all runtimes expose these APIs */
 }
 
 export function consumeLastCapturedError(): unknown {
-  if (!lastCapturedError) return undefined;
-  if (Date.now() - lastCapturedError.at > TTL_MS) {
-    lastCapturedError = undefined;
-    return undefined;
-  }
-  const { error } = lastCapturedError;
-  lastCapturedError = undefined;
-  return error;
+  const e = lastCapturedError;
+  lastCapturedError = null;
+  return e;
 }
