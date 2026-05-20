@@ -468,6 +468,15 @@ export const resolveLink = createServerFn({ method: "POST" })
         .eq("short_code", data.code)
         .maybeSingle(),
     ]);
+    if (linkRes.error) {
+      console.error("[redirect] link lookup failed", {
+        code: data.code,
+        message: linkRes.error.message,
+        details: linkRes.error.details,
+        hint: linkRes.error.hint,
+      });
+      throw new Error(`Redirect lookup failed: ${linkRes.error.message}`);
+    }
     const link = linkRes.data;
 
     if (!link || link.status !== "active") return { found: false as const };
