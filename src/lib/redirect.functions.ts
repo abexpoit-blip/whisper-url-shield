@@ -446,7 +446,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       loadProtection(),
       supabaseAdmin
         .from("links")
-        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes")
+        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color")
         .eq("short_code", data.code)
         .maybeSingle(),
     ]);
@@ -579,14 +579,34 @@ export const resolveLink = createServerFn({ method: "POST" })
     // NOTE: silent bot path renders a real prelander variant, but never
     // auto-triggers verifyHuman and never reveals the real destination.
 
-    // Load active variants from DB
+    // Load active variants, then filter to country + device targeting.
+    // Priority order: (country match + device match) > (country match) >
+    // (device match) > (untargeted defaults). Empty country_codes = global.
     const { data: variantRows } = await supabaseAdmin
       .from("prelander_variants")
-      .select("id,slug,category,title,subtitle,intro,sections,outro")
+      .select("id,slug,category,title,subtitle,intro,sections,outro,country_codes,device")
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
 
-    const variants: Variant[] = (variantRows ?? []).map(rowToVariant);
+    const allRows = variantRows ?? [];
+    const userDevice = uaInfo.device; // 'mobile' | 'desktop' | 'tablet'
+    const ctry = (country || "").toUpperCase();
+
+    type VRow = (typeof allRows)[number];
+    const matchCountry = (r: VRow) =>
+      !r.country_codes || r.country_codes.length === 0
+        ? false
+        : r.country_codes.map((c: string) => c.toUpperCase()).includes(ctry);
+    const matchDevice = (r: VRow) => r.device !== "any" && r.device === userDevice;
+    const isGlobal = (r: VRow) => (!r.country_codes || r.country_codes.length === 0) && r.device === "any";
+
+    let pool: VRow[] = allRows.filter((r) => matchCountry(r) && matchDevice(r));
+    if (pool.length === 0) pool = allRows.filter((r) => matchCountry(r) && r.device === "any");
+    if (pool.length === 0) pool = allRows.filter((r) => matchDevice(r) && (!r.country_codes || r.country_codes.length === 0));
+    if (pool.length === 0) pool = allRows.filter(isGlobal);
+    if (pool.length === 0) pool = allRows; // ultimate fallback
+
+    const variants: Variant[] = pool.map(rowToVariant);
     if (variants.length === 0) {
       return { found: false as const };
     }
@@ -656,6 +676,12 @@ export const resolveLink = createServerFn({ method: "POST" })
       variant: chosenVariant,
       preFlagBot: a.isBot,
       serverScore: a.score,
+      branding: {
+        logoUrl: link.brand_logo_url ?? null,
+        brandName: link.brand_name ?? null,
+        tagline: link.brand_tagline ?? null,
+        color: link.brand_color ?? null,
+      },
     };
   });
 
