@@ -441,13 +441,16 @@ export const resolveLink = createServerFn({ method: "POST" })
     const country = getRequestHeader("cf-ipcountry") || null;
     const referer = getRequestHeader("referer") || "";
 
-    const cfg = await loadProtection();
-
-    const { data: link } = await supabaseAdmin
-      .from("links")
-      .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes")
-      .eq("short_code", data.code)
-      .maybeSingle();
+    // Parallel: protection config + link lookup are independent
+    const [cfg, linkRes] = await Promise.all([
+      loadProtection(),
+      supabaseAdmin
+        .from("links")
+        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes")
+        .eq("short_code", data.code)
+        .maybeSingle(),
+    ]);
+    const link = linkRes.data;
 
     if (!link || link.status !== "active") return { found: false as const };
 
@@ -459,8 +462,15 @@ export const resolveLink = createServerFn({ method: "POST" })
       lang: primaryLang(a.acceptLang),
     });
 
-    // IP velocity check
-    const rateHits = await ipExceedsRate(ip, cfg);
+    // Parallel: IP rate + FB blocklist + referer rule + time rule are all independent
+    const asn = asnFromHeaders();
+    const refHost = refererHost(referer);
+    const [rateHits, fbHitRaw, refAction, timeAction] = await Promise.all([
+      ipExceedsRate(ip, cfg),
+      checkFbBlocklist(ip, asn),
+      checkRefererRule(refHost),
+      checkTimeRule(link.id),
+    ]);
     const rateLimited = rateHits > 0;
 
     // Aggregate suspicion: pre-flag bot OR rate-limited OR over hard threshold OR targeting block
@@ -504,16 +514,10 @@ export const resolveLink = createServerFn({ method: "POST" })
 
     const uaInfo = parseUA(a.ua);
     const attr = attributionFromRequestUrl();
-    // Batch-1: FB blocklist + referer rule check (treat as silent cloak)
-    const asn = asnFromHeaders();
-    const fbHitRaw = await checkFbBlocklist(ip, asn);
     // IMPORTANT: Facebook's mobile in-app browser routes REAL users through
     // FB's own IP ranges. If the UA looks like a real browser (Chrome/Safari/
     // Firefox) and has no scraper signal, do NOT cloak based on IP alone.
     const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
-    const refHost = refererHost(referer);
-    const refAction = await checkRefererRule(refHost);
-    const timeAction = await checkTimeRule(link.id);
     const refSafe = refAction === "safe" || refAction === "cloak";
     const timeSafe = timeAction === "safe" || timeAction === "cloak";
     const silentBot = a.hardBot || Boolean(fbHit) || refSafe || timeSafe || targetingCheck.blocked;
@@ -556,13 +560,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       });
 
       if (!duplicateClick) {
-        const { data: cur } = await supabaseAdmin
-          .from("links").select("clicks_count").eq("id", link.id).single();
-        if (cur) {
-          await supabaseAdmin.from("links")
-            .update({ clicks_count: cur.clicks_count + 1 })
-            .eq("id", link.id);
-        }
+        await supabaseAdmin.rpc("increment_link_clicks", { p_link_id: link.id });
       }
       if (link.duplicate_protection && !duplicateClick) await recordDuplicateClick(ip, link.id);
 
@@ -646,13 +644,7 @@ export const resolveLink = createServerFn({ method: "POST" })
         ...attr,
       });
 
-      const { data: cur } = await supabaseAdmin
-        .from("links").select("bot_clicks_count").eq("id", link.id).single();
-      if (cur) {
-        await supabaseAdmin.from("links")
-          .update({ bot_clicks_count: cur.bot_clicks_count + 1 })
-          .eq("id", link.id);
-      }
+      await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
     }
 
     return {
@@ -714,15 +706,17 @@ export const verifyHuman = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "not-found" };
     }
 
-    // Batch-1: FB blocklist + referer rules (silently fail any FB / safe-referer hit)
+    // Parallel: FB blocklist + referer rule + time rule are independent
     const asn = asnFromHeaders();
-    const fbHitRaw = await checkFbBlocklist(ip, asn);
+    const refHost = refererHost(getRequestHeader("referer"));
+    const [fbHitRaw, refAction, timeAction] = await Promise.all([
+      checkFbBlocklist(ip, asn),
+      checkRefererRule(refHost),
+      checkTimeRule(link.id),
+    ]);
     // Same fix as resolveLink: only honor FB IP/ASN hit when UA itself is a
     // known scraper. Real users in FB in-app browser share these IP ranges.
     const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
-    const refHost = refererHost(getRequestHeader("referer"));
-    const refAction = await checkRefererRule(refHost);
-    const timeAction = await checkTimeRule(link.id);
     if (fbHit || refAction === "safe" || refAction === "cloak" || timeAction === "safe" || timeAction === "cloak") {
       await supabaseAdmin.from("clicks").insert({
         link_id: link.id,
@@ -750,9 +744,10 @@ export const verifyHuman = createServerFn({ method: "POST" })
       }
     }
 
-    // Re-check protection + targeting at verification time
+    // Re-check protection + targeting at verification time (parallel)
     const cfg = await loadProtection();
     const rateHits = await ipExceedsRate(ip, cfg);
+
 
     const uaInfo2 = parseUA(a.ua);
     const country = getRequestHeader("cf-ipcountry") || null;
@@ -826,24 +821,12 @@ export const verifyHuman = createServerFn({ method: "POST" })
     });
 
     if (isBot) {
-      const { data: cur } = await supabaseAdmin
-        .from("links").select("bot_clicks_count").eq("id", link.id).single();
-      if (cur) {
-        await supabaseAdmin.from("links")
-          .update({ bot_clicks_count: cur.bot_clicks_count + 1 })
-          .eq("id", link.id);
-      }
+      await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
       return { ok: false as const, reason: "bot-detected" };
     }
 
     if (!duplicateClick) {
-      const { data: cur } = await supabaseAdmin
-        .from("links").select("clicks_count").eq("id", link.id).single();
-      if (cur) {
-        await supabaseAdmin.from("links")
-          .update({ clicks_count: cur.clicks_count + 1 })
-          .eq("id", link.id);
-      }
+      await supabaseAdmin.rpc("increment_link_clicks", { p_link_id: link.id });
     }
 
     // Record this IP so subsequent quick re-clicks are deduped
