@@ -50,10 +50,13 @@ function LandingPage() {
             <Logo glow glowSize="sm" className="h-8 w-8" />
             <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">LinkShield</span>
           </Link>
-          <nav className="hidden items-center gap-8 text-sm md:flex">
+          <nav className="hidden items-center gap-6 text-sm md:flex">
             <a href="#features" className="text-muted-foreground hover:text-foreground">Features</a>
+            <Link to="/facebook-ads" className="text-muted-foreground hover:text-foreground">Facebook</Link>
+            <Link to="/instagram-ads" className="text-muted-foreground hover:text-foreground">Instagram</Link>
+            <Link to="/tiktok-ads" className="text-muted-foreground hover:text-foreground">TikTok</Link>
+            <Link to="/google-ads" className="text-muted-foreground hover:text-foreground">Google Ads</Link>
             <Link to="/pricing" className="text-muted-foreground hover:text-foreground">Pricing</Link>
-            <a href="#how" className="text-muted-foreground hover:text-foreground">How it works</a>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login">
