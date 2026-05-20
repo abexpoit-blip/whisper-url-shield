@@ -462,8 +462,15 @@ export const resolveLink = createServerFn({ method: "POST" })
       lang: primaryLang(a.acceptLang),
     });
 
-    // IP velocity check
-    const rateHits = await ipExceedsRate(ip, cfg);
+    // Parallel: IP rate + FB blocklist + referer rule + time rule are all independent
+    const asn = asnFromHeaders();
+    const refHost = refererHost(referer);
+    const [rateHits, fbHitRaw, refAction, timeAction] = await Promise.all([
+      ipExceedsRate(ip, cfg),
+      checkFbBlocklist(ip, asn),
+      checkRefererRule(refHost),
+      checkTimeRule(link.id),
+    ]);
     const rateLimited = rateHits > 0;
 
     // Aggregate suspicion: pre-flag bot OR rate-limited OR over hard threshold OR targeting block
