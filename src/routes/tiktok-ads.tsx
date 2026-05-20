@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Shield, Bot, BarChart3 } from "lucide-react";
 import { PlatformLanding } from "@/components/platform-landing";
 import { buildFaqSchema, type FaqItem } from "@/components/faq-section";
+import { buildBreadcrumbSchema } from "@/components/breadcrumbs";
 
 const FAQ: FaqItem[] = [
   {
