@@ -34,6 +34,14 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getAnalytics } from "@/lib/analytics.functions";
+import {
+  CountryFlag,
+  BrandBadge,
+  ReferrerFavicon,
+  COUNTRY_NAMES,
+  prettyLabel,
+  prettyReferrer,
+} from "@/components/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
