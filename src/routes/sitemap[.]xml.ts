@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
+import { BLOG_POSTS } from "@/lib/blog-posts";
 
 const BASE_URL = "https://sleepox.com";
 
@@ -9,14 +10,21 @@ export const Route = createFileRoute("/sitemap.xml")({
       GET: async () => {
         const today = new Date().toISOString().slice(0, 10);
         const entries = [
-          { path: "/", changefreq: "weekly", priority: "1.0" },
-          { path: "/pricing", changefreq: "monthly", priority: "0.9" },
-          { path: "/facebook-ads", changefreq: "monthly", priority: "0.9" },
-          { path: "/instagram-ads", changefreq: "monthly", priority: "0.9" },
-          { path: "/tiktok-ads", changefreq: "monthly", priority: "0.9" },
-          { path: "/google-ads", changefreq: "monthly", priority: "0.9" },
-          { path: "/signup", changefreq: "yearly", priority: "0.6" },
-          { path: "/login", changefreq: "yearly", priority: "0.3" },
+          { path: "/", changefreq: "weekly", priority: "1.0", lastmod: today },
+          { path: "/pricing", changefreq: "monthly", priority: "0.9", lastmod: today },
+          { path: "/facebook-ads", changefreq: "monthly", priority: "0.9", lastmod: today },
+          { path: "/instagram-ads", changefreq: "monthly", priority: "0.9", lastmod: today },
+          { path: "/tiktok-ads", changefreq: "monthly", priority: "0.9", lastmod: today },
+          { path: "/google-ads", changefreq: "monthly", priority: "0.9", lastmod: today },
+          { path: "/blog", changefreq: "weekly", priority: "0.9", lastmod: today },
+          ...BLOG_POSTS.map((p) => ({
+            path: `/blog/${p.slug}`,
+            changefreq: "monthly" as const,
+            priority: "0.8" as const,
+            lastmod: p.datePublished,
+          })),
+          { path: "/signup", changefreq: "yearly", priority: "0.6", lastmod: today },
+          { path: "/login", changefreq: "yearly", priority: "0.3", lastmod: today },
         ];
         const urls = entries
           .map(
