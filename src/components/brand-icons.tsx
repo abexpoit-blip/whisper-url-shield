@@ -323,11 +323,7 @@ export function BrandBadge({ name, className }: { name: string; className?: stri
 export function ReferrerFavicon({ host, className }: { host: string; className?: string }) {
   const h = (host || "").toLowerCase().trim();
   if (!h || h === "direct" || h === "unknown") {
-    return (
-      <span className={`${BADGE_CLASS} ${className ?? ""}`}>
-        <Globe className="h-3 w-3 text-primary" />
-      </span>
-    );
+    return <BadgeUnknown className={className} />;
   }
   const domain = h.replace(/^www\./, "").split("/")[0];
   const src = `https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`;
@@ -339,12 +335,10 @@ export function ReferrerFavicon({ host, className }: { host: string; className?:
         width={16}
         height={16}
         className="h-4 w-4"
-        fallback={<Globe className="h-3 w-3 text-primary" />}
       />
     </span>
   );
 }
-
 
 export function prettyReferrer(host: string) {
   const h = (host || "").toLowerCase().trim();
