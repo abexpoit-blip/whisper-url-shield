@@ -89,11 +89,14 @@ export type Database = {
       clicks: {
         Row: {
           bot_reason: string | null
+          bot_score: number | null
           browser: string | null
+          challenge_passed: boolean
           city: string | null
           country: string | null
           created_at: string
           device: string | null
+          fingerprint_hash: string | null
           id: string
           ip_address: string | null
           is_bot: boolean
@@ -101,6 +104,7 @@ export type Database = {
           os: string | null
           referer: string | null
           referer_host: string | null
+          signals: Json | null
           user_agent: string | null
           utm_campaign: string | null
           utm_content: string | null
@@ -111,11 +115,14 @@ export type Database = {
         }
         Insert: {
           bot_reason?: string | null
+          bot_score?: number | null
           browser?: string | null
+          challenge_passed?: boolean
           city?: string | null
           country?: string | null
           created_at?: string
           device?: string | null
+          fingerprint_hash?: string | null
           id?: string
           ip_address?: string | null
           is_bot?: boolean
@@ -123,6 +130,7 @@ export type Database = {
           os?: string | null
           referer?: string | null
           referer_host?: string | null
+          signals?: Json | null
           user_agent?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
@@ -133,11 +141,14 @@ export type Database = {
         }
         Update: {
           bot_reason?: string | null
+          bot_score?: number | null
           browser?: string | null
+          challenge_passed?: boolean
           city?: string | null
           country?: string | null
           created_at?: string
           device?: string | null
+          fingerprint_hash?: string | null
           id?: string
           ip_address?: string | null
           is_bot?: boolean
@@ -145,6 +156,7 @@ export type Database = {
           os?: string | null
           referer?: string | null
           referer_host?: string | null
+          signals?: Json | null
           user_agent?: string | null
           utm_campaign?: string | null
           utm_content?: string | null
