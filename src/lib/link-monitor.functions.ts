@@ -98,17 +98,6 @@ export const getLinkMonitor = createServerFn({ method: "POST" })
       .map(([reason, count]) => ({ reason, count, pct: bots ? count / bots : 0 }))
       .sort((a, b) => b.count - a.count);
 
-    const bucket = (key: (c: Click) => string | null) => {
-      const m = new Map<string, { total: number; humans: number; bots: number }>();
-      for (const c of clicks) {
-        const k = key(c) ?? "unknown";
-        const e = m.get(k) ?? { total: 0, humans: 0, bots: 0 };
-        e.total += 1;
-        if (c.is_bot) e.bots += 1; else e.humans += 1;
-        m.set(k, e);
-      }
-      return [...m.entries()].map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.total - a.total);
-    };
 
     // Per-source funnel: impressions (initial pageload) → real clicks (verified humans) → conversions (redirect to destination)
     // In our model each visit logs:
@@ -167,6 +156,33 @@ export const getLinkMonitor = createServerFn({ method: "POST" })
       referer_host: c.referer_host,
     }));
 
+    // Accurate dimension breakdowns via SQL aggregation (full table, not 10k sample).
+    type BrRow = { key: string; total: number; humans: number; bots: number };
+    const dims = [
+      "country", "device", "browser", "os", "variant",
+      "utm_source", "utm_medium", "utm_campaign", "referer_host",
+    ] as const;
+    const brResults = await Promise.all(
+      dims.map((d) =>
+        supabase.rpc("clicks_breakdown", {
+          p_since: since,
+          p_link_id: data.linkId,
+          p_dim: d,
+        }).then(({ data: rows }) =>
+          ((rows ?? []) as BrRow[]).map((r) => ({
+            key: r.key,
+            total: Number(r.total) || 0,
+            humans: Number(r.humans) || 0,
+            bots: Number(r.bots) || 0,
+          })),
+        ),
+      ),
+    );
+    const [
+      brCountry, brDevice, brBrowser, brOS, brVariant,
+      brSource, brMedium, brCampaign, brReferer,
+    ] = brResults;
+
     return {
       link: {
         id: link.id,
@@ -179,15 +195,15 @@ export const getLinkMonitor = createServerFn({ method: "POST" })
       totals: { impressions, humans, bots, botRate, conversionRate, uniqHumanIps },
       timeseries: [...tsMap.values()],
       rejectionReasons,
-      byVariant: bucket((c) => c.variant),
-      byCountry: bucket((c) => c.country).slice(0, 10),
-      byDevice: bucket((c) => c.device),
-      byBrowser: bucket((c) => c.browser).slice(0, 10),
-      byOS: bucket((c) => c.os).slice(0, 10),
-      bySource: bucket((c) => c.utm_source).slice(0, 15),
-      byMedium: bucket((c) => c.utm_medium).slice(0, 10),
-      byCampaign: bucket((c) => c.utm_campaign).slice(0, 15),
-      byReferer: bucket((c) => c.referer_host).slice(0, 15),
+      byVariant: brVariant,
+      byCountry: brCountry.slice(0, 20),
+      byDevice: brDevice,
+      byBrowser: brBrowser.slice(0, 10),
+      byOS: brOS.slice(0, 10),
+      bySource: brSource.slice(0, 15),
+      byMedium: brMedium.slice(0, 10),
+      byCampaign: brCampaign.slice(0, 15),
+      byReferer: brReferer.slice(0, 15),
       sourceFunnel,
       overallFunnel,
       recent,

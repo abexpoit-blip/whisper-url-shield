@@ -887,6 +887,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      clicks_breakdown: {
+        Args: { p_dim: string; p_link_id: string; p_since: string }
+        Returns: {
+          bots: number
+          humans: number
+          key: string
+          total: number
+        }[]
+      }
       clicks_daily: {
         Args: { p_link_id?: string; p_since: string }
         Returns: {
