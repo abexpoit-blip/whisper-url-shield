@@ -8,12 +8,17 @@ function capture(err: unknown) {
 
 // Side-effect: install global listeners on the Worker runtime.
 try {
-  // @ts-expect-error – globalThis listener API exists in workerd
-  globalThis.addEventListener?.("error", (e: ErrorEvent) => capture(e.error ?? e.message));
-  // @ts-expect-error – globalThis listener API exists in workerd
-  globalThis.addEventListener?.("unhandledrejection", (e: PromiseRejectionEvent) =>
-    capture(e.reason),
-  );
+  const g = globalThis as unknown as {
+    addEventListener?: (type: string, listener: (e: unknown) => void) => void;
+  };
+  g.addEventListener?.("error", (e) => {
+    const ev = e as { error?: unknown; message?: unknown };
+    capture(ev.error ?? ev.message);
+  });
+  g.addEventListener?.("unhandledrejection", (e) => {
+    const ev = e as { reason?: unknown };
+    capture(ev.reason);
+  });
 } catch {
   /* ignore – not all runtimes expose these APIs */
 }
