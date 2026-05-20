@@ -619,12 +619,45 @@ const COUNTRY_NAMES: Record<string, string> = {
   EG: "Egypt", ZA: "South Africa", NG: "Nigeria", AR: "Argentina", CL: "Chile",
 };
 
-function countryFlag(cc: string) {
-  if (!cc || cc.length !== 2) return "🌐";
-  const up = cc.toUpperCase();
-  try {
-    return String.fromCodePoint(0x1f1e6 + up.charCodeAt(0) - 65, 0x1f1e6 + up.charCodeAt(1) - 65);
-  } catch { return "🌐"; }
+function CountryFlag({ cc, size = 20 }: { cc: string; size?: number }) {
+  const up = (cc || "").toUpperCase();
+  if (up.length !== 2 || !/^[A-Z]{2}$/.test(up)) {
+    return <Globe className="h-4 w-4 text-muted-foreground" />;
+  }
+  return (
+    <img
+      src={`https://flagcdn.com/w40/${up.toLowerCase()}.png`}
+      srcSet={`https://flagcdn.com/w80/${up.toLowerCase()}.png 2x`}
+      width={size}
+      height={Math.round((size * 3) / 4)}
+      alt={up}
+      loading="lazy"
+      className="rounded-sm object-cover ring-1 ring-border/60 shadow-sm shrink-0"
+      style={{ width: size, height: Math.round((size * 3) / 4) }}
+    />
+  );
+}
+
+function ReferrerFavicon({ host }: { host: string }) {
+  const h = (host || "").toLowerCase();
+  if (!h || h === "direct" || h === "unknown") {
+    return (
+      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-border/60 shrink-0">
+        <Globe className="h-3 w-3 text-primary" />
+      </span>
+    );
+  }
+  const domain = h.replace(/^www\./, "");
+  return (
+    <img
+      src={`https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`}
+      width={20}
+      height={20}
+      alt={domain}
+      loading="lazy"
+      className="h-5 w-5 rounded-md ring-1 ring-border/60 bg-background shrink-0"
+    />
+  );
 }
 
 function OsLogo({ name }: { name: string }) {
