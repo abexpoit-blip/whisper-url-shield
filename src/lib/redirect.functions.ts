@@ -974,6 +974,13 @@ export const resolveLink = createServerFn({ method: "POST" })
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
     }
 
+    logRedirectEvent("resolve.decision", {
+      code: data.code,
+      branch: silentBot ? "silent" : "verify",
+      verifyExpected: !silentBot, // verifyHuman should be called when this is true
+      score: a.score, reasons: defenseReasons, variant: chosenVariant.slug,
+    });
+
     return {
       found: true as const,
       blocked: false as const,
@@ -991,6 +998,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       },
     };
   });
+
 
 export const verifyHuman = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
