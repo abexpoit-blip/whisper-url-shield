@@ -1,6 +1,6 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Plus, Trash2, Save, Shield } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Plus, Trash2, Save, Shield, Upload, Image as ImageIcon, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,12 +64,20 @@ function LinkSettingsPage() {
   const [newUrl, setNewUrl] = useState("");
   const [newLabel, setNewLabel] = useState("");
   const [newWeight, setNewWeight] = useState(1);
+  // Branding
+  const [brandName, setBrandName] = useState("");
+  const [brandTagline, setBrandTagline] = useState("");
+  const [brandColor, setBrandColor] = useState("#0ea5e9");
+  const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [savingBrand, setSavingBrand] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     setLoading(true);
     const { data: linkRow, error: e1 } = await supabase
       .from("links")
-      .select("short_code,title,destination_url,targeting")
+      .select("short_code,title,destination_url,targeting,brand_logo_url,brand_name,brand_tagline,brand_color")
       .eq("id", linkId)
       .maybeSingle();
     if (e1 || !linkRow) {
@@ -93,6 +101,10 @@ function LinkSettingsPage() {
       setHourStart(tg.allowed_hours.start);
       setHourEnd(tg.allowed_hours.end);
     }
+    setBrandName(linkRow.brand_name ?? "");
+    setBrandTagline(linkRow.brand_tagline ?? "");
+    setBrandColor(linkRow.brand_color ?? "#0ea5e9");
+    setBrandLogoUrl(linkRow.brand_logo_url ?? null);
 
     const { data: dRows } = await supabase
       .from("link_destinations")
