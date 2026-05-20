@@ -610,135 +610,30 @@ function EmptyState() {
 }
 
 // ---------- Premium label renderers (flags / OS / browser logos) ----------
-const COUNTRY_NAMES: Record<string, string> = {
-  US: "United States", ID: "Indonesia", TH: "Thailand", SG: "Singapore",
-  IN: "India", GB: "United Kingdom", DE: "Germany", FR: "France",
-  BR: "Brazil", JP: "Japan", CN: "China", RU: "Russia", CA: "Canada",
-  AU: "Australia", MX: "Mexico", IT: "Italy", ES: "Spain", NL: "Netherlands",
-  TR: "Turkey", BD: "Bangladesh", PK: "Pakistan", PH: "Philippines",
-  VN: "Vietnam", MY: "Malaysia", KR: "South Korea", AE: "UAE", SA: "Saudi Arabia",
-  EG: "Egypt", ZA: "South Africa", NG: "Nigeria", AR: "Argentina", CL: "Chile",
-};
-
-function CountryFlag({ cc, size = 20 }: { cc: string; size?: number }) {
-  const up = (cc || "").toUpperCase();
-  if (up.length !== 2 || !/^[A-Z]{2}$/.test(up)) {
-    return <Globe className="h-4 w-4 text-muted-foreground" />;
-  }
-  return (
-    <img
-      src={`https://flagcdn.com/w40/${up.toLowerCase()}.png`}
-      srcSet={`https://flagcdn.com/w80/${up.toLowerCase()}.png 2x`}
-      width={size}
-      height={Math.round((size * 3) / 4)}
-      alt={up}
-      loading="lazy"
-      className="rounded-sm object-cover ring-1 ring-border/60 shadow-sm shrink-0"
-      style={{ width: size, height: Math.round((size * 3) / 4) }}
-    />
-  );
-}
-
-function ReferrerFavicon({ host }: { host: string }) {
-  const h = (host || "").toLowerCase();
-  if (!h || h === "direct" || h === "unknown") {
-    return (
-      <span className="flex h-5 w-5 items-center justify-center rounded-md bg-gradient-to-br from-primary/20 to-primary/5 ring-1 ring-border/60 shrink-0">
-        <Globe className="h-3 w-3 text-primary" />
-      </span>
-    );
-  }
-  const domain = h.replace(/^www\./, "");
-  return (
-    <img
-      src={`https://www.google.com/s2/favicons?sz=64&domain=${encodeURIComponent(domain)}`}
-      width={20}
-      height={20}
-      alt={domain}
-      loading="lazy"
-      className="h-5 w-5 rounded-md ring-1 ring-border/60 bg-background shrink-0"
-    />
-  );
-}
-
-function OsLogo({ name }: { name: string }) {
-  const n = name.toLowerCase();
-  const cls = "h-4 w-4";
-  if (n.includes("android")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#3DDC84"><path d="M17.6 9.48l1.84-3.18a.4.4 0 1 0-.69-.4l-1.86 3.23a11.43 11.43 0 0 0-9.78 0L5.25 5.9a.4.4 0 1 0-.69.4L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52zM7 15.25a1 1 0 1 1 1-1 1 1 0 0 1-1 1zm10 0a1 1 0 1 1 1-1 1 1 0 0 1-1 1z"/></svg>
-  );
-  if (n.includes("ios") || n.includes("iphone") || n.includes("ipad") || n.includes("mac")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="currentColor"><path d="M16.36 12.27c0-2.66 2.17-3.93 2.27-4-1.24-1.81-3.17-2.06-3.85-2.09-1.64-.17-3.2.97-4.04.97-.84 0-2.12-.94-3.49-.91a5.16 5.16 0 0 0-4.34 2.65c-1.85 3.2-.47 7.93 1.33 10.53.88 1.27 1.93 2.7 3.31 2.65 1.33-.05 1.83-.86 3.44-.86 1.6 0 2.06.86 3.46.83 1.43-.03 2.34-1.29 3.21-2.57.99-1.45 1.4-2.86 1.42-2.93-.03-.01-2.73-1.05-2.72-4.16zM13.74 4.34a4.7 4.7 0 0 0 1.07-3.36 4.76 4.76 0 0 0-3.12 1.62 4.46 4.46 0 0 0-1.1 3.24 3.94 3.94 0 0 0 3.15-1.5z"/></svg>
-  );
-  if (n.includes("windows")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#00A4EF"><path d="M3 5.5L11 4.4v7.1H3V5.5zM3 12.5h8v7.1L3 18.5v-6zM12 4.3L22 3v8.5H12V4.3zM12 12.5h10V21l-10-1.3v-7.2z"/></svg>
-  );
-  if (n.includes("linux")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#FCC624"><path d="M12.5 1c-2 0-3.4 1.6-3.4 3.8 0 .9.3 1.6.3 2.4 0 1.3-1.5 2.6-2.6 4-1.5 1.8-2.3 4-2.3 5.5 0 1.7.7 2.7 2 3.4 0 0-.5 1.4.5 2 1.7.9 4.5.4 5.5.4s3.8.5 5.5-.4c1-.6.5-2 .5-2 1.3-.7 2-1.7 2-3.4 0-1.5-.8-3.7-2.3-5.5-1.1-1.4-2.6-2.7-2.6-4 0-.8.3-1.5.3-2.4C15.9 2.6 14.5 1 12.5 1z"/></svg>
-  );
-  if (n.includes("bot") || n.includes("crawler")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
-  );
-  return <Monitor className={cls + " text-muted-foreground"} />;
-}
-
-function BrowserLogo({ name }: { name: string }) {
-  const n = name.toLowerCase();
-  const cls = "h-4 w-4";
-  if (n.includes("chrome")) return (
-    <svg viewBox="0 0 24 24" className={cls}><circle cx="12" cy="12" r="10" fill="#fff"/><circle cx="12" cy="12" r="4" fill="#4285F4"/><path d="M12 2a10 10 0 0 1 8.66 5H12a5 5 0 0 0-4.33 2.5L3.34 7A10 10 0 0 1 12 2z" fill="#EA4335"/><path d="M2 12a10 10 0 0 0 5 8.66l4.33-7.5A5 5 0 0 1 7 9.5L2.66 7A10 10 0 0 0 2 12z" fill="#FBBC04"/><path d="M12 22a10 10 0 0 0 8.66-15H12a5 5 0 0 1 4.33 7.5L12 22z" fill="#34A853"/></svg>
-  );
-  if (n.includes("safari")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#1B73E8"><circle cx="12" cy="12" r="10"/><path fill="#fff" d="M12 6l2 4 4 2-4 2-2 4-2-4-4-2 4-2z"/></svg>
-  );
-  if (n.includes("firefox")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#FF7139"><circle cx="12" cy="12" r="10"/><path fill="#FFCB6B" d="M12 6a6 6 0 1 0 6 6c0-2-2-3-3-2 1-3-3-5-3-4z"/></svg>
-  );
-  if (n.includes("edge")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#0078D7"><circle cx="12" cy="12" r="10"/></svg>
-  );
-  if (n.includes("opera")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="#FF1B2D"><ellipse cx="12" cy="12" rx="10" ry="10"/><ellipse cx="12" cy="12" rx="4" ry="7" fill="#fff"/></svg>
-  );
-  if (n.includes("bot")) return (
-    <svg viewBox="0 0 24 24" className={cls} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/></svg>
-  );
-  return <Monitor className={cls + " text-muted-foreground"} />;
-}
-
 function RowLabel({ kind, value }: { kind?: string; value: string }) {
   if (kind === "country") {
     const cc = value.toUpperCase();
     return (
-      <span className="flex items-center gap-2.5 min-w-0">
+      <span className="flex items-center gap-2 min-w-0">
         <CountryFlag cc={cc} />
         <span className="font-mono text-xs font-bold uppercase tracking-wider">{cc}</span>
         <span className="truncate text-xs text-muted-foreground">{COUNTRY_NAMES[cc] ?? ""}</span>
       </span>
     );
   }
-  if (kind === "os") {
+  if (kind === "os" || kind === "browser") {
     return (
       <span className="flex items-center gap-2 min-w-0">
-        <OsLogo name={value} />
-        <span className="truncate font-medium capitalize">{value}</span>
-      </span>
-    );
-  }
-  if (kind === "browser") {
-    return (
-      <span className="flex items-center gap-2 min-w-0">
-        <BrowserLogo name={value} />
-        <span className="truncate font-medium capitalize">{value}</span>
+        <BrandBadge name={value} />
+        <span className="truncate font-medium">{prettyLabel(value)}</span>
       </span>
     );
   }
   if (kind === "referrer") {
-    const label = value === "direct" ? "Direct" : value;
     return (
       <span className="flex items-center gap-2 min-w-0">
         <ReferrerFavicon host={value} />
-        <span className="truncate font-medium">{label}</span>
+        <span className="truncate font-medium">{prettyReferrer(value)}</span>
       </span>
     );
   }
