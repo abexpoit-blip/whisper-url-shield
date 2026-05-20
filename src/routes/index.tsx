@@ -188,7 +188,7 @@ function LandingPage() {
             <Link to="/login">Sign in</Link>
             <Link to="/signup">Sign up</Link>
             <span
-              className="inline-block rounded-full bg-gradient-to-r from-violet-600 via-purple-500 to-blue-500 px-3 py-1 text-[10px] font-bold tracking-wider text-white shadow-glow"
+              className="inline-block rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-blue-600 px-3 py-1 text-[10px] font-bold tracking-wider text-white shadow-glow"
             >
               Developed by ExpoIT
             </span>
