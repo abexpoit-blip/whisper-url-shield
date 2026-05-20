@@ -148,6 +148,23 @@ function phase3Signals(input: {
   };
 }
 
+async function serverFingerprintHash(
+  request: ReturnType<typeof analyzeRequest>,
+  uaInfo: ReturnType<typeof parseUA>,
+  country: string | null,
+) {
+  return hashFingerprint({
+    ua: request.ua,
+    platform: "server",
+    languages: request.acceptLang ? request.acceptLang.split(",").slice(0, 4) : [],
+    hwConcurrency: 0,
+    deviceMemory: 0,
+    screen: { w: 0, h: 0, cd: 0 },
+    tz: "",
+    canvasHash: [country || "", uaInfo.device, uaInfo.os, uaInfo.browser, request.secChUaMobile].join("|"),
+  });
+}
+
 
 function refererHost(ref: string | null | undefined) {
   if (!ref) return null;
