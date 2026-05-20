@@ -21,7 +21,7 @@ export interface PlatformLandingProps {
 export function PlatformLanding(props: PlatformLandingProps) {
   const { platform, tagline, heroTitle, heroSub, painPoints, benefits, faq, accent } =
     props;
-  const breadcrumbItems = [{ label: `${platform} Ads` }];
+  const breadcrumbItems = [{ label: `${platform} Ads`, to: `/${slug}` }];
 
   return (
     <div className="min-h-screen bg-background">
