@@ -706,15 +706,17 @@ export const verifyHuman = createServerFn({ method: "POST" })
       return { ok: false as const, reason: "not-found" };
     }
 
-    // Batch-1: FB blocklist + referer rules (silently fail any FB / safe-referer hit)
+    // Parallel: FB blocklist + referer rule + time rule are independent
     const asn = asnFromHeaders();
-    const fbHitRaw = await checkFbBlocklist(ip, asn);
+    const refHost = refererHost(getRequestHeader("referer"));
+    const [fbHitRaw, refAction, timeAction] = await Promise.all([
+      checkFbBlocklist(ip, asn),
+      checkRefererRule(refHost),
+      checkTimeRule(link.id),
+    ]);
     // Same fix as resolveLink: only honor FB IP/ASN hit when UA itself is a
     // known scraper. Real users in FB in-app browser share these IP ranges.
     const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
-    const refHost = refererHost(getRequestHeader("referer"));
-    const refAction = await checkRefererRule(refHost);
-    const timeAction = await checkTimeRule(link.id);
     if (fbHit || refAction === "safe" || refAction === "cloak" || timeAction === "safe" || timeAction === "cloak") {
       await supabaseAdmin.from("clicks").insert({
         link_id: link.id,
