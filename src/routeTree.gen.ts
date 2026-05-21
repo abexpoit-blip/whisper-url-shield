@@ -43,6 +43,7 @@ import { Route as AdminDomainHealthRouteImport } from './routes/admin.domain-hea
 import { Route as AdminClicksRouteImport } from './routes/admin.clicks'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAsnBlocklistRouteImport } from './routes/admin.asn-blocklist'
+import { Route as AdminAdsRouteImport } from './routes/admin.ads'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 import { Route as LinksLinkIdTimeRulesRouteImport } from './routes/links.$linkId.time-rules'
 import { Route as LinksLinkIdTargetingRouteImport } from './routes/links.$linkId.targeting'
@@ -224,6 +225,11 @@ const AdminAsnBlocklistRoute = AdminAsnBlocklistRouteImport.update({
   path: '/asn-blocklist',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdsRoute = AdminAdsRouteImport.update({
+  id: '/ads',
+  path: '/ads',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminActivityRoute = AdminActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/tiktok-ads': typeof TiktokAdsRoute
   '/upgrade': typeof UpgradeRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/ads': typeof AdminAdsRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/clicks': typeof AdminClicksRoute
@@ -343,6 +350,7 @@ export interface FileRoutesByTo {
   '/tiktok-ads': typeof TiktokAdsRoute
   '/upgrade': typeof UpgradeRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/ads': typeof AdminAdsRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/clicks': typeof AdminClicksRoute
@@ -390,6 +398,7 @@ export interface FileRoutesById {
   '/tiktok-ads': typeof TiktokAdsRoute
   '/upgrade': typeof UpgradeRoute
   '/admin/activity': typeof AdminActivityRoute
+  '/admin/ads': typeof AdminAdsRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
   '/admin/clicks': typeof AdminClicksRoute
@@ -438,6 +447,7 @@ export interface FileRouteTypes {
     | '/tiktok-ads'
     | '/upgrade'
     | '/admin/activity'
+    | '/admin/ads'
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/clicks'
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/tiktok-ads'
     | '/upgrade'
     | '/admin/activity'
+    | '/admin/ads'
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/clicks'
@@ -529,6 +540,7 @@ export interface FileRouteTypes {
     | '/tiktok-ads'
     | '/upgrade'
     | '/admin/activity'
+    | '/admin/ads'
     | '/admin/asn-blocklist'
     | '/admin/audit'
     | '/admin/clicks'
@@ -828,6 +840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAsnBlocklistRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/ads': {
+      id: '/admin/ads'
+      path: '/ads'
+      fullPath: '/admin/ads'
+      preLoaderRoute: typeof AdminAdsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/activity': {
       id: '/admin/activity'
       path: '/activity'
@@ -903,6 +922,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminActivityRoute: typeof AdminActivityRoute
+  AdminAdsRoute: typeof AdminAdsRoute
   AdminAsnBlocklistRoute: typeof AdminAsnBlocklistRoute
   AdminAuditRoute: typeof AdminAuditRoute
   AdminClicksRoute: typeof AdminClicksRoute
@@ -921,6 +941,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminActivityRoute: AdminActivityRoute,
+  AdminAdsRoute: AdminAdsRoute,
   AdminAsnBlocklistRoute: AdminAsnBlocklistRoute,
   AdminAuditRoute: AdminAuditRoute,
   AdminClicksRoute: AdminClicksRoute,
