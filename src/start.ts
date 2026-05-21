@@ -46,7 +46,7 @@ const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(as
     const first = await fetch(url, { ...init, headers });
     const text = first.clone ? await first.clone().text().catch(() => "") : "";
 
-    if (first.ok || !/Unauthorized: Invalid token|JWT expired|Invalid JWT/i.test(text)) return first;
+    if (!/Unauthorized: Invalid token|JWT expired|Invalid JWT|No authorization header provided/i.test(text)) return first;
 
     const refreshed = await supabase.auth.refreshSession();
     if (refreshed.error || !refreshed.data.session?.access_token) {

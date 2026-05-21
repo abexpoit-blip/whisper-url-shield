@@ -5,7 +5,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Sparkles, Rocket } from "lucide-react";
 import {
-  listAvailablePackages,
   getMyPlan,
   requestUpgrade,
   listMyUpgradeRequests,
@@ -20,23 +19,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+
 export const Route = createFileRoute("/upgrade")({
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/login", search: { redirect: location.href } });
+    if (error || !data.user) {
+      await supabase.auth.signOut();
+      throw redirect({ to: "/login", search: { redirect: location.href } });
+    }
   },
   component: UpgradePage,
 });
 
 function UpgradePage() {
   const qc = useQueryClient();
-  const list = useServerFn(listAvailablePackages);
   const mine = useServerFn(getMyPlan);
   const myReqs = useServerFn(listMyUpgradeRequests);
   const submit = useServerFn(requestUpgrade);
   const getSettings = useServerFn(getPublicPaymentSettings);
 
-  const { data: pkgs = [] } = useQuery({ queryKey: ["packages-active"], queryFn: () => list() });
+  const { data: pkgs = [], isLoading: packagesLoading, error: packagesError } = useQuery({
+    queryKey: ["packages-active"],
+    queryFn: async () => {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/packages?select=id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at&is_active=eq.true&order=sort_order.asc`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      return await res.json();
+    },
+  });
   const { data: plan } = useQuery({ queryKey: ["my-plan"], queryFn: () => mine() });
   const { data: requests = [] } = useQuery({ queryKey: ["my-upgrade-requests"], queryFn: () => myReqs() });
   const { data: settings } = useQuery({
@@ -80,6 +94,16 @@ function UpgradePage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
+        {packagesLoading && ["free", "pro", "lifetime"].map((key) => (
+          <Card key={key} className="min-h-72 animate-pulse border-primary/10 bg-card/70" />
+        ))}
+        {!packagesLoading && packagesError && (
+          <Card className="md:col-span-3 border-destructive/30 bg-destructive/10">
+            <CardContent className="p-5 text-sm text-destructive">
+              Packages could not load. Please refresh or login again.
+            </CardContent>
+          </Card>
+        )}
         {visible.map((p: any) => {
           const isCurrent = plan?.plan_slug === p.slug;
           const isLifetime = p.billing_period === "lifetime" || Number(p.price_onetime) > 0;
