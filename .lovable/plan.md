@@ -1,85 +1,89 @@
-## Phase 3 — Advanced Bot Detection + Cloaking ($10k SaaS Level)
+# Phase 6 — Per-link Insights + Auto-tune Weights
 
-### লক্ষ্য
-Real human vs sophisticated bot detect করব JS fingerprint + behavior signals দিয়ে। Bot হলে safe prelander-এ থাকবে, human হলে Adsterra-তে redirect হবে।
+দুটো independent feature, একই phase-এ।
 
-### Architecture
-```
-User → /r/:code
-  ├─ Layer 1: Server (current) — IP/ASN/UA → safe page if bot
-  ├─ Layer 2: Prelander (Phase 2) — branded article page
-  └─ Layer 3: JS Challenge (NEW)
-       ├─ Collect fingerprint (canvas, WebGL, fonts, screen, timezone)
-       ├─ Behavior signals (mouse moved? scroll? time-on-page > 800ms?)
-       ├─ POST /api/public/score → server scores 0-100
-       ├─ score >= 60 → redirect to Adsterra
-       └─ score < 60 → stay on safe page (silent)
-```
+---
 
-### Database Changes (1 migration)
-```sql
--- clicks table এ নতুন columns
-ALTER TABLE clicks ADD COLUMN bot_score int;           -- 0-100 (lower = more bot-like)
-ALTER TABLE clicks ADD COLUMN fingerprint_hash text;   -- canvas+webgl hash
-ALTER TABLE clicks ADD COLUMN signals jsonb;           -- raw signal data
-ALTER TABLE clicks ADD COLUMN challenge_passed bool DEFAULT false;
-CREATE INDEX clicks_bot_score_idx ON clicks(bot_score);
-CREATE INDEX clicks_fp_hash_idx ON clicks(fingerprint_hash);
-```
+## Part A — Per-link User Dashboard (Bot Insights)
 
-### Files to Build
+**লক্ষ্য:** Link owner নিজের link-এ কতজন human/bot এসেছে, কোথা থেকে এসেছে, কোন UA সবচেয়ে বেশি block হচ্ছে — সেটা দেখবে। Admin না, owner-এর জন্য।
 
-1. **`src/lib/bot-score.ts`** (browser) — collect fingerprint:
-   - Canvas hash (draw + toDataURL → hash)
-   - WebGL renderer/vendor
-   - Screen dimensions, colorDepth, pixelRatio
-   - Timezone, language, platform
-   - navigator.webdriver, plugins.length, hardwareConcurrency
-   - Behavior: mouseMoved, scrolled, timeOnPage, clicked
+বর্তমানে `analytics.$linkId.tsx` শুধু aggregate stats দেখায়। নতুন সেকশন যোগ হবে সেখানেই — আলাদা route লাগবে না।
 
-2. **`src/lib/bot-score.server.ts`** (server) — scoring engine:
-   - Headless signals: `webdriver:true` = -50, `plugins:0` = -20
-   - Canvas/WebGL missing or null = -30
-   - Behavior: no mouse + no scroll + <500ms = -40
-   - Repeat fingerprint_hash within 10min = -25
-   - Returns 0-100, decision: redirect | safe
+### নতুন সার্ভার ফাংশন
+`src/lib/link-insights.functions.ts`:
+- `getLinkBotInsights({ linkId, sinceHours })` — owner-scoped (RLS via `requireSupabaseAuth`)
+- Returns:
+  - Source breakdown (direct / silent / blocked / verify-silent) — count + pass%
+  - Top 10 blocked UAs (substring + count)
+  - Top reasons (flatten signals.reasons array, count)
+  - Hourly timeline (last 24h): human vs bot per hour
+  - Country breakdown: top 10 country with bot% 
 
-3. **`src/routes/api/public/score.ts`** — POST endpoint:
-   - Input: { code, fp, signals }
-   - Insert/update clicks row with score
-   - Returns `{ ok: true, redirect_url: string | null }`
+### UI Changes
+`src/routes/analytics.$linkId.tsx`:
+- নতুন "Bot Insights" tab/section যোগ
+- 4টা card: source pie/bars, hourly timeline (simple bars), top blocked UAs, top reasons
+- "Last 24h / 7d / 30d" toggle
 
-4. **`src/routes/r.$code.tsx`** — modify:
-   - If link.cloaking_enabled → render challenge page (no immediate redirect)
-   - Challenge page = minimal HTML + script that calls /api/public/score then window.location
+---
 
-5. **`src/lib/redirect.functions.ts`** — add `cloaking_enabled` flag to link query
+## Part B — Auto-tune Signal Weights (Admin)
 
-6. **`src/routes/admin.scores.tsx`** — already exists, wire it to show real bot_score data + filters
+**লক্ষ্য:** Manually weight tune করার বদলে, last 7-day data থেকে কোন সিগন্যাল আসলে bot ধরে আর কোনটা false-positive — সেটা analyze করে weight suggest/apply করবে।
 
-### Security/Edge Cases
-- Score endpoint: rate-limit by IP (max 30/min) to prevent abuse
-- Fingerprint hash: SHA-256 server-side, never trust client hash
-- All input validated with Zod (max lengths, allowed types)
-- Public route, no auth — score is the auth
+### Algorithm (simple, explainable)
+প্রতিটা সিগন্যাল reason-এর জন্য:
+- `appears_in_blocked` = কতবার এই reason blocked clicks-এ এসেছে
+- `appears_in_passed` = কতবার পাশ-হওয়া clicks-এ এসেছে
+- `precision` = appears_in_blocked / (appears_in_blocked + appears_in_passed)
+- New weight suggestion:
+  - precision > 0.9 → high weight (e.g. 30)
+  - precision 0.7–0.9 → medium (15)
+  - precision 0.5–0.7 → low (5)
+  - precision < 0.5 → 0 (move to soft_reasons)
 
-### What I will NOT touch
-- Existing redirect logic for non-cloaked links (backward compatible)
-- Phase 2 prelander system
-- Auth, billing, admin panels (except admin.scores wiring)
+### নতুন সার্ভার ফাংশন
+`src/lib/admin-tune.functions.ts`:
+- `analyzeSignalWeights({ sinceDays })` — admin-only, computes precision per signal
+- `applyTunedWeights({ weights, softReasons })` — writes to `bot_protection_config`
 
-### Deploy commands (will provide after code)
+### UI
+`src/routes/admin.protection.tsx` (existing) — নতুন "Auto-tune" section:
+- "Analyze last 7 days" button → table দেখাবে: signal, blocked_n, passed_n, precision, current_weight, suggested_weight
+- "Apply suggested weights" button → confirm modal → updates config
+
+---
+
+## Files to Create/Modify
+
+**Create:**
+- `src/lib/link-insights.functions.ts` (new)
+- `src/lib/admin-tune.functions.ts` (new)
+
+**Modify:**
+- `src/routes/analytics.$linkId.tsx` — add Bot Insights section
+- `src/routes/admin.protection.tsx` — add Auto-tune section
+
+**No DB migration needed** — সব existing tables থেকে compute হবে।
+
+---
+
+## Deploy (after build)
+
 ```bash
-ssh root@SERVER 'cd /opt/sleepox-app-new && git pull && npm run build && pm2 restart sleepox --update-env'
-ssh root@SERVER 'pm2 logs sleepox --lines 50 --nostream'
+cd /opt/sleepox-app-new && \
+  git checkout -- src/routeTree.gen.ts 2>/dev/null; \
+  git pull && npm run build 2>&1 | tail -5 && \
+  pm2 restart sleepox --update-env && sleep 3 && \
+  curl -sI http://localhost:3000/admin/protection | head -2
 ```
 
-### Approve করলে এই order-এ build করব:
-1. Migration (bot_score columns)
-2. bot-score.ts (client) + bot-score.server.ts (scoring)
-3. /api/public/score endpoint
-4. r.$code.tsx challenge mode wiring
-5. admin.scores.tsx data wiring
-6. Test instruction + deploy command
+Log check:
+```bash
+pm2 logs sleepox --lines 30 --nostream | grep -iE "insights|tune|error"
+```
 
-**Approve?** নাকি কিছু change করতে চান (e.g. minimum score threshold, signal weights)?
+---
+
+**Approve করলে build শুরু করব।** কোনো change চাইলে বলুন (e.g. precision thresholds অন্যরকম, অন্য কোথাও UI বসাতে চান)।

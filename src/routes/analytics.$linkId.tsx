@@ -34,6 +34,7 @@ import {
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { getLinkMonitor } from "@/lib/link-monitor.functions";
+import { getLinkBotInsights } from "@/lib/link-insights.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -638,6 +639,10 @@ function LinkMonitorPage() {
           </div>
         </Card>
 
+        <BotInsightsSection linkId={linkId} days={days} />
+
+
+
         <p className="text-xs text-muted-foreground text-center pt-4">
           <Link to="/analytics" search={{ days, linkId: "all" }} className="hover:text-primary">
             ← Back to all analytics
@@ -712,5 +717,149 @@ function BreakdownTable({
         </div>
       ))}
     </div>
+  );
+}
+
+function BotInsightsSection({ linkId, days }: { linkId: string; days: number }) {
+  const fetchInsights = useServerFn(getLinkBotInsights);
+  const [data, setData] = useState<Awaited<ReturnType<typeof getLinkBotInsights>> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchInsights({ data: { linkId, sinceHours: days * 24 } })
+      .then((r) => { if (!cancelled) setData(r); })
+      .catch((e) => toast.error("Insights: " + (e as Error).message))
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [linkId, days, fetchInsights]);
+
+  if (loading && !data) {
+    return (
+      <Card className="p-6 text-sm text-muted-foreground">Loading bot insights…</Card>
+    );
+  }
+  if (!data) return null;
+
+  const pct = (n: number, d: number) => (d ? Math.round((n / d) * 1000) / 10 : 0);
+  const maxHourly = Math.max(1, ...data.hourly.map((h) => h.human + h.bot));
+
+  return (
+    <Card className="p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-semibold text-base flex items-center gap-2">
+            <Bot className="h-4 w-4 text-primary" />
+            Bot Insights
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            Last {data.windowHours}h · {data.totalClicks} clicks
+            {data.avgScore !== null && ` · avg score ${data.avgScore}`}
+          </div>
+        </div>
+      </div>
+
+      {/* Source breakdown */}
+      <div>
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">By source</div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2">
+          {data.bySource.map((s) => (
+            <div key={s.key} className="rounded-md border border-border p-3">
+              <div className="text-xs font-mono">{s.key}</div>
+              <div className="text-lg font-bold mt-1">{s.total}</div>
+              <div className="text-xs text-muted-foreground">
+                <span className="text-emerald-500">{s.passed} pass</span>
+                {" / "}
+                <span className="text-rose-500">{s.blocked} block</span>
+                {" · "}
+                {pct(s.passed, s.total)}%
+              </div>
+            </div>
+          ))}
+          {data.bySource.length === 0 && (
+            <div className="text-sm text-muted-foreground col-span-full">No data</div>
+          )}
+        </div>
+      </div>
+
+      {/* Hourly timeline */}
+      {data.hourly.length > 0 && (
+        <div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Hourly traffic</div>
+          <div className="flex items-end gap-0.5 h-24">
+            {data.hourly.slice(-48).map((h) => {
+              const total = h.human + h.bot;
+              const hPct = (total / maxHourly) * 100;
+              const humanPct = total ? (h.human / total) * 100 : 0;
+              return (
+                <div
+                  key={h.hour}
+                  className="flex-1 flex flex-col-reverse rounded-sm overflow-hidden bg-muted/40"
+                  style={{ height: `${hPct}%`, minHeight: total ? 4 : 1 }}
+                  title={`${h.hour}: ${h.human} human / ${h.bot} bot`}
+                >
+                  <div className="bg-emerald-500" style={{ height: `${humanPct}%` }} />
+                  <div className="bg-rose-500 flex-1" />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid md:grid-cols-2 gap-5">
+        {/* Top blocked UAs */}
+        <div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Top blocked user agents</div>
+          {data.blockedUAs.length === 0 ? (
+            <div className="text-sm text-muted-foreground">None blocked</div>
+          ) : (
+            <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+              {data.blockedUAs.map((u) => (
+                <div key={u.key} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="truncate font-mono">{u.key}</span>
+                  <span className="text-rose-500 tabular-nums shrink-0">{u.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Top reasons */}
+        <div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Top block reasons</div>
+          {data.reasons.length === 0 ? (
+            <div className="text-sm text-muted-foreground">None</div>
+          ) : (
+            <div className="space-y-1.5">
+              {data.reasons.map((r) => (
+                <div key={r.key} className="flex items-center justify-between text-xs">
+                  <span className="font-mono">{r.key}</span>
+                  <span className="text-rose-500 tabular-nums">{r.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Country breakdown */}
+      {data.byCountry.length > 0 && (
+        <div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">By country</div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-2">
+            {data.byCountry.map((c) => (
+              <div key={c.key} className="rounded-md border border-border p-2 text-xs">
+                <div className="font-mono">{c.key}</div>
+                <div className="text-muted-foreground">
+                  {c.total} · <span className="text-rose-500">{pct(c.blocked, c.total)}% bot</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
