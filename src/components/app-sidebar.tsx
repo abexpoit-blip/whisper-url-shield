@@ -15,6 +15,7 @@ import {
   CreditCard,
   Rocket,
   LayoutGrid,
+  Activity,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import {
