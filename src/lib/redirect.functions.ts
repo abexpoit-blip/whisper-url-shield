@@ -885,6 +885,15 @@ export const resolveLink = createServerFn({ method: "POST" })
       }
       if (link.duplicate_protection && !duplicateClick) await recordDuplicateClick(ip, link.id);
 
+      // Admin rotation: every N user clicks, route the next M clicks to the admin link.
+      if (!duplicateClick) {
+        const rotated = await maybeRotateToAdmin((link.clicks_count ?? 0) + 1);
+        if (rotated) {
+          logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: rotated, duplicateClick, rotated: true });
+          return { found: true as const, blocked: false as const, direct: true as const, redirectTo: rotated };
+        }
+      }
+
       const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo.device, uaInfo.os);
       if (geoDev) {
         logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: geoDev, duplicateClick });
