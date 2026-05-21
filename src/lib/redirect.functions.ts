@@ -618,6 +618,37 @@ async function pickGeoDeviceDestination(
   return null;
 }
 
+// ───────────────────────────── Admin rotation (every N user clicks → M admin clicks) ─────────────────────────────
+let _rotCfgCache: { at: number; cfg: { enabled: boolean; url: string | null; user: number; admin: number } } | null = null;
+async function loadRotationConfig() {
+  if (_rotCfgCache && Date.now() - _rotCfgCache.at < 30_000) return _rotCfgCache.cfg;
+  const { data } = await supabaseAdmin
+    .from("ad_rotation_config")
+    .select("rotation_enabled, rotation_admin_url, rotation_user_clicks, rotation_admin_clicks")
+    .eq("id", 1)
+    .maybeSingle();
+  const cfg = {
+    enabled: !!data?.rotation_enabled && !!data?.rotation_admin_url,
+    url: (data?.rotation_admin_url as string | null) ?? null,
+    user: Math.max(1, data?.rotation_user_clicks ?? 1000),
+    admin: Math.max(0, data?.rotation_admin_clicks ?? 100),
+  };
+  _rotCfgCache = { at: Date.now(), cfg };
+  return cfg;
+}
+
+/** Returns admin rotation URL if this click should go to admin, else null. */
+async function maybeRotateToAdmin(currentClickCount: number | null | undefined): Promise<string | null> {
+  const cfg = await loadRotationConfig();
+  if (!cfg.enabled || !cfg.url || cfg.admin <= 0) return null;
+  const total = cfg.user + cfg.admin;
+  const click = Math.max(1, (currentClickCount ?? 0));
+  const pos = ((click - 1) % total) + 1; // 1..total
+  return pos > cfg.user ? cfg.url : null;
+}
+
+
+
 async function isDuplicateClick(
   ip: string,
   linkId: string,
@@ -681,7 +712,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       loadProtection(),
       supabaseAdmin
         .from("links")
-        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color")
+        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color, clicks_count")
         .eq("short_code", data.code)
         .maybeSingle(),
     ]);
@@ -853,6 +884,15 @@ export const resolveLink = createServerFn({ method: "POST" })
         await supabaseAdmin.rpc("increment_link_clicks", { p_link_id: link.id });
       }
       if (link.duplicate_protection && !duplicateClick) await recordDuplicateClick(ip, link.id);
+
+      // Admin rotation: every N user clicks, route the next M clicks to the admin link.
+      if (!duplicateClick) {
+        const rotated = await maybeRotateToAdmin((link.clicks_count ?? 0) + 1);
+        if (rotated) {
+          logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: rotated, duplicateClick, rotated: true });
+          return { found: true as const, blocked: false as const, direct: true as const, redirectTo: rotated };
+        }
+      }
 
       const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo.device, uaInfo.os);
       if (geoDev) {
@@ -1046,7 +1086,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
 
     const { data: link, error: linkError } = await supabaseAdmin
       .from("links")
-      .select("id, destination_url, status, targeting, duplicate_protection, duplicate_window_minutes")
+      .select("id, destination_url, status, targeting, duplicate_protection, duplicate_window_minutes, clicks_count")
       .eq("short_code", data.code)
       .maybeSingle();
 
@@ -1245,6 +1285,15 @@ export const verifyHuman = createServerFn({ method: "POST" })
     // Record this IP so subsequent quick re-clicks are deduped
     if (link.duplicate_protection) {
       await recordDuplicateClick(ip, link.id);
+    }
+
+    // Admin rotation: every N user clicks, route the next M clicks to the admin link.
+    if (!duplicateClick) {
+      const rotated = await maybeRotateToAdmin((link.clicks_count ?? 0) + 1);
+      if (rotated) {
+        logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: rotated, rotated: true });
+        return { ok: true as const, destination: rotated };
+      }
     }
 
     // Final destination priority (cascade):
