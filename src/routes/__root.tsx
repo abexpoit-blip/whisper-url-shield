@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { supabase } from "@/integrations/supabase/client";
+import { APP_BUILD_VERSION, versionedAssetUrl } from "@/lib/build-version";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -98,6 +99,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { property: "og:locale", content: "en_US" },
       { property: "og:url", content: "https://sleepox.com" },
+      { name: "app-build-version", content: APP_BUILD_VERSION },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@linkshield" },
       { name: "twitter:title", content: "LinkShield — Bot-Filtered URL Shortener for Facebook & Instagram Ads" },
@@ -111,10 +113,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     ],
 
     links: [
-      { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
-      { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
-      { rel: "manifest", href: "/manifest.json" },
+      { rel: "stylesheet", href: versionedAssetUrl(appCss) },
+      { rel: "icon", type: "image/svg+xml", href: versionedAssetUrl("/favicon.svg") },
+      { rel: "apple-touch-icon", sizes: "180x180", href: versionedAssetUrl("/apple-touch-icon.png") },
+      { rel: "manifest", href: versionedAssetUrl("/manifest.json") },
       // iOS launch / startup splash screens
       { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1290x2796.png", media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
       { rel: "apple-touch-startup-image", href: "/splash/apple-splash-1179x2556.png", media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" },
