@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
+import { getVerifiedClientSession } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/login")({
   validateSearch: (search) => ({
@@ -15,9 +16,16 @@ export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
       { title: "Sign in — LinkShield" },
-      { name: "description", content: "Sign in to your LinkShield account to manage bot-filtered short links and ad-campaign analytics." },
+      {
+        name: "description",
+        content:
+          "Sign in to your LinkShield account to manage bot-filtered short links and ad-campaign analytics.",
+      },
       { property: "og:title", content: "Sign in — LinkShield" },
-      { property: "og:description", content: "Access your LinkShield dashboard to manage short links and ad analytics." },
+      {
+        property: "og:description",
+        content: "Access your LinkShield dashboard to manage short links and ad analytics.",
+      },
       { property: "og:url", content: "https://sleepox.com/login" },
     ],
     links: [{ rel: "canonical", href: "https://sleepox.com/login" }],
@@ -36,10 +44,14 @@ function LoginPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
     void (async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (!error && data.user) navigate({ to: redirect });
+      const verified = await getVerifiedClientSession();
+      if (active && verified) navigate({ to: redirect });
     })();
+    return () => {
+      active = false;
+    };
   }, [navigate, redirect]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -47,14 +59,14 @@ function LoginPage() {
     if (loading || googleLoading) return;
     setErrorMessage(null);
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     if (error) {
       setLoading(false);
       setErrorMessage(error.message);
       return toast.error(error.message);
     }
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (!data.session || userError || !userData.user) {
+    const verified = await getVerifiedClientSession();
+    if (!verified) {
       setLoading(false);
       const message = "Login session was not saved. Please try again.";
       setErrorMessage(message);
