@@ -149,16 +149,30 @@ function UpgradePage() {
   const visible = pkgs.filter((p: any) => p.is_active);
 
   return (
-    <div className="mx-auto max-w-6xl space-y-8 p-6">
-      <div>
-        <h1 className="flex items-center gap-2 text-3xl font-bold">
-          <Rocket className="h-7 w-7 text-primary" /> Upgrade your plan
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          You're on <Badge variant="outline">{plan?.plan_slug ?? "free"}</Badge> ·{" "}
-          {plan?.links_used ?? 0}/{plan?.link_quota ?? 1} links used.
-        </p>
-      </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar email={email} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border/40 bg-background/80 px-6 backdrop-blur-xl">
+            <SidebarTrigger className="-ml-2" />
+            <div className="hidden h-5 w-px bg-border md:block" />
+            <div className="hidden items-center gap-1.5 text-sm text-muted-foreground md:flex">
+              <span className="font-medium text-foreground">Workspace</span>
+              <span>/</span>
+              <span>Upgrade</span>
+            </div>
+          </header>
+
+          <main className="mx-auto w-full max-w-6xl space-y-8 p-6">
+            <div>
+              <h1 className="flex items-center gap-2 text-3xl font-bold">
+                <Rocket className="h-7 w-7 text-primary" /> Upgrade your plan
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                You're on <Badge variant="outline">{plan?.plan_slug ?? "free"}</Badge> ·{" "}
+                {plan?.links_used ?? 0}/{plan?.link_quota ?? 1} links used.
+              </p>
+            </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         {packagesLoading &&
@@ -395,6 +409,9 @@ function UpgradePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
