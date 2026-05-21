@@ -6,6 +6,33 @@ import { getPlisioApiKey } from "@/lib/plisio-config.server";
 
 const SlugRe = /^[a-z0-9_-]{2,40}$/;
 
+type DbError = { message: string } | null;
+type DbResult<T = unknown> = { data: T | null; error: DbError };
+type DbQuery = PromiseLike<DbResult> & {
+  from: (table: string) => DbQuery;
+  select: (columns?: string) => DbQuery;
+  insert: (value: unknown) => DbQuery;
+  update: (value: unknown) => DbQuery;
+  eq: (column: string, value: unknown) => DbQuery;
+  single: () => Promise<DbResult>;
+};
+type DbClient = { from: (table: string) => DbQuery };
+type PackageRow = {
+  slug: string;
+  name: string;
+  price_monthly: number | string | null;
+  price_onetime: number | string | null;
+  billing_period: string | null;
+  is_active: boolean | null;
+};
+type ProfileRow = { email?: string | null };
+type UpgradeRequestRow = { id: string };
+type PlisioPayload = {
+  status?: string;
+  message?: string;
+  data?: { invoice_url?: string; txn_id?: string; message?: string };
+};
+
 const CreateInvoiceSchema = z.object({
   package_slug: z.string().trim().regex(SlugRe),
 });
@@ -27,7 +54,7 @@ async function getVerifiedUserIdFromRequest() {
 }
 
 async function logActivity(
-  supabaseAdmin: any,
+  supabaseAdmin: DbClient,
   entry: {
     event_type: "invoice_create" | "webhook_received";
     request_id: string;
@@ -40,7 +67,7 @@ async function logActivity(
     order_number?: string | null;
     plisio_status?: string | null;
     message?: string | null;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
   },
 ) {
   try {
