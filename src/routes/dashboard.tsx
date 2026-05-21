@@ -160,6 +160,23 @@ function Dashboard() {
     load();
   }, []);
 
+  // Free-user daily Adsterra login ad (max N/day, controlled by admin)
+  useEffect(() => {
+    const KEY = "sleepox_login_ad_shown_session";
+    if (typeof window === "undefined") return;
+    if (sessionStorage.getItem(KEY)) return;
+    sessionStorage.setItem(KEY, "1");
+    (async () => {
+      try {
+        const { shouldShowLoginAd } = await import("@/lib/ad-rotation.functions");
+        const res = await shouldShowLoginAd();
+        if (res?.show && res.url) window.open(res.url, "_blank", "noopener,noreferrer");
+      } catch {
+        /* silent — ad must never block dashboard */
+      }
+    })();
+  }, []);
+
   useEffect(() => {
     setAnalyticsLoading(true);
     setRefreshError(null);
