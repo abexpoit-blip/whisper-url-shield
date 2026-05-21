@@ -1,0 +1,23 @@
+import { supabase } from "@/integrations/supabase/client";
+
+type SupabaseResult<T> = Promise<{ data: T; error: { message?: string } | null }>;
+
+function isAuthTokenError(error: unknown) {
+  const message = error && typeof error === "object" && "message" in error
+    ? String((error as { message?: unknown }).message ?? "")
+    : String(error ?? "");
+  return /Unauthorized: Invalid token|JWT expired|Invalid JWT/i.test(message);
+}
+
+export async function withFreshSupabaseAuth<T>(operation: () => SupabaseResult<T>) {
+  const first = await operation();
+  if (!first.error || !isAuthTokenError(first.error)) return first;
+
+  const refreshed = await supabase.auth.refreshSession();
+  if (refreshed.error || !refreshed.data.session?.access_token) {
+    await supabase.auth.signOut();
+    return first;
+  }
+
+  return operation();
+}
