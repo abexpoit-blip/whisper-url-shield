@@ -28,7 +28,7 @@ const IdSchema = z.object({ id: z.string().uuid() });
 
 const UpgradeRequestSchema = z.object({
   package_slug: z.string().trim().regex(SlugRe),
-  payment_method: z.enum(["plisio", "manual"]).default("manual"),
+  payment_method: z.literal("plisio").default("plisio"),
   transaction_ref: z.string().trim().max(200).optional(),
   note: z.string().trim().max(1000).optional(),
 });
@@ -66,8 +66,8 @@ export const listPackages = createServerFn({ method: "GET" })
 
 export const listAvailablePackages = createServerFn({ method: "GET" })
   .handler(async () => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await (supabaseAdmin as any)
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await (supabase as any)
       .from("packages")
       .select("id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at")
       .eq("is_active", true)
@@ -142,27 +142,8 @@ export const getMyPlan = createServerFn({ method: "GET" })
 export const requestUpgrade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => UpgradeRequestSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: pkg } = await (supabase as any)
-      .from("packages")
-      .select("price_monthly,price_onetime,billing_period,is_active")
-      .eq("slug", data.package_slug)
-      .single();
-    if (!pkg || !pkg.is_active) throw new Error("Package not available");
-    const amount = pkg.billing_period === "lifetime" || Number(pkg.price_onetime) > 0
-      ? pkg.price_onetime
-      : pkg.price_monthly;
-    const { error } = await (supabase as any).from("upgrade_requests").insert({
-      user_id: userId,
-      package_slug: data.package_slug,
-      payment_method: data.payment_method,
-      transaction_ref: data.transaction_ref ?? null,
-      amount,
-      note: data.note ?? null,
-    });
-    if (error) throw new Error(error.message);
-    return { ok: true };
+  .handler(async () => {
+    throw new Error("Manual upgrade requests are disabled. Please use automatic Plisio checkout.");
   });
 
 export const listMyUpgradeRequests = createServerFn({ method: "GET" })
@@ -313,11 +294,10 @@ export const adminAssignPlan = createServerFn({ method: "POST" })
 // Public — list active packages for pricing page (no auth required for unauthed view via client)
 export const listActivePackages = createServerFn({ method: "GET" })
   .handler(async () => {
-    // Use anon read via service role admin client is unnecessary; packages have public-active policy
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await (supabaseAdmin as any)
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data, error } = await (supabase as any)
       .from("packages")
-      .select("slug,name,price_monthly,link_limit,features,sort_order")
+      .select("slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order")
       .eq("is_active", true)
       .order("sort_order", { ascending: true });
     if (error) throw new Error(error.message);

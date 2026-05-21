@@ -6,15 +6,11 @@ import { toast } from "sonner";
 import { Check, Sparkles, Rocket, Copy, ExternalLink, Clock, ShieldCheck, Bitcoin } from "lucide-react";
 import {
   getMyPlan,
-  requestUpgrade,
   listMyUpgradeRequests,
   listAvailablePackages,
 } from "@/lib/billing.functions";
 import { createPlisioInvoice } from "@/lib/plisio.functions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -54,7 +50,6 @@ function UpgradePage() {
   const mine = useServerFn(getMyPlan);
   const myReqs = useServerFn(listMyUpgradeRequests);
   const packages = useServerFn(listAvailablePackages);
-  const submit = useServerFn(requestUpgrade);
   const payWithPlisio = useServerFn(createPlisioInvoice);
 
   const { data: pkgs = [], isLoading: packagesLoading, error: packagesError } = useQuery({
@@ -69,8 +64,6 @@ function UpgradePage() {
   });
 
   const [picked, setPicked] = useState<any | null>(null);
-  const [txRef, setTxRef] = useState("");
-  const [note, setNote] = useState("");
 
   const basePrice = picked
     ? Number(
@@ -81,26 +74,6 @@ function UpgradePage() {
     : 0;
   const feeAmount = Math.round(basePrice * FEE_PCT * 100) / 100;
   const totalAmount = Math.round(basePrice * (1 + FEE_PCT) * 100) / 100;
-
-  const reqM = useMutation({
-    mutationFn: () => {
-      if (!picked) throw new Error("Choose a package first");
-      return submit({
-        data: {
-          package_slug: picked.slug,
-          payment_method: "manual",
-          transaction_ref: txRef || undefined,
-          note: note || undefined,
-        },
-      });
-    },
-    onSuccess: () => {
-      toast.success("Request submitted — admin will review shortly");
-      setPicked(null); setTxRef(""); setNote("");
-      qc.invalidateQueries({ queryKey: ["my-upgrade-requests"] });
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
 
   const plisioM = useMutation({
     mutationFn: () => {
@@ -211,7 +184,12 @@ function UpgradePage() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {new Date(r.created_at).toLocaleString()}
-                        {r.transaction_ref && <> · <code className="rounded bg-muted px-1">{r.transaction_ref}</code></>}
+                        {r.transaction_ref && <>
+                          {' '}· <code className="rounded bg-muted px-1">{r.transaction_ref}</code>
+                          <button type="button" className="ml-1 inline-flex align-middle text-primary" onClick={() => copy(r.transaction_ref, "Order ID")} aria-label="Copy order ID">
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </>}
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -280,24 +258,9 @@ function UpgradePage() {
               <Clock className="h-3 w-3" /> Invoice expires in 30 minutes · BTC, LTC, USDT, USDT-TRC20
             </p>
 
-            <details className="group rounded-lg border">
-              <summary className="cursor-pointer list-none p-3 text-sm font-medium text-muted-foreground transition hover:text-foreground">
-                Have a manual transaction? Submit for admin review →
-              </summary>
-              <div className="space-y-3 border-t p-3">
-                <div>
-                  <Label>Transaction reference</Label>
-                  <div className="flex gap-2">
-                    <Input value={txRef} onChange={(e) => setTxRef(e.target.value)} placeholder="TXID / external invoice id" />
-                    {txRef && <Button type="button" variant="outline" size="icon" onClick={() => copy(txRef, "TXID")}><Copy className="h-4 w-4" /></Button>}
-                  </div>
-                </div>
-                <div><Label>Note for admin</Label><Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></div>
-                <Button variant="outline" className="w-full" onClick={() => reqM.mutate()} disabled={reqM.isPending}>
-                  Submit manual request
-                </Button>
-              </div>
-            </details>
+            <div className="rounded-lg border bg-muted/30 p-3 text-center text-xs text-muted-foreground">
+              Automatic Plisio checkout only — no manual payment review needed.
+            </div>
           </div>
 
           <DialogFooter className="border-t bg-muted/30 px-6 py-3">
