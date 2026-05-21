@@ -8,6 +8,7 @@ import {
   getMyPlan,
   requestUpgrade,
   listMyUpgradeRequests,
+  listAvailablePackages,
 } from "@/lib/billing.functions";
 import { createPlisioInvoice } from "@/lib/plisio.functions";
 import { Button } from "@/components/ui/button";
@@ -19,8 +20,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { requireClientUser } from "@/lib/auth-guard";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 const FEE_PCT = 0.02;
 const EXPIRY_MS = 30 * 60 * 1000;
 
@@ -54,19 +53,13 @@ function UpgradePage() {
   const qc = useQueryClient();
   const mine = useServerFn(getMyPlan);
   const myReqs = useServerFn(listMyUpgradeRequests);
+  const packages = useServerFn(listAvailablePackages);
   const submit = useServerFn(requestUpgrade);
   const payWithPlisio = useServerFn(createPlisioInvoice);
 
   const { data: pkgs = [], isLoading: packagesLoading, error: packagesError } = useQuery({
     queryKey: ["packages-active"],
-    queryFn: async () => {
-      const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/packages?select=id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at&is_active=eq.true&order=sort_order.asc`,
-        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
-      );
-      if (!res.ok) throw new Error(await res.text());
-      return await res.json();
-    },
+    queryFn: () => packages(),
   });
   const { data: plan } = useQuery({ queryKey: ["my-plan"], queryFn: () => mine() });
   const { data: requests = [] } = useQuery({
