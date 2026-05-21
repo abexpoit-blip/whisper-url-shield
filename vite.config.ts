@@ -19,6 +19,15 @@ export default defineConfig({
     define: {
       __APP_BUILD_VERSION__: JSON.stringify(appBuildVersion),
     },
+    preview: {
+      host: "0.0.0.0",
+      port: 3000,
+      allowedHosts: ["sleepox.com", "www.sleepox.com", "75.119.144.171", "localhost"],
+    },
+    server: {
+      host: "0.0.0.0",
+      allowedHosts: ["sleepox.com", "www.sleepox.com", "75.119.144.171", "localhost"],
+    },
     build: {
       rollupOptions: {
         output: {
