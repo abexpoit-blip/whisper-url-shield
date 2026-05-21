@@ -30,6 +30,7 @@ const ADMIN_SECTIONS = [
   { href: "/admin/users", label: "Members" },
   { href: "/admin/audit", label: "Audit Logs" },
   { href: "/admin/scores", label: "Scores" },
+  { href: "/admin/clicks", label: "Recent Clicks" },
   { href: "/admin/referer-rules", label: "Referer Rules" },
   { href: "/admin/asn-blocklist", label: "ASN Blocklist" },
 ] as const;
