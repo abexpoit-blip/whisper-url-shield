@@ -87,21 +87,29 @@ function currentPackages(rows: any[] | null | undefined) {
 const PackageCreateSchema = z.object({
   slug: z.string().trim().toLowerCase().regex(SlugRe),
   name: z.string().trim().min(1).max(60),
-  price_monthly: z.number().min(0).max(99999),
-  link_limit: z.number().int().min(0).max(1000000),
-  features: z.array(z.string().min(1).max(120)).max(20).default([]),
+  price_monthly: z.number().min(0).max(99999).default(0),
+  price_onetime: z.number().min(0).max(99999).default(0),
+  billing_period: z.enum(["free", "monthly", "lifetime"]).default("monthly"),
+  link_limit: z.number().int().min(0).max(1000000).nullable().optional(),
+  click_limit: z.number().int().min(0).max(9_000_000_000).nullable().optional(),
+  features: z.array(z.string().min(1).max(200)).max(40).default([]),
   sort_order: z.number().int().min(0).max(9999).default(0),
   is_active: z.boolean().default(true),
+  is_featured: z.boolean().default(false),
 });
 
 const PackageUpdateSchema = z.object({
   id: z.string().uuid(),
   name: z.string().trim().min(1).max(60).optional(),
   price_monthly: z.number().min(0).max(99999).optional(),
-  link_limit: z.number().int().min(0).max(1000000).optional(),
-  features: z.array(z.string().min(1).max(120)).max(20).optional(),
+  price_onetime: z.number().min(0).max(99999).optional(),
+  billing_period: z.enum(["free", "monthly", "lifetime"]).optional(),
+  link_limit: z.number().int().min(0).max(1000000).nullable().optional(),
+  click_limit: z.number().int().min(0).max(9_000_000_000).nullable().optional(),
+  features: z.array(z.string().min(1).max(200)).max(40).optional(),
   sort_order: z.number().int().min(0).max(9999).optional(),
   is_active: z.boolean().optional(),
+  is_featured: z.boolean().optional(),
 });
 
 const IdSchema = z.object({ id: z.string().uuid() });
