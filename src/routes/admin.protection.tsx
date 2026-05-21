@@ -253,8 +253,139 @@ function AdminProtectionPage() {
             {saving ? "Saving…" : "Save settings"}
           </Button>
         </div>
+
+        <AutoTuneSection />
       </main>
     </div>
+  );
+}
+
+function AutoTuneSection() {
+  const analyze = useServerFn(analyzeSignalWeights);
+  const apply = useServerFn(applyTunedWeights);
+  const [days, setDays] = useState(7);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<Awaited<ReturnType<typeof analyzeSignalWeights>> | null>(null);
+
+  const runAnalyze = async () => {
+    setBusy(true);
+    try {
+      const r = await analyze({ data: { sinceDays: days, minSamples: 20 } });
+      setResult(r);
+      toast.success(`Analyzed ${r.totalRows} clicks · ${r.analysis.length} signals`);
+    } catch (e) {
+      toast.error("Analyze failed: " + (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runApply = async () => {
+    if (!result) return;
+    if (!confirm("Apply suggested weights to live config?")) return;
+    setBusy(true);
+    try {
+      const weights: Record<string, number> = { ...result.currentWeights };
+      const soft = new Set<string>(result.currentSoft);
+      result.analysis.forEach((r) => {
+        weights[r.signal] = r.suggestedWeight;
+        if (r.suggestedSoft) soft.add(r.signal);
+        else soft.delete(r.signal);
+      });
+      const res = await apply({ data: { weights, softReasons: Array.from(soft) } });
+      toast.success(`Applied ${res.applied} weights. Refresh stats to verify.`);
+    } catch (e) {
+      toast.error("Apply failed: " + (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Auto-tune signal weights</CardTitle>
+        <CardDescription>
+          Analyze recent clicks to see which bot signals reliably catch bots vs.
+          which cause false positives. Suggested weights are based on signal
+          precision (blocked / total occurrences).
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <Label>Window (days)</Label>
+            <Input
+              type="number"
+              min={1}
+              max={30}
+              className="w-24"
+              value={days}
+              onChange={(e) => setDays(Math.max(1, Math.min(30, Number(e.target.value) || 7)))}
+            />
+          </div>
+          <Button onClick={runAnalyze} disabled={busy}>
+            {busy ? "Analyzing…" : "Analyze"}
+          </Button>
+          {result && (
+            <Button variant="default" onClick={runApply} disabled={busy}>
+              Apply suggested weights
+            </Button>
+          )}
+        </div>
+
+        {result && (
+          <>
+            <div className="text-xs text-muted-foreground">
+              {result.totalRows} clicks · {result.totalBlocked} blocked ({result.blockRate}%)
+              · last {result.windowDays} days
+            </div>
+            <div className="overflow-x-auto rounded-md border border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-xs uppercase tracking-wider">
+                  <tr>
+                    <th className="text-left px-3 py-2">Signal</th>
+                    <th className="text-right px-3 py-2">Blocked</th>
+                    <th className="text-right px-3 py-2">Passed</th>
+                    <th className="text-right px-3 py-2">Precision</th>
+                    <th className="text-right px-3 py-2">Current</th>
+                    <th className="text-right px-3 py-2">Suggested</th>
+                    <th className="text-right px-3 py-2">Soft?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.analysis.map((r) => {
+                    const changed = r.currentWeight !== r.suggestedWeight;
+                    return (
+                      <tr key={r.signal} className="border-t border-border">
+                        <td className="px-3 py-2 font-mono text-xs">{r.signal}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-rose-500">{r.blocked}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-emerald-500">{r.passed}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {(r.precision * 100).toFixed(1)}%
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums">{r.currentWeight}</td>
+                        <td className={`px-3 py-2 text-right tabular-nums font-semibold ${changed ? "text-primary" : ""}`}>
+                          {r.suggestedWeight}
+                        </td>
+                        <td className="px-3 py-2 text-right text-xs">{r.suggestedSoft ? "✓" : ""}</td>
+                      </tr>
+                    );
+                  })}
+                  {result.analysis.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                        Not enough samples (need ≥20 per signal)
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
