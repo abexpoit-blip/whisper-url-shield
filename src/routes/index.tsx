@@ -107,7 +107,7 @@ function LandingPage() {
                   </Button>
                 </Link>
                 <Link to="/pricing">
-                  <Button size="lg" variant="outline" className="w-full rounded-xl border-2 border-sky-soft bg-white text-base font-bold text-primary hover:bg-secondary sm:w-auto">
+                  <Button size="lg" variant="outline" className="w-full rounded-xl border border-white/15 bg-white/5 text-base font-bold text-foreground backdrop-blur-md hover:bg-white/10 sm:w-auto">
                     See pricing
                   </Button>
                 </Link>
