@@ -2,7 +2,6 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 import type { CustomFetch } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
-import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 import { supabase } from "@/integrations/supabase/client";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
@@ -75,5 +74,5 @@ const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(as
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware],
-  functionMiddleware: [attachSupabaseAuth, ensureFreshSupabaseAuth],
+  functionMiddleware: [ensureFreshSupabaseAuth],
 }));
