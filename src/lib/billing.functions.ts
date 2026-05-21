@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
@@ -213,6 +212,7 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
         .single();
       if (insErr || !reqRow) throw new Error(insErr?.message ?? "Could not create upgrade request");
 
+      const { getRequest } = await import("@tanstack/react-start/server");
       const request = getRequest();
       const origin = process.env.PUBLIC_SITE_URL || (request ? new URL(request.url).origin : "");
       const params = new URLSearchParams({
