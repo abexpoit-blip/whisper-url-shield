@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { ArrowLeft, Plus, Trash2, Globe, Smartphone, Shield } from "lucide-react";
 import { toast } from "sonner";
@@ -56,6 +57,12 @@ type LinkInfo = {
 
 function TargetingPage() {
   const { linkId } = Route.useParams();
+  const fetchTargetingState = useServerFn(getTargetingState);
+  const saveGeoRule = useServerFn(upsertGeoRule);
+  const removeGeoRule = useServerFn(deleteGeoRule);
+  const saveDeviceRule = useServerFn(upsertDeviceRule);
+  const removeDeviceRule = useServerFn(deleteDeviceRule);
+  const saveDuplicateProtection = useServerFn(setDuplicateProtection);
   const [loading, setLoading] = useState(true);
   const [link, setLink] = useState<LinkInfo | null>(null);
   const [geoRules, setGeoRules] = useState<GeoRule[]>([]);
@@ -80,7 +87,7 @@ function TargetingPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await getTargetingState({ data: { linkId } });
+      const res = await fetchTargetingState({ data: { linkId } });
       setLink(res.link);
       setGeoRules(res.geoRules);
       setDeviceRules(res.deviceRules);
@@ -104,7 +111,7 @@ function TargetingPage() {
       return;
     }
     try {
-      await upsertGeoRule({
+      await saveGeoRule({
         data: {
           linkId,
           country_code: geoCountry.toUpperCase(),
@@ -124,7 +131,7 @@ function TargetingPage() {
 
   const removeGeo = async (ruleId: string) => {
     try {
-      await deleteGeoRule({ data: { linkId, ruleId } });
+      await removeGeoRule({ data: { linkId, ruleId } });
       toast.success("Deleted");
       load();
     } catch (e) {
@@ -138,7 +145,7 @@ function TargetingPage() {
       return;
     }
     try {
-      await upsertDeviceRule({
+      await saveDeviceRule({
         data: {
           linkId,
           device: devDevice,
@@ -158,7 +165,7 @@ function TargetingPage() {
 
   const removeDevice = async (ruleId: string) => {
     try {
-      await deleteDeviceRule({ data: { linkId, ruleId } });
+      await removeDeviceRule({ data: { linkId, ruleId } });
       toast.success("Deleted");
       load();
     } catch (e) {
@@ -169,7 +176,7 @@ function TargetingPage() {
   const saveDuplicate = async () => {
     setSavingDup(true);
     try {
-      await setDuplicateProtection({
+      await saveDuplicateProtection({
         data: {
           linkId,
           enabled: dupEnabled,
