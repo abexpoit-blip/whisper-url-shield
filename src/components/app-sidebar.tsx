@@ -1,4 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import {
   Sparkles,
   LayoutDashboard,
@@ -33,6 +34,19 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
+const planLabels: Record<string, string> = {
+  free: "Free plan",
+  starter: "Pro Monthly",
+  pro: "Pro Monthly",
+  agency: "Pro Monthly",
+  pro_monthly: "Pro Monthly",
+  lifetime: "Lifetime plan",
+};
+
+function planLabelFromSlug(slug?: string | null) {
+  return planLabels[slug ?? ""] ?? "Free plan";
+}
+
 const mainNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
@@ -60,6 +74,7 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const currentPath = useRouterState({ select: (r) => r.location.pathname });
+  const [planLabel, setPlanLabel] = useState("Free plan");
 
   const isActive = (path: string) =>
     path === "/dashboard" ? currentPath === path : currentPath.startsWith(path);
@@ -69,6 +84,28 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
     await supabase.auth.signOut();
     navigate({ to: "/" });
   };
+
+  useEffect(() => {
+    let active = true;
+    void import("@/integrations/supabase/client").then(async ({ supabase }) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (!userId) {
+        if (active) setPlanLabel("Free plan");
+        return;
+      }
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("plan_slug")
+        .eq("id", userId)
+        .maybeSingle();
+      if (active) setPlanLabel(planLabelFromSlug(data?.plan_slug));
+    });
+    return () => {
+      active = false;
+    };
+  }, [email]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
@@ -147,7 +184,7 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
           <div className="mx-2 mt-6 overflow-hidden rounded-xl border border-sidebar-border/60 bg-gradient-to-br from-sky-500/15 via-sky-400/5 to-transparent p-4">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-sky-300" />
-              <span className="text-xs font-semibold text-white">Free plan</span>
+              <span className="text-xs font-semibold text-white">{planLabel}</span>
             </div>
             <p className="mt-2 text-[11px] leading-relaxed text-sidebar-foreground/70">
               Upgrade for unlimited links, custom domains & API.
@@ -176,7 +213,7 @@ export function AppSidebar({ email, isAdmin = false }: { email?: string; isAdmin
             </div>
             <div className="min-w-0 flex-1">
               <div className="truncate text-xs font-medium">{email ?? "Account"}</div>
-              <div className="text-[10px] text-muted-foreground">Free tier</div>
+              <div className="text-[10px] text-muted-foreground">{planLabel}</div>
             </div>
             <Button
               variant="ghost"
