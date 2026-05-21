@@ -119,21 +119,72 @@ function LandingPage() {
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" /> Active
                 </div>
               </div>
-              {/* Layered bars */}
-              <div className="flex h-40 items-end justify-between gap-1.5">
-                {[40, 65, 50, 90, 75, 55, 45, 70, 85, 60, 78, 92].map((h, i) => (
-                  <div key={i} className="flex-1 flex flex-col gap-0.5 items-stretch">
-                    <div className="rounded-t-md bg-gradient-to-t from-sky to-primary-glow shadow-sky" style={{ height: `${h}%` }} />
-                    <div className="rounded-b-md bg-destructive/40" style={{ height: `${Math.round(h * 0.15)}%` }} />
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
+                {/* Layered bars */}
+                <div className="md:col-span-3">
+                  <div className="relative flex h-44 items-end justify-between gap-1.5">
+                    <div className="absolute inset-0 grid grid-rows-4 pointer-events-none">
+                      {[0,1,2,3].map(i => <div key={i} className="border-t border-white/5" />)}
+                    </div>
+                    {[40, 65, 50, 90, 75, 55, 45, 70, 85, 60, 78, 92].map((h, i) => (
+                      <div key={i} className="relative flex-1 flex flex-col gap-0.5 items-stretch justify-end">
+                        <div className="rounded-t-md bg-gradient-to-t from-sky to-primary-glow shadow-sky" style={{ height: `${h}%`, minHeight: '8px' }} />
+                        <div className="rounded-b-md bg-destructive/50" style={{ height: `${Math.round(h * 0.18)}%`, minHeight: '4px' }} />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-sky" /> Real users</span>
-                  <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-destructive/60" /> Bots blocked</span>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-sky" /> Real users</span>
+                      <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-destructive/60" /> Bots blocked</span>
+                    </div>
+                    <span className="font-mono text-success">+18.2% vs yesterday</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-xl bg-white/5 border border-white/10 px-2 py-2">
+                      <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Clicks</p>
+                      <p className="font-display text-base font-bold text-gradient-sky">48,219</p>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/10 px-2 py-2">
+                      <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Unique</p>
+                      <p className="font-display text-base font-bold">31,447</p>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/10 px-2 py-2">
+                      <p className="text-[9px] uppercase tracking-widest text-muted-foreground">Block rate</p>
+                      <p className="font-display text-base font-bold text-success">25.7%</p>
+                    </div>
+                  </div>
                 </div>
-                <span className="font-mono">+18.2% vs yesterday</span>
+
+                {/* Live event feed */}
+                <div className="md:col-span-2 rounded-2xl bg-black/20 border border-white/10 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Live events</p>
+                    <span className="text-[10px] font-mono text-success inline-flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" /> streaming
+                    </span>
+                  </div>
+                  <ul className="space-y-1.5 text-[11px] font-mono">
+                    {[
+                      { t: "00:01", c: "🇺🇸", k: "click", l: "/promo-q4", ok: true },
+                      { t: "00:03", c: "🇩🇪", k: "click", l: "/launch", ok: true },
+                      { t: "00:04", c: "🇮🇳", k: "bot",   l: "/promo-q4", ok: false },
+                      { t: "00:06", c: "🇧🇷", k: "click", l: "/yt-ad-2", ok: true },
+                      { t: "00:08", c: "🇷🇺", k: "bot",   l: "/launch",   ok: false },
+                      { t: "00:09", c: "🇬🇧", k: "click", l: "/blog/seo", ok: true },
+                      { t: "00:11", c: "🇯🇵", k: "click", l: "/promo-q4", ok: true },
+                    ].map((e, i) => (
+                      <li key={i} className="flex items-center justify-between gap-2 rounded-md px-2 py-1 hover:bg-white/5">
+                        <span className="text-muted-foreground">{e.t}</span>
+                        <span>{e.c}</span>
+                        <span className={`px-1.5 rounded ${e.ok ? "bg-sky/15 text-sky" : "bg-destructive/15 text-destructive"}`}>
+                          {e.ok ? "OK" : "BLK"}
+                        </span>
+                        <span className="flex-1 truncate text-foreground/80">{e.l}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
 
