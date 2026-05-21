@@ -46,6 +46,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { withFreshSupabaseAuth } from "@/lib/supabase-retry";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -145,11 +146,13 @@ function Dashboard() {
     setLoading(true);
     const { data: userData } = await supabase.auth.getSession();
     setEmail(userData.session?.user.email ?? "");
-    const { data, error } = await supabase
-      .from("links")
-      .select("id, short_code, destination_url, title, clicks_count, bot_clicks_count, created_at")
-      .order("created_at", { ascending: false })
-      .limit(100);
+    const { data, error } = await withFreshSupabaseAuth(() =>
+      supabase
+        .from("links")
+        .select("id, short_code, destination_url, title, clicks_count, bot_clicks_count, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100),
+    );
     if (error) toast.error(error.message);
     else setLinks(data ?? []);
     setLoading(false);
@@ -184,13 +187,13 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range, refreshTick]);
 
-  // Auto-refresh only while the tab is visible; keep it lightweight.
+  // Auto-refresh only while the tab is visible; keep stats near real-time.
   useEffect(() => {
     if (!autoRefresh) return;
     const id = setInterval(() => {
       if (document.visibilityState !== "visible") return;
       setRefreshTick((t) => t + 1);
-    }, 60_000);
+    }, 15_000);
     return () => clearInterval(id);
   }, [autoRefresh]);
 
@@ -246,12 +249,14 @@ function Dashboard() {
       setCreating(false);
       return;
     }
-    const { error } = await supabase.from("links").insert({
-      user_id: userData.session.user.id,
-      short_code: genCode(),
-      destination_url: url,
-      title: title || null,
-    });
+    const { error } = await withFreshSupabaseAuth(() =>
+      supabase.from("links").insert({
+        user_id: userData.session.user.id,
+        short_code: genCode(),
+        destination_url: url,
+        title: title || null,
+      }),
+    );
     setCreating(false);
     if (error) return toast.error(error.message);
     toast.success("Link created");
@@ -261,7 +266,7 @@ function Dashboard() {
   };
 
   const remove = async (id: string) => {
-    const { error } = await supabase.from("links").delete().eq("id", id);
+    const { error } = await withFreshSupabaseAuth(() => supabase.from("links").delete().eq("id", id));
     if (error) return toast.error(error.message);
     toast.success("Deleted");
     load();
@@ -369,7 +374,7 @@ function Dashboard() {
                   <>
                     <span className={`flex h-1.5 w-1.5 rounded-full ${autoRefresh ? "bg-success animate-pulse" : "bg-muted-foreground/50"}`} />
                     <span>
-                      {autoRefresh ? "Auto · 30s" : "Paused"}
+                      {autoRefresh ? "Auto · 15s" : "Paused"}
                     </span>
                   </>
                 )}

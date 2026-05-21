@@ -244,6 +244,18 @@ export const getPaymentSettings = createServerFn({ method: "GET" })
     return data;
   });
 
+export const getPublicPaymentSettings = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await (supabaseAdmin as any)
+      .from("payment_settings")
+      .select("plisio_enabled,payment_instructions,updated_at")
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ?? { plisio_enabled: false, payment_instructions: null, updated_at: null };
+  });
+
 export const updatePaymentSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PaymentSettingsSchema.parse(i))

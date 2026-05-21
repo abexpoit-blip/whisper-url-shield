@@ -9,7 +9,7 @@ import {
   getMyPlan,
   requestUpgrade,
   listMyUpgradeRequests,
-  getPaymentSettings,
+  getPublicPaymentSettings,
 } from "@/lib/billing.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,12 +34,11 @@ function UpgradePage() {
   const mine = useServerFn(getMyPlan);
   const myReqs = useServerFn(listMyUpgradeRequests);
   const submit = useServerFn(requestUpgrade);
-  const getSettings = useServerFn(getPaymentSettings);
+  const getSettings = useServerFn(getPublicPaymentSettings);
 
   const { data: pkgs = [] } = useQuery({ queryKey: ["packages-active"], queryFn: () => list() });
   const { data: plan } = useQuery({ queryKey: ["my-plan"], queryFn: () => mine() });
   const { data: requests = [] } = useQuery({ queryKey: ["my-upgrade-requests"], queryFn: () => myReqs() });
-  // Settings query is admin-only; ignore failures
   const { data: settings } = useQuery({
     queryKey: ["payment-settings-public"],
     queryFn: () => getSettings().catch(() => null),

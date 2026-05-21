@@ -39,10 +39,14 @@ async function getFreshAuthHeader(): Promise<Record<string, string>> {
 const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(async ({ next }) => {
   const authHeader = await getFreshAuthHeader();
   const retryWithFreshToken: CustomFetch = async (url, init) => {
-    const first = await fetch(url, init);
+    const headers = new Headers(init?.headers);
+    const latestAuthHeader = await getFreshAuthHeader();
+    if (latestAuthHeader.Authorization) headers.set("Authorization", latestAuthHeader.Authorization);
+
+    const first = await fetch(url, { ...init, headers });
     const text = first.clone ? await first.clone().text().catch(() => "") : "";
 
-    if (first.ok || !text.includes("Unauthorized: Invalid token")) return first;
+    if (first.ok || !/Unauthorized: Invalid token|JWT expired|Invalid JWT/i.test(text)) return first;
 
     const refreshed = await supabase.auth.refreshSession();
     if (refreshed.error || !refreshed.data.session?.access_token) {
@@ -50,7 +54,6 @@ const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(as
       return first;
     }
 
-    const headers = new Headers(init?.headers);
     headers.set("Authorization", `Bearer ${refreshed.data.session.access_token}`);
     return fetch(url, { ...init, headers });
   };
@@ -60,5 +63,5 @@ const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(as
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware],
-  functionMiddleware: [ensureFreshSupabaseAuth, attachSupabaseAuth],
+  functionMiddleware: [attachSupabaseAuth, ensureFreshSupabaseAuth],
 }));
