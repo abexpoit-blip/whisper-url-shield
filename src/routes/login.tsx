@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { getVerifiedClientSession } from "@/lib/auth-guard";
 
 export const Route = createFileRoute("/login")({
@@ -40,7 +39,6 @@ function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,7 +54,7 @@ function LoginPage() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (loading || googleLoading) return;
+    if (loading) return;
     setErrorMessage(null);
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
@@ -75,22 +73,6 @@ function LoginPage() {
     // Admin sign-in is handled at /control-panel only.
     toast.success("Welcome back!");
     await router.invalidate();
-    navigate({ to: redirect });
-  };
-
-  const onGoogle = async () => {
-    setErrorMessage(null);
-    setGoogleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}${redirect}`,
-    });
-    if (result.error) {
-      setGoogleLoading(false);
-      setErrorMessage(result.error.message ?? "Google sign-in failed");
-      toast.error(result.error.message ?? "Google sign-in failed");
-      return;
-    }
-    if (result.redirected) return;
     navigate({ to: redirect });
   };
 
@@ -195,7 +177,7 @@ function LoginPage() {
             </div>
             <Button
               type="submit"
-              disabled={loading || googleLoading}
+              disabled={loading}
               className="w-full h-11 shadow-glow group"
             >
               {loading ? (
