@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { getPlisioApiKey } from "@/lib/plisio-config.server";
 
 const SlugRe = /^[a-z0-9_-]{2,40}$/;
 
@@ -33,6 +37,10 @@ const UpgradeRequestSchema = z.object({
   note: z.string().trim().max(1000).optional(),
 });
 
+const CreatePlisioInvoiceSchema = z.object({
+  package_slug: z.string().trim().regex(SlugRe),
+});
+
 const ReviewSchema = z.object({
   id: z.string().uuid(),
   approve: z.boolean(),
@@ -50,6 +58,18 @@ const AssignPlanSchema = z.object({
   user_id: z.string().uuid(),
   package_slug: z.string().trim().regex(SlugRe),
 });
+
+async function logPlisioInvoiceActivity(entry: Record<string, any>) {
+  try {
+    await (supabaseAdmin as any).from("plisio_activity_log").insert({
+      event_type: "invoice_create",
+      ...entry,
+      metadata: entry.metadata ?? {},
+    });
+  } catch (error) {
+    console.warn("[plisio-create] activity log failed", error);
+  }
+}
 
 // ---------- Packages ----------
 export const listPackages = createServerFn({ method: "GET" })
