@@ -270,7 +270,9 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
         .select("slug,name,price_monthly,price_onetime,billing_period,is_active")
         .eq("slug", data.package_slug)
         .single();
-      if (pkgErr || !pkg?.is_active) throw new Error("Package not available");
+      if (pkgErr || !pkg?.is_active || !CURRENT_PACKAGE_SET.has(pkg.slug)) {
+        throw new Error("Package not available");
+      }
 
       const baseAmount = Number(
         pkg.billing_period === "lifetime" || Number(pkg.price_onetime) > 0
@@ -546,7 +548,7 @@ export const listActivePackages = createServerFn({ method: "GET" }).handler(asyn
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return currentPackages(data);
 });
 
 // Auto-expire any Plisio invoices older than 30 minutes that never completed.
