@@ -75,5 +75,5 @@ const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(as
 
 export const startInstance = createStart(() => ({
   requestMiddleware: [errorMiddleware],
-  functionMiddleware: [ensureFreshSupabaseAuth, attachSupabaseAuth],
+  functionMiddleware: [attachSupabaseAuth, ensureFreshSupabaseAuth],
 }));
