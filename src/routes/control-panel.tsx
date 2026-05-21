@@ -16,6 +16,18 @@ export const Route = createFileRoute("/control-panel")({
   component: ControlPanelLogin,
 });
 
+async function checkAdminRole(userId: string) {
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+
+  if (error) throw error;
+  return !!data;
+}
+
 function ControlPanelLogin() {
   const navigate = useNavigate();
   const router = useRouter();
