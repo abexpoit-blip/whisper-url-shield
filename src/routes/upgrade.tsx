@@ -5,7 +5,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Sparkles, Rocket } from "lucide-react";
 import {
-  listPackages,
   listAvailablePackages,
   getMyPlan,
   requestUpgrade,
