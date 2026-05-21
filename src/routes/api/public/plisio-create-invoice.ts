@@ -2,8 +2,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { randomUUID } from "crypto";
+import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import type { Database } from "@/integrations/supabase/types";
 import { getPlisioApiKey } from "@/lib/plisio-config.server";
 
 const CreateInvoiceSchema = z.object({
@@ -42,15 +44,17 @@ async function getUserId(request: Request) {
   });
   if (!url || !key) throw new Error("Payment auth is not configured on the server.");
 
-  const res = await fetch(`${url}/auth/v1/user`, {
-    headers: { apikey: key, Authorization: `Bearer ${token}` },
+  const supabase = createClient<Database>(url, key, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
-  const text = await res.text();
-  console.log("[plisio-create] auth REST", { status: res.status, bodyPreview: text.slice(0, 250) });
-  if (!res.ok) throw new Error(`Please login again before payment. (auth ${res.status})`);
-  const user = JSON.parse(text);
-  if (!user?.id) throw new Error("Please login again before payment. (no user id)");
-  return user.id as string;
+
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims?.sub) {
+    console.warn("[plisio-create] auth claims failed", { message: error?.message });
+    throw new Error("Please login again before payment. (invalid token)");
+  }
+  return data.claims.sub;
 }
 
 export const Route = createFileRoute("/api/public/plisio-create-invoice")({
