@@ -40,6 +40,7 @@ import { Route as AdminPaymentsRouteImport } from './routes/admin.payments'
 import { Route as AdminPackagesRouteImport } from './routes/admin.packages'
 import { Route as AdminDomainsRouteImport } from './routes/admin.domains'
 import { Route as AdminDomainHealthRouteImport } from './routes/admin.domain-health'
+import { Route as AdminClicksRouteImport } from './routes/admin.clicks'
 import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminAsnBlocklistRouteImport } from './routes/admin.asn-blocklist'
 import { Route as LinksLinkIdTimeRulesRouteImport } from './routes/links.$linkId.time-rules'
@@ -204,6 +205,11 @@ const AdminDomainHealthRoute = AdminDomainHealthRouteImport.update({
   path: '/domain-health',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminClicksRoute = AdminClicksRouteImport.update({
+  id: '/clicks',
+  path: '/clicks',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAuditRoute = AdminAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
@@ -267,6 +273,7 @@ export interface FileRoutesByFullPath {
   '/upgrade': typeof UpgradeRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/clicks': typeof AdminClicksRoute
   '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/domains': typeof AdminDomainsRoute
   '/admin/packages': typeof AdminPackagesRoute
@@ -307,6 +314,7 @@ export interface FileRoutesByTo {
   '/upgrade': typeof UpgradeRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/clicks': typeof AdminClicksRoute
   '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/domains': typeof AdminDomainsRoute
   '/admin/packages': typeof AdminPackagesRoute
@@ -349,6 +357,7 @@ export interface FileRoutesById {
   '/upgrade': typeof UpgradeRoute
   '/admin/asn-blocklist': typeof AdminAsnBlocklistRoute
   '/admin/audit': typeof AdminAuditRoute
+  '/admin/clicks': typeof AdminClicksRoute
   '/admin/domain-health': typeof AdminDomainHealthRoute
   '/admin/domains': typeof AdminDomainsRoute
   '/admin/packages': typeof AdminPackagesRoute
@@ -392,6 +401,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin/asn-blocklist'
     | '/admin/audit'
+    | '/admin/clicks'
     | '/admin/domain-health'
     | '/admin/domains'
     | '/admin/packages'
@@ -432,6 +442,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin/asn-blocklist'
     | '/admin/audit'
+    | '/admin/clicks'
     | '/admin/domain-health'
     | '/admin/domains'
     | '/admin/packages'
@@ -473,6 +484,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin/asn-blocklist'
     | '/admin/audit'
+    | '/admin/clicks'
     | '/admin/domain-health'
     | '/admin/domains'
     | '/admin/packages'
@@ -742,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDomainHealthRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/clicks': {
+      id: '/admin/clicks'
+      path: '/clicks'
+      fullPath: '/admin/clicks'
+      preLoaderRoute: typeof AdminClicksRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/audit': {
       id: '/admin/audit'
       path: '/audit'
@@ -804,6 +823,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminAsnBlocklistRoute: typeof AdminAsnBlocklistRoute
   AdminAuditRoute: typeof AdminAuditRoute
+  AdminClicksRoute: typeof AdminClicksRoute
   AdminDomainHealthRoute: typeof AdminDomainHealthRoute
   AdminDomainsRoute: typeof AdminDomainsRoute
   AdminPackagesRoute: typeof AdminPackagesRoute
@@ -820,6 +840,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAsnBlocklistRoute: AdminAsnBlocklistRoute,
   AdminAuditRoute: AdminAuditRoute,
+  AdminClicksRoute: AdminClicksRoute,
   AdminDomainHealthRoute: AdminDomainHealthRoute,
   AdminDomainsRoute: AdminDomainsRoute,
   AdminPackagesRoute: AdminPackagesRoute,
