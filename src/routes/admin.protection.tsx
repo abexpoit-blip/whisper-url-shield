@@ -14,6 +14,7 @@ import {
   updateProtectionConfig,
   getProtectionStats,
 } from "@/lib/admin-protection.functions";
+import { analyzeSignalWeights, applyTunedWeights } from "@/lib/admin-tune.functions";
 
 export const Route = createFileRoute("/admin/protection")({
   beforeLoad: async ({ location }) => {
