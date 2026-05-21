@@ -28,17 +28,35 @@ async function logActivity(entry: Record<string, any>) {
 async function getUserId(request: Request) {
   const authHeader = request.headers.get("authorization") ?? "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  console.log("[plisio-create] auth check", {
+    hasHeader: !!authHeader,
+    tokenLen: token.length,
+    tokenPrefix: token.slice(0, 12),
+  });
   if (!token) throw new Error("Please login again before payment.");
 
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  console.log("[plisio-create] env check", {
+    hasUrl: !!url,
+    urlHost: url ? new URL(url).host : null,
+    hasKey: !!key,
+    keyLen: key?.length ?? 0,
+  });
   if (!url || !key) throw new Error("Payment auth is not configured on the server.");
 
   const supabase = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data.user?.id) throw new Error("Please login again before payment.");
+  console.log("[plisio-create] getUser result", {
+    hasUser: !!data?.user?.id,
+    userId: data?.user?.id ?? null,
+    errorMsg: error?.message ?? null,
+    errorStatus: (error as any)?.status ?? null,
+  });
+  if (error || !data.user?.id)
+    throw new Error(`Please login again before payment. (${error?.message ?? "no user"})`);
   return data.user.id;
 }
 
