@@ -18,7 +18,10 @@ function tokenMatchesCurrentProject(token: string) {
     const payload = decodeJwtPart(payloadPart);
     const issuer = typeof payload.iss === "string" ? payload.iss : "";
     const ref = typeof payload.ref === "string" ? payload.ref : "";
-    return header.alg === "HS256" && (issuer.startsWith(EXPECTED_ISSUER_PREFIX) || ref === EXPECTED_PROJECT_REF);
+    return (
+      header.alg === "HS256" &&
+      (issuer.startsWith(EXPECTED_ISSUER_PREFIX) || ref === EXPECTED_PROJECT_REF)
+    );
   } catch {
     return false;
   }
