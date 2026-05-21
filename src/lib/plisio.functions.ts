@@ -28,8 +28,12 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
     if (pkgErr || !pkg || !pkg.is_active) throw new Error("Package not available");
 
     const isLifetime = pkg.billing_period === "lifetime" || Number(pkg.price_onetime) > 0;
-    const amount = Number(isLifetime ? pkg.price_onetime : pkg.price_monthly);
-    if (!amount || amount <= 0) throw new Error("This plan is free — no payment required.");
+    const baseAmount = Number(isLifetime ? pkg.price_onetime : pkg.price_monthly);
+    if (!baseAmount || baseAmount <= 0) throw new Error("This plan is free — no payment required.");
+
+    // Plisio "Client pays commission" = ~2% network/processing fee added on top.
+    const FEE_PCT = 0.02;
+    const totalAmount = Math.round(baseAmount * (1 + FEE_PCT) * 100) / 100;
 
     // 2) Load buyer email
     const { data: profile } = await (supabase as any)
@@ -43,9 +47,10 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
         user_id: userId,
         package_slug: data.package_slug,
         payment_method: "plisio",
-        amount,
+        amount: totalAmount,
         transaction_ref: orderNumber,
         plisio_status: "pending",
+        note: `Base $${baseAmount.toFixed(2)} + 2% fee = $${totalAmount.toFixed(2)}`,
       })
       .select("id")
       .single();
@@ -57,10 +62,10 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
     const successUrl = `${origin}/upgrade?payment=success`;
     const failUrl = `${origin}/upgrade?payment=failed`;
 
-    // 5) Create Plisio invoice
+    // 5) Create Plisio invoice (30-minute expiration to match dashboard)
     const params = new URLSearchParams({
       api_key: apiKey,
-      source_amount: amount.toFixed(2),
+      source_amount: totalAmount.toFixed(2),
       source_currency: "USD",
       order_name: `${pkg.name} — ${data.package_slug}`,
       order_number: orderNumber,
@@ -68,6 +73,7 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
       success_url: successUrl,
       fail_url: failUrl,
       email: profile?.email ?? "",
+      expire_min: "30",
     });
 
     const res = await fetch(`https://api.plisio.net/api/v1/invoices/new?${params.toString()}`);
@@ -88,5 +94,12 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
       .update({ plisio_invoice_id: txnId, plisio_invoice_url: invoiceUrl })
       .eq("id", reqRow.id);
 
-    return { invoice_url: invoiceUrl, txn_id: txnId, request_id: reqRow.id };
+    return {
+      invoice_url: invoiceUrl,
+      txn_id: txnId,
+      request_id: reqRow.id,
+      base_amount: baseAmount,
+      total_amount: totalAmount,
+      fee_pct: FEE_PCT,
+    };
   });
