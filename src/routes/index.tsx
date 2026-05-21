@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery } from "@tanstack/react-query";
 import { Shield, Zap, BarChart3, Bot, Globe, Lock, ArrowRight, Check, ShieldCheck, Activity, TrendingUp, MousePointerClick, Users, Gauge, Sparkles, Rocket, Crown, Infinity as InfinityIcon, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { FaqSection, HOMEPAGE_FAQ, buildFaqSchema } from "@/components/faq-section";
+import { listAvailablePackages } from "@/lib/billing.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
