@@ -44,6 +44,12 @@ export const Route = createFileRoute("/")({
 });
 
 function LandingPage() {
+  const listPkgs = useServerFn(listAvailablePackages);
+  const { data: homePkgs = [] } = useQuery({
+    queryKey: ["home", "packages"],
+    queryFn: () => listPkgs(),
+  });
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
