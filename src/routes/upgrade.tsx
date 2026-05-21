@@ -19,6 +19,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+
 export const Route = createFileRoute("/upgrade")({
   beforeLoad: async ({ location }) => {
     const { data, error } = await supabase.auth.getUser();
@@ -40,13 +43,12 @@ function UpgradePage() {
   const { data: pkgs = [], isLoading: packagesLoading, error: packagesError } = useQuery({
     queryKey: ["packages-active"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("packages")
-        .select("id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/packages?select=id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at&is_active=eq.true&order=sort_order.asc`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } },
+      );
+      if (!res.ok) throw new Error(await res.text());
+      return await res.json();
     },
   });
   const { data: plan } = useQuery({ queryKey: ["my-plan"], queryFn: () => mine() });
