@@ -94,6 +94,10 @@ function UpgradePage() {
   const myReqs = useServerFn(listMyUpgradeRequests);
   const packages = useServerFn(listAvailablePackages);
   const createInvoice = useServerFn(createPlisioInvoice);
+  const expireStale = useServerFn(expireStalePlisioRequests);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const qc = useQueryClient();
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -105,6 +109,33 @@ function UpgradePage() {
       active = false;
     };
   }, []);
+
+  // Handle redirect from Plisio (?payment=success|failed)
+  useEffect(() => {
+    if (search.payment === "success") {
+      toast.success("Payment received! Your plan is being activated…", { duration: 6000 });
+      qc.invalidateQueries({ queryKey: ["my-plan"] });
+      qc.invalidateQueries({ queryKey: ["my-upgrade-requests"] });
+      navigate({ search: {}, replace: true });
+    } else if (search.payment === "failed") {
+      toast.error("Payment failed or cancelled. You can try again anytime.", { duration: 6000 });
+      navigate({ search: {}, replace: true });
+    }
+  }, [search.payment, qc, navigate]);
+
+  // Auto-expire any stale (>30min) pending Plisio requests on mount + every 60s
+  useEffect(() => {
+    const run = () =>
+      expireStale()
+        .then((r) => {
+          if (r?.expired) qc.invalidateQueries({ queryKey: ["my-upgrade-requests"] });
+        })
+        .catch(() => {});
+    run();
+    const t = setInterval(run, 60000);
+    return () => clearInterval(t);
+  }, [expireStale, qc]);
+
 
   const {
     data: pkgs = [],
