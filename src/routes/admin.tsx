@@ -14,6 +14,7 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
+import { requireClientAdmin } from "@/lib/auth-guard";
 import { toast } from "sonner";
 
 // ---------- Admin sections (order matches the sidebar) ----------
@@ -68,22 +69,7 @@ function pretty(seg: string) {
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin Console — LinkShield" }, { name: "robots", content: "noindex,nofollow" }] }),
   // Role-based gate: only admins reach any /admin/* route.
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      throw redirect({ to: "/control-panel" });
-    }
-    try {
-      const isAdmin = await getCachedAdminAccess(data.user.id);
-      if (!isAdmin) {
-        throw redirect({ to: "/dashboard" });
-      }
-    } catch (e) {
-      // Re-throw redirect; treat any other failure as forbidden.
-      if (isRedirect(e)) throw e;
-      throw redirect({ to: "/dashboard" });
-    }
-  },
+  beforeLoad: () => requireClientAdmin(),
   component: AdminLayout,
 });
 
