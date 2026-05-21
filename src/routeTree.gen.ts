@@ -48,6 +48,7 @@ import { Route as LinksLinkIdTimeRulesRouteImport } from './routes/links.$linkId
 import { Route as LinksLinkIdTargetingRouteImport } from './routes/links.$linkId.targeting'
 import { Route as LinksLinkIdSettingsRouteImport } from './routes/links.$linkId.settings'
 import { Route as ApiPublicPlisioWebhookRouteImport } from './routes/api/public/plisio-webhook'
+import { Route as ApiPublicPlisioCreateInvoiceRouteImport } from './routes/api/public/plisio-create-invoice'
 import { Route as ApiPublicHooksPlisioRetryQueueRouteImport } from './routes/api/public/hooks/plisio-retry-queue'
 import { Route as ApiPublicHooksDomainHealthRouteImport } from './routes/api/public/hooks/domain-health'
 import { Route as ApiPublicHooksBackfillClicksRouteImport } from './routes/api/public/hooks/backfill-clicks'
@@ -248,6 +249,12 @@ const ApiPublicPlisioWebhookRoute = ApiPublicPlisioWebhookRouteImport.update({
   path: '/api/public/plisio-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPlisioCreateInvoiceRoute =
+  ApiPublicPlisioCreateInvoiceRouteImport.update({
+    id: '/api/public/plisio-create-invoice',
+    path: '/api/public/plisio-create-invoice',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksPlisioRetryQueueRoute =
   ApiPublicHooksPlisioRetryQueueRouteImport.update({
     id: '/api/public/hooks/plisio-retry-queue',
@@ -308,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/blog/$slug': typeof BlogSlugRoute
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/public/plisio-create-invoice': typeof ApiPublicPlisioCreateInvoiceRoute
   '/api/public/plisio-webhook': typeof ApiPublicPlisioWebhookRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
@@ -352,6 +360,7 @@ export interface FileRoutesByTo {
   '/blog/$slug': typeof BlogSlugRoute
   '/r/$code': typeof RCodeRoute
   '/admin': typeof AdminIndexRoute
+  '/api/public/plisio-create-invoice': typeof ApiPublicPlisioCreateInvoiceRoute
   '/api/public/plisio-webhook': typeof ApiPublicPlisioWebhookRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
@@ -398,6 +407,7 @@ export interface FileRoutesById {
   '/blog_/$slug': typeof BlogSlugRoute
   '/r/$code': typeof RCodeRoute
   '/admin/': typeof AdminIndexRoute
+  '/api/public/plisio-create-invoice': typeof ApiPublicPlisioCreateInvoiceRoute
   '/api/public/plisio-webhook': typeof ApiPublicPlisioWebhookRoute
   '/links/$linkId/settings': typeof LinksLinkIdSettingsRoute
   '/links/$linkId/targeting': typeof LinksLinkIdTargetingRoute
@@ -445,6 +455,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/r/$code'
     | '/admin/'
+    | '/api/public/plisio-create-invoice'
     | '/api/public/plisio-webhook'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
@@ -489,6 +500,7 @@ export interface FileRouteTypes {
     | '/blog/$slug'
     | '/r/$code'
     | '/admin'
+    | '/api/public/plisio-create-invoice'
     | '/api/public/plisio-webhook'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
@@ -534,6 +546,7 @@ export interface FileRouteTypes {
     | '/blog_/$slug'
     | '/r/$code'
     | '/admin/'
+    | '/api/public/plisio-create-invoice'
     | '/api/public/plisio-webhook'
     | '/links/$linkId/settings'
     | '/links/$linkId/targeting'
@@ -564,6 +577,7 @@ export interface RootRouteChildren {
   UpgradeRoute: typeof UpgradeRoute
   BlogSlugRoute: typeof BlogSlugRoute
   RCodeRoute: typeof RCodeRoute
+  ApiPublicPlisioCreateInvoiceRoute: typeof ApiPublicPlisioCreateInvoiceRoute
   ApiPublicPlisioWebhookRoute: typeof ApiPublicPlisioWebhookRoute
   LinksLinkIdSettingsRoute: typeof LinksLinkIdSettingsRoute
   LinksLinkIdTargetingRoute: typeof LinksLinkIdTargetingRoute
@@ -849,6 +863,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPlisioWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/plisio-create-invoice': {
+      id: '/api/public/plisio-create-invoice'
+      path: '/api/public/plisio-create-invoice'
+      fullPath: '/api/public/plisio-create-invoice'
+      preLoaderRoute: typeof ApiPublicPlisioCreateInvoiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/plisio-retry-queue': {
       id: '/api/public/hooks/plisio-retry-queue'
       path: '/api/public/hooks/plisio-retry-queue'
@@ -950,6 +971,7 @@ const rootRouteChildren: RootRouteChildren = {
   UpgradeRoute: UpgradeRoute,
   BlogSlugRoute: BlogSlugRoute,
   RCodeRoute: RCodeRoute,
+  ApiPublicPlisioCreateInvoiceRoute: ApiPublicPlisioCreateInvoiceRoute,
   ApiPublicPlisioWebhookRoute: ApiPublicPlisioWebhookRoute,
   LinksLinkIdSettingsRoute: LinksLinkIdSettingsRoute,
   LinksLinkIdTargetingRoute: LinksLinkIdTargetingRoute,

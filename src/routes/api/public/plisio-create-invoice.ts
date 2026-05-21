@@ -14,7 +14,6 @@ async function logActivity(entry: Record<string, any>) {
   try {
     await (supabaseAdmin as any).from("plisio_activity_log").insert({
       event_type: "invoice_create",
-      metadata: {},
       ...entry,
       metadata: entry.metadata ?? {},
     });
