@@ -1,5 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
+const VALID_PAID_PACKAGE_SLUGS = new Set(["pro_monthly", "lifetime"]);
+
 export type ProcessOutcome = {
   ok: boolean;
   outcome: string;       // for activity log
@@ -81,6 +83,15 @@ export async function processPlisioPayload(
     const success = status === "completed" || status === "mismatch";
 
     if (success && req.status !== "approved") {
+      if (!VALID_PAID_PACKAGE_SLUGS.has(req.package_slug)) {
+        return {
+          ok: false, retryable: false, status_code: 400,
+          outcome: "invalid_package", message: `package not available: ${req.package_slug}`,
+          upgrade_request_id: req.id, user_id: req.user_id,
+          package_slug: req.package_slug,
+        };
+      }
+
       const { data: flipped, error: flipErr } = await (supabaseAdmin as any)
         .from("upgrade_requests")
         .update({
