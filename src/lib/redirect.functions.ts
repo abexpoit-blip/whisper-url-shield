@@ -681,7 +681,7 @@ export const resolveLink = createServerFn({ method: "POST" })
       loadProtection(),
       supabaseAdmin
         .from("links")
-        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color")
+        .select("id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color, clicks_count")
         .eq("short_code", data.code)
         .maybeSingle(),
     ]);
