@@ -24,7 +24,10 @@ import {
   getMyPlan,
   listMyUpgradeRequests,
   listAvailablePackages,
+  expireStalePlisioRequests,
 } from "@/lib/billing.functions";
+import { useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +48,9 @@ const EXPIRY_MS = 30 * 60 * 1000;
 
 export const Route = createFileRoute("/upgrade")({
   beforeLoad: ({ location }) => requireClientUser(location.href),
+  validateSearch: (s: Record<string, unknown>) => ({
+    payment: (s.payment as "success" | "failed" | undefined) ?? undefined,
+  }),
   component: UpgradePage,
 });
 
@@ -88,6 +94,10 @@ function UpgradePage() {
   const myReqs = useServerFn(listMyUpgradeRequests);
   const packages = useServerFn(listAvailablePackages);
   const createInvoice = useServerFn(createPlisioInvoice);
+  const expireStale = useServerFn(expireStalePlisioRequests);
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const qc = useQueryClient();
   const [email, setEmail] = useState("");
 
   useEffect(() => {
@@ -99,6 +109,33 @@ function UpgradePage() {
       active = false;
     };
   }, []);
+
+  // Handle redirect from Plisio (?payment=success|failed)
+  useEffect(() => {
+    if (search.payment === "success") {
+      toast.success("Payment received! Your plan is being activated…", { duration: 6000 });
+      qc.invalidateQueries({ queryKey: ["my-plan"] });
+      qc.invalidateQueries({ queryKey: ["my-upgrade-requests"] });
+      navigate({ search: {}, replace: true });
+    } else if (search.payment === "failed") {
+      toast.error("Payment failed or cancelled. You can try again anytime.", { duration: 6000 });
+      navigate({ search: {}, replace: true });
+    }
+  }, [search.payment, qc, navigate]);
+
+  // Auto-expire any stale (>30min) pending Plisio requests on mount + every 60s
+  useEffect(() => {
+    const run = () =>
+      expireStale()
+        .then((r) => {
+          if (r?.expired) qc.invalidateQueries({ queryKey: ["my-upgrade-requests"] });
+        })
+        .catch(() => {});
+    run();
+    const t = setInterval(run, 60000);
+    return () => clearInterval(t);
+  }, [expireStale, qc]);
+
 
   const {
     data: pkgs = [],
@@ -342,13 +379,26 @@ function UpgradePage() {
                   <div className="space-y-2">
                     {requests.map((r: any) => {
                       const isPlisio = r.payment_method === "plisio";
-                      const isPending = r.status === "pending" && r.plisio_status !== "completed";
+                      const isCompleted =
+                        r.status === "approved" || r.plisio_status === "completed";
+                      const isFailed =
+                        r.status === "rejected" ||
+                        r.plisio_status === "expired" ||
+                        r.plisio_status === "cancelled" ||
+                        r.plisio_status === "error";
+                      const isPending = !isCompleted && !isFailed;
                       const ageMs = Date.now() - new Date(r.created_at).getTime();
                       const expired = isPlisio && isPending && ageMs > EXPIRY_MS;
                       return (
                         <div
                           key={r.id}
-                          className="flex flex-col gap-2 rounded-lg border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                          className={`flex flex-col gap-2 rounded-lg border p-3 text-sm sm:flex-row sm:items-center sm:justify-between ${
+                            isCompleted
+                              ? "border-green-500/40 bg-green-500/5"
+                              : isFailed || expired
+                                ? "border-destructive/40 bg-destructive/5"
+                                : ""
+                          }`}
                         >
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2 font-medium">
@@ -377,15 +427,18 @@ function UpgradePage() {
                                 </>
                               )}
                             </div>
+                            {isCompleted && (
+                              <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+                                Plan activated · {r.plisio_invoice_id ? `txn ${r.plisio_invoice_id}` : "confirmed on-chain"}
+                              </div>
+                            )}
+                            {(isFailed || expired) && r.note && (
+                              <div className="mt-1 text-xs text-destructive/80">{r.note}</div>
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             {isPlisio && isPending && !expired && (
                               <Countdown createdAt={r.created_at} />
-                            )}
-                            {expired && (
-                              <Badge variant="destructive" className="gap-1">
-                                <Clock className="h-3 w-3" /> Expired
-                              </Badge>
                             )}
                             {r.plisio_invoice_url && isPending && !expired && (
                               <Button size="sm" variant="outline" asChild>
@@ -399,17 +452,18 @@ function UpgradePage() {
                                 </a>
                               </Button>
                             )}
-                            <Badge
-                              variant={
-                                r.status === "approved"
-                                  ? "default"
-                                  : r.status === "rejected"
-                                    ? "destructive"
-                                    : "outline"
-                              }
-                            >
-                              {r.status === "approved" ? "✓ Successful" : r.status}
-                            </Badge>
+                            {isCompleted ? (
+                              <Badge className="gap-1 bg-green-600 text-white hover:bg-green-700">
+                                <CheckCircle2 className="h-3 w-3" /> Successful
+                              </Badge>
+                            ) : isFailed || expired ? (
+                              <Badge variant="destructive" className="gap-1">
+                                <XCircle className="h-3 w-3" />
+                                {r.plisio_status === "expired" || expired ? "Failed · Expired" : "Failed"}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">Pending</Badge>
+                            )}
                           </div>
                         </div>
                       );
