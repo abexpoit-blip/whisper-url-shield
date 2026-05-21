@@ -156,15 +156,16 @@ async function logPlisioInvoiceActivity(admin: any, entry: Record<string, any>) 
 }
 
 // ---------- Packages ----------
+const PACKAGE_COLUMNS =
+  "id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,is_featured,created_at";
+
 export const listPackages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase } = context;
     const { data, error } = await (supabase as any)
       .from("packages")
-      .select(
-        "id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at",
-      )
+      .select(PACKAGE_COLUMNS)
       .order("sort_order", { ascending: true });
     if (error) throw new Error(error.message);
     return data ?? [];
@@ -174,13 +175,11 @@ export const listAvailablePackages = createServerFn({ method: "GET" }).handler(a
   const { supabase } = await import("@/integrations/supabase/client");
   const { data, error } = await (supabase as any)
     .from("packages")
-    .select(
-      "id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,created_at",
-    )
+    .select(PACKAGE_COLUMNS)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
   if (error) throw new Error(error.message);
-  return currentPackages(data);
+  return data ?? [];
 });
 
 export const createPackage = createServerFn({ method: "POST" })
