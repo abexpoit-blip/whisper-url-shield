@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_rotation_config: {
+        Row: {
+          id: number
+          login_ad_enabled: boolean
+          login_ad_url: string | null
+          login_ads_per_day: number
+          rotation_admin_clicks: number
+          rotation_admin_url: string | null
+          rotation_enabled: boolean
+          rotation_user_clicks: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          login_ad_enabled?: boolean
+          login_ad_url?: string | null
+          login_ads_per_day?: number
+          rotation_admin_clicks?: number
+          rotation_admin_url?: string | null
+          rotation_enabled?: boolean
+          rotation_user_clicks?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          login_ad_enabled?: boolean
+          login_ad_url?: string | null
+          login_ads_per_day?: number
+          rotation_admin_clicks?: number
+          rotation_admin_url?: string | null
+          rotation_enabled?: boolean
+          rotation_user_clicks?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_audit_logs: {
         Row: {
           action: string
@@ -896,36 +932,42 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ads_shown_today: number
           avatar_url: string | null
           created_at: string
           email: string | null
           full_name: string | null
           id: string
           is_banned: boolean
+          last_ad_date: string | null
           link_quota: number
           links_used: number
           plan_slug: string
           updated_at: string
         }
         Insert: {
+          ads_shown_today?: number
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id: string
           is_banned?: boolean
+          last_ad_date?: string | null
           link_quota?: number
           links_used?: number
           plan_slug?: string
           updated_at?: string
         }
         Update: {
+          ads_shown_today?: number
           avatar_url?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
           id?: string
           is_banned?: boolean
+          last_ad_date?: string | null
           link_quota?: number
           links_used?: number
           plan_slug?: string
