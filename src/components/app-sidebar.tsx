@@ -17,6 +17,7 @@ import {
   Rocket,
   LayoutGrid,
   Activity,
+  Megaphone,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import {
