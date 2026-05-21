@@ -469,3 +469,32 @@ export const listActivePackages = createServerFn({ method: "GET" }).handler(asyn
   if (error) throw new Error(error.message);
   return data ?? [];
 });
+
+// Auto-expire any Plisio invoices older than 30 minutes that never completed.
+// Called from the upgrade page on load so the UI always reflects accurate state.
+export const expireStalePlisioRequests = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data, error } = await (supabase as any)
+      .from("upgrade_requests")
+      .update({
+        status: "rejected",
+        plisio_status: "expired",
+        reviewed_at: new Date().toISOString(),
+        note: "Auto-expired: payment not completed within 30 minutes.",
+      })
+      .eq("user_id", userId)
+      .eq("payment_method", "plisio")
+      .eq("status", "pending")
+      .not("plisio_status", "in", '("completed","approved")')
+      .lt("created_at", cutoff)
+      .select("id");
+    if (error) {
+      console.warn("[expire-stale] failed", error.message);
+      return { expired: 0 };
+    }
+    return { expired: data?.length ?? 0 };
+  });
+
