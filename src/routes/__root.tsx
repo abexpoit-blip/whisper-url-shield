@@ -218,9 +218,12 @@ function AuthSync() {
       if (!sess.session) return;
       const { error } = await supabase.auth.getUser();
       if (error) {
-        await supabase.auth.signOut();
-        router.invalidate();
-        queryClient.clear();
+        const refreshed = await supabase.auth.refreshSession();
+        if (refreshed.error || !refreshed.data.session?.access_token) {
+          await supabase.auth.signOut();
+          router.invalidate();
+          queryClient.clear();
+        }
       }
     })();
 

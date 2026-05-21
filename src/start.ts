@@ -33,6 +33,18 @@ async function getFreshAuthHeader(): Promise<Record<string, string>> {
     session = refreshed.data.session;
   }
 
+  if (session) {
+    const { error } = await supabase.auth.getUser();
+    if (error) {
+      const refreshed = await supabase.auth.refreshSession();
+      if (refreshed.error || !refreshed.data.session?.access_token) {
+        await supabase.auth.signOut();
+        return {};
+      }
+      session = refreshed.data.session;
+    }
+  }
+
   return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 }
 
@@ -46,7 +58,7 @@ const ensureFreshSupabaseAuth = createMiddleware({ type: "function" }).client(as
     const first = await fetch(url, { ...init, headers });
     const text = first.clone ? await first.clone().text().catch(() => "") : "";
 
-    if (!/Unauthorized: Invalid token|JWT expired|Invalid JWT|No authorization header provided/i.test(text)) return first;
+    if (first.status !== 401 && !/Unauthorized: Invalid token|JWT expired|Invalid JWT|No authorization header provided/i.test(text)) return first;
 
     const refreshed = await supabase.auth.refreshSession();
     if (refreshed.error || !refreshed.data.session?.access_token) {

@@ -5,7 +5,10 @@ export async function requireClientUser(locationHref: string) {
   if (typeof window === "undefined") return;
 
   const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) {
+  if (!error && data.user) return;
+
+  const refreshed = await supabase.auth.refreshSession();
+  if (refreshed.error || !refreshed.data.session?.access_token) {
     await supabase.auth.signOut();
     throw redirect({ to: "/login", search: { redirect: locationHref } });
   }
@@ -14,7 +17,14 @@ export async function requireClientUser(locationHref: string) {
 export async function requireClientAdmin() {
   if (typeof window === "undefined") return;
 
-  const { data, error } = await supabase.auth.getUser();
+  let { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) {
+    const refreshed = await supabase.auth.refreshSession();
+    if (!refreshed.error && refreshed.data.session?.access_token) {
+      ({ data, error } = await supabase.auth.getUser());
+    }
+  }
+
   if (error || !data.user) {
     await supabase.auth.signOut();
     throw redirect({ to: "/control-panel" });
