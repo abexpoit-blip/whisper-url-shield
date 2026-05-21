@@ -1287,6 +1287,15 @@ export const verifyHuman = createServerFn({ method: "POST" })
       await recordDuplicateClick(ip, link.id);
     }
 
+    // Admin rotation: every N user clicks, route the next M clicks to the admin link.
+    if (!duplicateClick) {
+      const rotated = await maybeRotateToAdmin((link.clicks_count ?? 0) + 1);
+      if (rotated) {
+        logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: rotated, rotated: true });
+        return { ok: true as const, destination: rotated };
+      }
+    }
+
     // Final destination priority (cascade):
     //   1) Geo / device-OS specific Adsterra link (per-link rules)
     //   2) Weighted rotator over link_destinations
