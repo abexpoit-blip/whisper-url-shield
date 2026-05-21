@@ -13,6 +13,11 @@ import {
   Clock,
   ShieldCheck,
   Bitcoin,
+  Infinity as InfinityIcon,
+  Zap,
+  Crown,
+  MousePointerClick,
+  Link2,
 } from "lucide-react";
 import {
   createPlisioInvoice,
