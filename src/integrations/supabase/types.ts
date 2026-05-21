@@ -680,6 +680,7 @@ export type Database = {
           features: Json
           id: string
           is_active: boolean
+          is_featured: boolean
           link_limit: number | null
           name: string
           price_monthly: number
@@ -694,6 +695,7 @@ export type Database = {
           features?: Json
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           link_limit?: number | null
           name: string
           price_monthly?: number
@@ -708,6 +710,7 @@ export type Database = {
           features?: Json
           id?: string
           is_active?: boolean
+          is_featured?: boolean
           link_limit?: number | null
           name?: string
           price_monthly?: number
