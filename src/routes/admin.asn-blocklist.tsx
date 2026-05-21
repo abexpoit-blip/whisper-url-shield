@@ -1,4 +1,5 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, ShieldAlert } from "lucide-react";
@@ -33,6 +34,10 @@ type Row = {
 };
 
 function AdminAsnBlocklistPage() {
+  const fetchBlocklist = useServerFn(listFbBlocklist);
+  const addBlocklistEntry = useServerFn(addFbBlocklistEntry);
+  const toggleBlocklistEntry = useServerFn(toggleFbBlocklistEntry);
+  const removeBlocklistEntry = useServerFn(deleteFbBlocklistEntry);
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
   const [asn, setAsn] = useState("");
@@ -43,7 +48,7 @@ function AdminAsnBlocklistPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await listFbBlocklist();
+      const res = await fetchBlocklist();
       setRows(res.rows as Row[]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load");
@@ -65,7 +70,7 @@ function AdminAsnBlocklistPage() {
     }
     setAdding(true);
     try {
-      await addFbBlocklistEntry({
+      await addBlocklistEntry({
         data: {
           asn: asnNum,
           ip_cidr: cidr.trim() || null,
@@ -86,7 +91,7 @@ function AdminAsnBlocklistPage() {
 
   const handleToggle = async (id: string, next: boolean) => {
     try {
-      await toggleFbBlocklistEntry({ data: { id, is_active: next } });
+      await toggleBlocklistEntry({ data: { id, is_active: next } });
       setRows((prev) => prev.map((r) => (r.id === id ? { ...r, is_active: next } : r)));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -96,7 +101,7 @@ function AdminAsnBlocklistPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("এই entry delete করবেন?")) return;
     try {
-      await deleteFbBlocklistEntry({ data: { id } });
+      await removeBlocklistEntry({ data: { id } });
       setRows((prev) => prev.filter((r) => r.id !== id));
       toast.success("Deleted");
     } catch (e) {
