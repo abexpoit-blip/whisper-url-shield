@@ -1,10 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
-import { randomUUID } from "crypto";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { getPlisioApiKey } from "@/lib/plisio-config.server";
 
 const SlugRe = /^[a-z0-9_-]{2,40}$/;
 
@@ -59,9 +56,9 @@ const AssignPlanSchema = z.object({
   package_slug: z.string().trim().regex(SlugRe),
 });
 
-async function logPlisioInvoiceActivity(entry: Record<string, any>) {
+async function logPlisioInvoiceActivity(admin: any, entry: Record<string, any>) {
   try {
-    await (supabaseAdmin as any).from("plisio_activity_log").insert({
+    await admin.from("plisio_activity_log").insert({
       event_type: "invoice_create",
       ...entry,
       metadata: entry.metadata ?? {},
