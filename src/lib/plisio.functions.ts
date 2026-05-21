@@ -18,11 +18,9 @@ async function getVerifiedUserIdFromRequest() {
   if (!token) throw new Error("Unauthorized: Please login again.");
 
   const { createClient } = await import("@supabase/supabase-js");
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_PUBLISHABLE_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false } },
-  );
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user?.id) throw new Error("Unauthorized: Please login again.");
   return data.user.id;
@@ -69,8 +67,11 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
     const { apiKey, source: apiKeySource } = await getPlisioApiKey(supabaseAdmin);
     if (!apiKey) {
       await logActivity(supabaseAdmin, {
-        event_type: "invoice_create", request_id: requestId, outcome: "error",
-        user_id: userId, message: "PLISIO_API_KEY missing",
+        event_type: "invoice_create",
+        request_id: requestId,
+        outcome: "error",
+        user_id: userId,
+        message: "PLISIO_API_KEY missing",
         metadata: { package_slug: data.package_slug },
       });
       throw new Error("Plisio is not configured. Admin must add PLISIO_API_KEY.");
@@ -84,8 +85,11 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
       .single();
     if (pkgErr || !pkg || !pkg.is_active) {
       await logActivity(supabaseAdmin, {
-        event_type: "invoice_create", request_id: requestId, outcome: "error",
-        user_id: userId, message: "Package not available",
+        event_type: "invoice_create",
+        request_id: requestId,
+        outcome: "error",
+        user_id: userId,
+        message: "Package not available",
         metadata: { package_slug: data.package_slug, pkgErr: pkgErr?.message },
       });
       throw new Error("Package not available");
@@ -95,8 +99,11 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
     const baseAmount = Number(isLifetime ? pkg.price_onetime : pkg.price_monthly);
     if (!baseAmount || baseAmount <= 0) {
       await logActivity(supabaseAdmin, {
-        event_type: "invoice_create", request_id: requestId, outcome: "error",
-        user_id: userId, message: "Free plan — no payment required",
+        event_type: "invoice_create",
+        request_id: requestId,
+        outcome: "error",
+        user_id: userId,
+        message: "Free plan — no payment required",
         metadata: { package_slug: data.package_slug },
       });
       throw new Error("This plan is free — no payment required.");
@@ -106,7 +113,10 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
     const totalAmount = Math.round(baseAmount * (1 + FEE_PCT) * 100) / 100;
 
     const { data: profile } = await (supabaseAdmin as any)
-      .from("profiles").select("email").eq("id", userId).single();
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
 
     const orderNumber = `up_${userId.slice(0, 8)}_${Date.now()}`;
     const { data: reqRow, error: insErr } = await (supabaseAdmin as any)
@@ -124,8 +134,12 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
       .single();
     if (insErr) {
       await logActivity(supabaseAdmin, {
-        event_type: "invoice_create", request_id: requestId, correlation_id: orderNumber,
-        outcome: "error", user_id: userId, order_number: orderNumber,
+        event_type: "invoice_create",
+        request_id: requestId,
+        correlation_id: orderNumber,
+        outcome: "error",
+        user_id: userId,
+        order_number: orderNumber,
         message: `DB insert failed: ${insErr.message}`,
         metadata: { package_slug: data.package_slug },
       });
@@ -157,9 +171,15 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
 
     if (!res.ok || payload?.status !== "success" || !payload?.data?.invoice_url) {
       const msg = payload?.data?.message || payload?.message || `Plisio error (${res.status})`;
-      console.warn("Plisio invoice create failed", { status: res.status, message: msg, orderNumber });
-      await (supabaseAdmin as any).from("upgrade_requests")
-        .update({ plisio_status: "error", note: msg }).eq("id", reqRow.id);
+      console.warn("Plisio invoice create failed", {
+        status: res.status,
+        message: msg,
+        orderNumber,
+      });
+      await (supabaseAdmin as any)
+        .from("upgrade_requests")
+        .update({ plisio_status: "error", note: msg })
+        .eq("id", reqRow.id);
 
       await logActivity(supabaseAdmin, {
         event_type: "invoice_create",
@@ -173,8 +193,12 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
         plisio_status: "error",
         message: msg,
         metadata: {
-          package_slug: data.package_slug, base_amount: baseAmount, total_amount: totalAmount,
-          duration_ms: durationMs, plisio_response: payload, api_key_source: apiKeySource,
+          package_slug: data.package_slug,
+          base_amount: baseAmount,
+          total_amount: totalAmount,
+          duration_ms: durationMs,
+          plisio_response: payload,
+          api_key_source: apiKeySource,
         },
       });
       throw new Error(msg);
@@ -183,7 +207,8 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
     const invoiceUrl = String(payload.data.invoice_url);
     const txnId = String(payload.data.txn_id ?? "");
 
-    await (supabaseAdmin as any).from("upgrade_requests")
+    await (supabaseAdmin as any)
+      .from("upgrade_requests")
       .update({ plisio_invoice_id: txnId, plisio_invoice_url: invoiceUrl })
       .eq("id", reqRow.id);
 
@@ -200,8 +225,13 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
       plisio_status: "pending",
       message: `Invoice created (${pkg.name})`,
       metadata: {
-        package_slug: data.package_slug, base_amount: baseAmount, total_amount: totalAmount,
-        fee_pct: FEE_PCT, duration_ms: durationMs, invoice_url: invoiceUrl, api_key_source: apiKeySource,
+        package_slug: data.package_slug,
+        base_amount: baseAmount,
+        total_amount: totalAmount,
+        fee_pct: FEE_PCT,
+        duration_ms: durationMs,
+        invoice_url: invoiceUrl,
+        api_key_source: apiKeySource,
       },
     });
 
