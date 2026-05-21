@@ -28,26 +28,28 @@ async function logActivity(entry: Record<string, any>) {
 async function getUserId(request: Request) {
   const authHeader = request.headers.get("authorization") ?? "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
-  if (!token) throw new Error("Please login again before payment.");
+  console.log("[plisio-create] token in", { hasHeader: !!authHeader, tokenLen: token.length });
+  if (!token) throw new Error("Please login again before payment. (no token)");
 
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+  console.log("[plisio-create] env", {
+    hasUrl: !!url,
+    urlHost: url ? new URL(url).host : null,
+    hasKey: !!key,
+    keyLen: key?.length ?? 0,
+    keyPrefix: key?.slice(0, 10) ?? null,
+  });
   if (!url || !key) throw new Error("Payment auth is not configured on the server.");
 
-  // Verify token via Auth REST API directly (avoids local JWT/ES256 verification issues)
   const res = await fetch(`${url}/auth/v1/user`, {
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { apikey: key, Authorization: `Bearer ${token}` },
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.warn("[plisio-create] auth REST failed", { status: res.status, body: text.slice(0, 200) });
-    throw new Error("Please login again before payment.");
-  }
-  const user = await res.json();
-  if (!user?.id) throw new Error("Please login again before payment.");
+  const text = await res.text();
+  console.log("[plisio-create] auth REST", { status: res.status, bodyPreview: text.slice(0, 250) });
+  if (!res.ok) throw new Error(`Please login again before payment. (auth ${res.status})`);
+  const user = JSON.parse(text);
+  if (!user?.id) throw new Error("Please login again before payment. (no user id)");
   return user.id as string;
 }
 
