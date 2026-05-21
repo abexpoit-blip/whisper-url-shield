@@ -202,11 +202,23 @@ function AnalyticsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-10">
-        <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between gap-4">
+      <header className="border-b border-border/40 bg-gradient-to-b from-card/60 to-card/20 backdrop-blur-xl sticky top-0 z-10 shadow-[0_4px_24px_-12px_oklch(0.78_0.15_220/0.3)]">
+        <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-3">
-            <Shield className="h-6 w-6 text-primary" aria-hidden="true" />
+            <Shield className="h-6 w-6 text-primary drop-shadow-[0_0_8px_oklch(0.78_0.15_220/0.6)]" aria-hidden="true" />
             <h1 className="font-bold tracking-tight text-lg">LinkShield Analytics</h1>
+            <span className="hidden md:inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 ring-1 ring-emerald-500/30">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </span>
+              Live
+            </span>
+            {lastUpdated && (
+              <span className="hidden md:inline text-[11px] text-muted-foreground tabular-nums">
+                Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Select value={String(days)} onValueChange={(v) => setDays(Number(v))}>
