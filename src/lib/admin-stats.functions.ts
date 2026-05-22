@@ -14,10 +14,17 @@ type Click7dRow = {
 };
 
 function createAdminStatsClient() {
-  const url =
-    process.env.SUPABASE_URL || process.env.REDIRECT_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  // IMPORTANT: must point to the SAME Supabase project as auth-middleware.
+  // Do NOT fall back to REDIRECT_SUPABASE_URL — that env var is for the
+  // public redirect worker and may point to a different/empty project,
+  // which would silently return 0 counts on the admin dashboard.
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) throw new Error("Missing backend admin environment for admin dashboard stats");
+  if (!url) throw new Error("Admin stats: SUPABASE_URL is not set on the server");
+  if (!key)
+    throw new Error(
+      "Admin stats: SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY) is not set on the server",
+    );
   return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
