@@ -111,7 +111,7 @@ export async function waitForStoredSession(previousToken?: string | null, timeou
   if (!restorePromise) {
     restorePromise = new Promise<string | null>((resolve) => {
       let settled = false;
-      let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+      let timeoutId: number | null = null;
 
       const finish = (token: string | null) => {
         if (settled) return;
