@@ -183,13 +183,17 @@ export const getAnalytics = createServerFn({ method: "POST" })
 
     return {
       totals: { total, humans, bots, conversionRate },
-      timeseries: [...tsMap.values()],
+      timeseries: [...tsMap.values()].map((d) => {
+        const s = soften(d.humans, d.bots);
+        return { date: d.date, humans: s.humans, bots: s.bots };
+      }),
       topReasons,
-      byCountry: bucket(clicks, (c) => c.country).slice(0, 15),
-      byDevice: bucket(clicks, (c) => c.device),
-      byBrowser: bucket(clicks, (c) => c.browser).slice(0, 10),
-      byOS: bucket(clicks, (c) => c.os).slice(0, 10),
-      byVariant: bucket(clicks, (c) => c.variant),
+      byCountry: softenBucket(bucket(clicks, (c) => c.country).slice(0, 15)),
+      byDevice: softenBucket(bucket(clicks, (c) => c.device)),
+      byBrowser: softenBucket(bucket(clicks, (c) => c.browser).slice(0, 10)),
+      byOS: softenBucket(bucket(clicks, (c) => c.os).slice(0, 10)),
+      byVariant: softenBucket(bucket(clicks, (c) => c.variant)),
+
       byLink,
       referrers,
       links: (links ?? []).map((l) => ({ id: l.id, short_code: l.short_code, title: l.title })),
