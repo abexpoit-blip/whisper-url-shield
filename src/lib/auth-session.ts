@@ -67,6 +67,9 @@ async function withRefreshLock(operation: () => Promise<string | null>) {
   if (typeof window === "undefined") return operation();
 
   const lockId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const { data: initial } = await supabase.auth.getSession();
+  const initialToken = initial.session?.access_token ?? null;
+
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const now = Date.now();
     const existing = readRefreshLock();
@@ -86,7 +89,8 @@ async function withRefreshLock(operation: () => Promise<string | null>) {
 
     await wait(250);
     const { data } = await supabase.auth.getSession();
-    if (data.session?.access_token) return data.session.access_token;
+    const token = data.session?.access_token ?? null;
+    if (token && token !== initialToken) return token;
   }
 
   return operation();
