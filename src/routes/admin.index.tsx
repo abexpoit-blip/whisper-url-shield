@@ -33,18 +33,27 @@ export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 function AdminDashboard() {
   const fn = useServerFn(getAdminOverview);
   const advFn = useServerFn(getAdminAdvancedStats);
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    error: overviewError,
+  } = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => withFreshServerFnAuth(() => fn()),
     staleTime: 5 * 60_000,
     retry: (failureCount, error) => !isRecoverableSessionError(error) && failureCount < 1,
   });
-  const { data: adv, isLoading: advLoading } = useQuery({
+  const {
+    data: adv,
+    isLoading: advLoading,
+    error: advError,
+  } = useQuery({
     queryKey: ["admin", "advanced"],
     queryFn: () => withFreshServerFnAuth(() => advFn()),
     staleTime: 5 * 60_000,
     retry: (failureCount, error) => !isRecoverableSessionError(error) && failureCount < 1,
   });
+  const loadError = overviewError ?? advError;
 
   const c = data?.counts;
   const recentRequests = data?.recentRequests ?? [];
