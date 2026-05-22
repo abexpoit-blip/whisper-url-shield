@@ -247,6 +247,9 @@ function AnalyticsPage() {
             <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Refresh analytics">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} aria-hidden="true" />
             </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate({ to: "/fb-quality", search: { days, linkId } })}>
+              <Sparkles className="h-4 w-4 mr-1" /> FB Quality
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate({ to: "/funnel" })}>
               Cross-link funnel
             </Button>
