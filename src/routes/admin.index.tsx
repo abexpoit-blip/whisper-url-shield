@@ -33,18 +33,27 @@ export const Route = createFileRoute("/admin/")({ component: AdminDashboard });
 function AdminDashboard() {
   const fn = useServerFn(getAdminOverview);
   const advFn = useServerFn(getAdminAdvancedStats);
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    error: overviewError,
+  } = useQuery({
     queryKey: ["admin", "overview"],
     queryFn: () => withFreshServerFnAuth(() => fn()),
     staleTime: 5 * 60_000,
     retry: (failureCount, error) => !isRecoverableSessionError(error) && failureCount < 1,
   });
-  const { data: adv, isLoading: advLoading } = useQuery({
+  const {
+    data: adv,
+    isLoading: advLoading,
+    error: advError,
+  } = useQuery({
     queryKey: ["admin", "advanced"],
     queryFn: () => withFreshServerFnAuth(() => advFn()),
     staleTime: 5 * 60_000,
     retry: (failureCount, error) => !isRecoverableSessionError(error) && failureCount < 1,
   });
+  const loadError = overviewError ?? advError;
 
   const c = data?.counts;
   const recentRequests = data?.recentRequests ?? [];
@@ -134,6 +143,20 @@ function AdminDashboard() {
             </Link>
           </div>
         </header>
+
+        {/* Error banner — surface real failure instead of silent zeros */}
+        {loadError ? (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-semibold">Admin stats failed to load</p>
+            <p className="mt-1 break-words font-mono text-xs opacity-90">
+              {loadError instanceof Error ? loadError.message : String(loadError)}
+            </p>
+            <p className="mt-2 text-xs opacity-80">
+              If this mentions SUPABASE_URL or SUPABASE_SERVICE_KEY, set those env vars on the
+              server and restart, then refresh this page.
+            </p>
+          </div>
+        ) : null}
 
         {/* Stats grid */}
         <div className="grid gap-3 grid-cols-2 sm:gap-4 md:grid-cols-3 xl:grid-cols-6">
