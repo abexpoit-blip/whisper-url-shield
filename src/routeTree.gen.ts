@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InstagramAdsRouteImport } from './routes/instagram-ads'
 import { Route as GoogleAdsRouteImport } from './routes/google-ads'
 import { Route as FunnelRouteImport } from './routes/funnel'
+import { Route as FbQualityRouteImport } from './routes/fb-quality'
 import { Route as FacebookAdsRouteImport } from './routes/facebook-ads'
 import { Route as DomainsRouteImport } from './routes/domains'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -98,6 +99,11 @@ const GoogleAdsRoute = GoogleAdsRouteImport.update({
 const FunnelRoute = FunnelRouteImport.update({
   id: '/funnel',
   path: '/funnel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FbQualityRoute = FbQualityRouteImport.update({
+  id: '/fb-quality',
+  path: '/fb-quality',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FacebookAdsRoute = FacebookAdsRouteImport.update({
@@ -294,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/domains': typeof DomainsRoute
   '/facebook-ads': typeof FacebookAdsRoute
+  '/fb-quality': typeof FbQualityRoute
   '/funnel': typeof FunnelRoute
   '/google-ads': typeof GoogleAdsRoute
   '/instagram-ads': typeof InstagramAdsRoute
@@ -340,6 +347,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/domains': typeof DomainsRoute
   '/facebook-ads': typeof FacebookAdsRoute
+  '/fb-quality': typeof FbQualityRoute
   '/funnel': typeof FunnelRoute
   '/google-ads': typeof GoogleAdsRoute
   '/instagram-ads': typeof InstagramAdsRoute
@@ -388,6 +396,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/domains': typeof DomainsRoute
   '/facebook-ads': typeof FacebookAdsRoute
+  '/fb-quality': typeof FbQualityRoute
   '/funnel': typeof FunnelRoute
   '/google-ads': typeof GoogleAdsRoute
   '/instagram-ads': typeof InstagramAdsRoute
@@ -437,6 +446,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/domains'
     | '/facebook-ads'
+    | '/fb-quality'
     | '/funnel'
     | '/google-ads'
     | '/instagram-ads'
@@ -483,6 +493,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/domains'
     | '/facebook-ads'
+    | '/fb-quality'
     | '/funnel'
     | '/google-ads'
     | '/instagram-ads'
@@ -530,6 +541,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/domains'
     | '/facebook-ads'
+    | '/fb-quality'
     | '/funnel'
     | '/google-ads'
     | '/instagram-ads'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   DomainsRoute: typeof DomainsRoute
   FacebookAdsRoute: typeof FacebookAdsRoute
+  FbQualityRoute: typeof FbQualityRoute
   FunnelRoute: typeof FunnelRoute
   GoogleAdsRoute: typeof GoogleAdsRoute
   InstagramAdsRoute: typeof InstagramAdsRoute
@@ -663,6 +676,13 @@ declare module '@tanstack/react-router' {
       path: '/funnel'
       fullPath: '/funnel'
       preLoaderRoute: typeof FunnelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fb-quality': {
+      id: '/fb-quality'
+      path: '/fb-quality'
+      fullPath: '/fb-quality'
+      preLoaderRoute: typeof FbQualityRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/facebook-ads': {
@@ -981,6 +1001,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   DomainsRoute: DomainsRoute,
   FacebookAdsRoute: FacebookAdsRoute,
+  FbQualityRoute: FbQualityRoute,
   FunnelRoute: FunnelRoute,
   GoogleAdsRoute: GoogleAdsRoute,
   InstagramAdsRoute: InstagramAdsRoute,

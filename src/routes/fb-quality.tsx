@@ -244,7 +244,7 @@ function FbQualityPage() {
                 {(data?.byCountry ?? []).map((c) => (
                   <tr key={c.country} className="border-b border-border/40">
                     <td className="py-2 flex items-center gap-2">
-                      <CountryFlag code={c.country} />
+                      <CountryFlag cc={c.country} />
                       <span>{COUNTRY_NAMES[c.country] || c.country}</span>
                     </td>
                     <td className="py-2 text-right tabular-nums">{c.billable}</td>
