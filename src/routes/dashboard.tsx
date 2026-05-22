@@ -52,6 +52,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { getAnalytics, getCountryDrilldown, getAdRejectDiagnostics } from "@/lib/analytics.functions";
+import { ClickQuotaGate } from "@/components/click-quota-gate";
 import {
   prettyLabel,
   BrandBadge,
@@ -352,6 +353,7 @@ function Dashboard() {
   return (
       <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
+        <ClickQuotaGate />
         <AppSidebar email={email} />
 
         <div className="flex flex-1 flex-col min-w-0">
