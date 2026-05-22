@@ -16,6 +16,7 @@ import {
   getProtectionStats,
 } from "@/lib/admin-protection.functions";
 import { analyzeSignalWeights, applyTunedWeights } from "@/lib/admin-tune.functions";
+import { SmartBackButton } from "@/components/smart-back-button";
 
 export const Route = createFileRoute("/admin/protection")({
   beforeLoad: ({ location }) => requireClientUser(location.href),
@@ -98,11 +99,7 @@ function AdminProtectionPage() {
             <Shield className="h-5 w-5 text-primary" />
             <span className="font-semibold">Bot Protection</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Link>
-          </Button>
+          <SmartBackButton fallbackTo="/dashboard">Dashboard</SmartBackButton>
         </div>
       </header>
 

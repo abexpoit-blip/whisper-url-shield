@@ -23,6 +23,7 @@ import {
   promoteVariant,
   resetRotation,
 } from "@/lib/admin-rotation.functions";
+import { SmartBackButton } from "@/components/smart-back-button";
 
 export const Route = createFileRoute("/admin/rotation")({
   beforeLoad: ({ location }) => requireClientUser(location.href),
@@ -120,11 +121,7 @@ function RotationPage() {
             <Trophy className="h-5 w-5 text-primary" />
             <span className="font-semibold">Variant Leaderboard</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Link>
-          </Button>
+          <SmartBackButton fallbackTo="/dashboard">Dashboard</SmartBackButton>
         </div>
       </header>
 

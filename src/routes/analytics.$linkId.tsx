@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { SmartBackButton } from "@/components/smart-back-button";
 
 const ALLOWED_DAYS = [1, 7, 14, 30, 90] as const;
 const RANGE_TO_DAYS = { day: 1, week: 7, month: 30 } as const;
@@ -170,9 +171,7 @@ function LinkMonitorPage() {
             <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics", search: { days, linkId: "all" } })}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> All links
-            </Button>
+            <SmartBackButton fallbackTo="/analytics" fallbackSearch={{ days, linkId: "all" }}>All links</SmartBackButton>
           </div>
         </div>
       </header>

@@ -33,6 +33,7 @@ import { getFbAdQuality } from "@/lib/analytics.functions";
 import { withFreshServerFnAuth } from "@/lib/supabase-retry";
 import { requireClientUser } from "@/lib/auth-guard";
 import { CountryFlag, COUNTRY_NAMES } from "@/components/brand-icons";
+import { SmartBackButton } from "@/components/smart-back-button";
 
 type Search = { days: number; linkId: string };
 const ALLOWED_DAYS = [1, 7, 14, 30] as const;
@@ -145,9 +146,7 @@ function FbQualityPage() {
             <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Refresh">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics", search: { days, linkId } })}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Analytics
-            </Button>
+            <SmartBackButton fallbackTo="/analytics" fallbackSearch={{ days, linkId }}>Analytics</SmartBackButton>
           </div>
         </div>
       </header>
