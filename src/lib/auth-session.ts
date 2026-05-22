@@ -9,7 +9,7 @@ let refreshPromise: Promise<string | null> | null = null;
 let restorePromise: Promise<string | null> | null = null;
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
-const tokenExpiryMs = (token: string) => {
+export const tokenExpiryMs = (token: string) => {
   try {
     const payload = decodeJwtPart(token.split(".")[1] ?? "");
     return typeof payload.exp === "number" ? payload.exp * 1000 : 0;
@@ -17,6 +17,10 @@ const tokenExpiryMs = (token: string) => {
     return 0;
   }
 };
+
+export function tokenHasTimeLeft(token: string, minMs = 60_000) {
+  return tokenLooksUsable(token) && tokenExpiryMs(token) > Date.now() + minMs;
+}
 
 export function isAuthStorageError(error: unknown) {
   const message = error && typeof error === "object" && "message" in error
@@ -71,7 +75,7 @@ export async function refreshSupabaseSessionOnce() {
     refreshPromise = withRefreshLock(async () => {
       const { data: current } = await supabase.auth.getSession();
       const currentToken = current.session?.access_token ?? null;
-      if (currentToken && tokenLooksUsable(currentToken) && tokenExpiryMs(currentToken) > Date.now() + 60_000) {
+      if (currentToken && tokenHasTimeLeft(currentToken)) {
         return currentToken;
       }
 
