@@ -8,6 +8,15 @@ let refreshPromise: Promise<string | null> | null = null;
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
+function readRefreshLock() {
+  try {
+    return JSON.parse(window.localStorage.getItem(REFRESH_LOCK_KEY) ?? "{}") as { id?: string; expiresAt?: number };
+  } catch {
+    window.localStorage.removeItem(REFRESH_LOCK_KEY);
+    return {};
+  }
+}
+
 function decodeJwtPart(part: string) {
   const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
@@ -54,23 +63,22 @@ export async function refreshSupabaseSessionOnce() {
   return refreshPromise;
 }
 
-async function withRefreshLock<T>(operation: () => Promise<T>) {
+async function withRefreshLock(operation: () => Promise<string | null>) {
   if (typeof window === "undefined") return operation();
 
   const lockId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   for (let attempt = 0; attempt < 24; attempt += 1) {
     const now = Date.now();
-    const raw = window.localStorage.getItem(REFRESH_LOCK_KEY);
-    const existing = raw ? JSON.parse(raw) as { id?: string; expiresAt?: number } : null;
+    const existing = readRefreshLock();
 
     if (!existing?.expiresAt || existing.expiresAt < now) {
       window.localStorage.setItem(REFRESH_LOCK_KEY, JSON.stringify({ id: lockId, expiresAt: now + REFRESH_LOCK_TTL_MS }));
-      const confirmed = JSON.parse(window.localStorage.getItem(REFRESH_LOCK_KEY) ?? "{}") as { id?: string };
+      const confirmed = readRefreshLock();
       if (confirmed.id === lockId) {
         try {
           return await operation();
         } finally {
-          const latest = JSON.parse(window.localStorage.getItem(REFRESH_LOCK_KEY) ?? "{}") as { id?: string };
+          const latest = readRefreshLock();
           if (latest.id === lockId) window.localStorage.removeItem(REFRESH_LOCK_KEY);
         }
       }
@@ -78,7 +86,7 @@ async function withRefreshLock<T>(operation: () => Promise<T>) {
 
     await wait(250);
     const { data } = await supabase.auth.getSession();
-    if (data.session?.access_token) return data.session.access_token as T;
+    if (data.session?.access_token) return data.session.access_token;
   }
 
   return operation();
