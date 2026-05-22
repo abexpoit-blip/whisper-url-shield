@@ -864,6 +864,7 @@ export const resolveLink = createServerFn({ method: "POST" })
         challenge_passed: false,
         ...attrB,
       });
+      await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
       logRedirectEvent("resolve.decision", {
         code: data.code, branch: "blocked", verifyExpected: false,
         score: a.score, reasons: suspicionReasons,
