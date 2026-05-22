@@ -170,9 +170,7 @@ function LinkMonitorPage() {
             <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading}>
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics", search: { days, linkId: "all" } })}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> All links
-            </Button>
+            <SmartBackButton fallbackTo="/analytics" fallbackSearch={{ days, linkId: "all" }}>All links</SmartBackButton>
           </div>
         </div>
       </header>

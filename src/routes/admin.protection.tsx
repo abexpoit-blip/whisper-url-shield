@@ -98,11 +98,7 @@ function AdminProtectionPage() {
             <Shield className="h-5 w-5 text-primary" />
             <span className="font-semibold">Bot Protection</span>
           </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Link>
-          </Button>
+          <SmartBackButton fallbackTo="/dashboard">Dashboard</SmartBackButton>
         </div>
       </header>
 

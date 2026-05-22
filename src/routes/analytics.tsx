@@ -257,9 +257,7 @@ function AnalyticsPage() {
             <Button variant="outline" size="sm" onClick={() => navigate({ to: "/funnel" })}>
               Cross-link funnel
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/dashboard" })}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
-            </Button>
+            <SmartBackButton fallbackTo="/dashboard">Dashboard</SmartBackButton>
           </div>
         </div>
       </header>

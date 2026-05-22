@@ -145,9 +145,7 @@ function FbQualityPage() {
             <Button variant="outline" size="icon" onClick={() => void load()} disabled={loading} aria-label="Refresh">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/analytics", search: { days, linkId } })}>
-              <ArrowLeft className="h-4 w-4 mr-1" /> Analytics
-            </Button>
+            <SmartBackButton fallbackTo="/analytics" fallbackSearch={{ days, linkId }}>Analytics</SmartBackButton>
           </div>
         </div>
       </header>
