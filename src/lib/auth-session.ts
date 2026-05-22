@@ -9,6 +9,14 @@ let refreshPromise: Promise<string | null> | null = null;
 let restorePromise: Promise<string | null> | null = null;
 
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const tokenExpiryMs = (token: string) => {
+  try {
+    const payload = decodeJwtPart(token.split(".")[1] ?? "");
+    return typeof payload.exp === "number" ? payload.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
+};
 
 export function isAuthStorageError(error: unknown) {
   const message = error && typeof error === "object" && "message" in error
@@ -61,6 +69,12 @@ export function safeRedirectPath(locationHref?: string | null) {
 export async function refreshSupabaseSessionOnce() {
   if (!refreshPromise) {
     refreshPromise = withRefreshLock(async () => {
+      const { data: current } = await supabase.auth.getSession();
+      const currentToken = current.session?.access_token ?? null;
+      if (currentToken && tokenLooksUsable(currentToken) && tokenExpiryMs(currentToken) > Date.now() + 60_000) {
+        return currentToken;
+      }
+
       const { data, error } = await supabase.auth.refreshSession();
       if (!error && data.session?.access_token) return data.session.access_token;
       if (error && !isAuthStorageError(error)) return null;
@@ -80,7 +94,7 @@ async function withRefreshLock(operation: () => Promise<string | null>) {
   const { data: initial } = await supabase.auth.getSession();
   const initialToken = initial.session?.access_token ?? null;
 
-  for (let attempt = 0; attempt < 24; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     const now = Date.now();
     const existing = readRefreshLock();
 
