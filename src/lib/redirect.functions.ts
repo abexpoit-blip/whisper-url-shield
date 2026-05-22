@@ -1187,20 +1187,22 @@ export const verifyHuman = createServerFn({ method: "POST" })
     // known scraper. Real users in FB in-app browser share these IP ranges.
     const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
     if (fbHit || refAction === "safe" || refAction === "cloak" || timeAction === "safe" || timeAction === "cloak") {
+      const uaInfo = parseUA(a.ua);
+      const country = getRequestHeader("cf-ipcountry") || null;
       await supabaseAdmin.from("clicks").insert({
         link_id: link.id,
         ip_address: ip || null,
-        country: getRequestHeader("cf-ipcountry") || null,
+        country,
         user_agent: a.ua || null,
         referer: getRequestHeader("referer") || null,
         is_bot: true,
         bot_reason: `verify-silent:${fbHit || ""}${refAction ? `|referer:${refAction}:${refHost}` : ""}${timeAction ? `|time:${timeAction}` : ""}`,
-        device: parseUA(a.ua).device,
-        os: parseUA(a.ua).os,
-        browser: parseUA(a.ua).browser,
+        device: uaInfo.device,
+        os: uaInfo.os,
+        browser: uaInfo.browser,
         variant: data.variant,
         bot_score: Math.min(a.score, 500),
-        fingerprint_hash: await serverFingerprintHash(a, parseUA(a.ua), getRequestHeader("cf-ipcountry") || null),
+        fingerprint_hash: await serverFingerprintHash(a, uaInfo, country),
         signals: phase3Signals({
           source: "verify-silent",
           request: a,
@@ -1211,6 +1213,7 @@ export const verifyHuman = createServerFn({ method: "POST" })
         }),
         challenge_passed: false,
       });
+      await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
       logRedirectEvent("verify.decision", { code: data.code, branch: "verify-silent", score: a.score, fbHit, refAction, timeAction });
       return { ok: false as const, reason: "blocklist" };
     }
