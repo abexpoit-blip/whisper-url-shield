@@ -102,7 +102,7 @@ export const getAdminAdvancedStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context.supabase, context.userId);
-    const supabaseAdmin = createAdminStatsClient();
+    const supabaseAdmin = context.supabase;
 
     const now = new Date();
     const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -153,6 +153,13 @@ export const getAdminAdvancedStats = createServerFn({ method: "GET" })
         .select("id", { count: "exact", head: true })
         .eq("status", "active"),
     ]);
+
+    throwIfError("clicks 7d", clicks7dRes.error);
+    throwIfError("approved requests", approvedReqsRes.error);
+    throwIfError("new users 7d", newUsers7dRes.error);
+    throwIfError("new users 30d", newUsers30dRes.error);
+    throwIfError("banned users", bannedUsersRes.error);
+    throwIfError("active links", activeLinksRes.error);
 
     const rows = (clicks7dRes.data ?? []) as Click7dRow[];
 
@@ -230,10 +237,11 @@ export const getAdminAdvancedStats = createServerFn({ method: "GET" })
       human: number;
     }> = [];
     if (topLinkIds.length) {
-      const { data: linkRows } = await supabaseAdmin
+      const { data: linkRows, error: linkRowsError } = await supabaseAdmin
         .from("links")
         .select("id,short_code,title")
         .in("id", topLinkIds);
+      throwIfError("top links", linkRowsError);
       const byId = new Map((linkRows ?? []).map((l) => [l.id, l] as const));
       topLinks = topLinkIds.map((id) => {
         const l = byId.get(id) || { id, short_code: id.slice(0, 8), title: null };
