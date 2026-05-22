@@ -121,19 +121,21 @@ export const getAnalytics = createServerFn({ method: "POST" })
     const byLink = (links ?? []).map((l) => {
       const a = perLinkAgg.get(l.id) ?? { humans: 0, bots: 0 };
       const lTotal = a.humans + a.bots;
+      const s = soften(a.humans, a.bots);
       return {
         id: l.id,
         short_code: l.short_code,
         title: l.title,
         destination_url: l.destination_url,
         total: lTotal,
-        humans: a.humans,
-        bots: a.bots,
-        conversion: lTotal ? a.humans / lTotal : 0,
+        humans: s.humans,
+        bots: s.bots,
+        conversion: lTotal ? s.humans / lTotal : 0,
       };
     })
       .filter((l) => l.total > 0)
       .sort((a, b) => b.total - a.total);
+
 
     // Sample of recent rows for breakdowns (country/device/browser/os/variant/reasons/referrers).
     // Bumped to 50k rows so high-traffic links show full breakdowns instead of a thin slice.
