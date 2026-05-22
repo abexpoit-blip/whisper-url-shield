@@ -130,19 +130,21 @@ export async function waitForStoredSession(previousToken?: string | null, timeou
     restorePromise = new Promise<string | null>((resolve) => {
       let settled = false;
       let timeoutId: number | null = null;
+      let subscription: { unsubscribe: () => void } | null = null;
 
       const finish = (token: string | null) => {
         if (settled) return;
         settled = true;
         if (timeoutId) window.clearTimeout(timeoutId);
-        subscription.unsubscribe();
+        subscription?.unsubscribe();
         resolve(token);
       };
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
         const token = session?.access_token ?? null;
         if (token && token !== previousToken) finish(token);
       });
+      subscription = data.subscription;
 
       const poll = async () => {
         while (!settled && Date.now() - startedAt < timeoutMs) {
