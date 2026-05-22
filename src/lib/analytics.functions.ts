@@ -530,3 +530,182 @@ export const getAdRejectDiagnostics = createServerFn({ method: "POST" })
 
     return { findings, score, summary: { total, bots, humans } };
   });
+
+// ============================================================
+// FB Ad Quality Score
+// ============================================================
+const FbQualitySchema = z.object({
+  days: z.number().int().min(1).max(30).default(7),
+  linkId: z.string().uuid().optional().nullable(),
+  tzOffsetMinutes: z.number().int().min(-720).max(720).default(0),
+});
+
+type QStat = {
+  total: number;
+  quality: number;
+  duplicate: number;
+  wasted: number;
+  crawler: number;
+};
+
+function classifyClick(c: { is_bot: boolean; bot_reason: string | null }): keyof Omit<QStat, "total"> {
+  const r = c.bot_reason || "";
+  if (
+    r.includes("facebookexternalhit") ||
+    r.includes("fb-ip:") ||
+    r.includes("ua:crawler") ||
+    r.includes("ua:bot") ||
+    r.includes("ua:whatsapp") ||
+    r.includes("ua:googlebot")
+  )
+    return "crawler";
+  if (c.is_bot) return "wasted";
+  if (r.includes("duplicate")) return "duplicate";
+  return "quality";
+}
+
+function qualityScore(s: QStat): number {
+  const billable = s.total - s.crawler;
+  if (!billable) return 0;
+  // Quality clicks count fully; duplicate clicks count half (still real human, lower intent)
+  return Math.round(((s.quality + s.duplicate * 0.5) / billable) * 100);
+}
+
+export const getFbAdQuality = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => FbQualitySchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+    const since = new Date(Date.now() - data.days * 86400000).toISOString();
+
+    let linksQ = supabase.from("links").select("id, short_code, title");
+    if (data.linkId) linksQ = linksQ.eq("id", data.linkId);
+    const { data: links } = await linksQ;
+    const linkIds = (links ?? []).map((l) => l.id);
+
+    if (linkIds.length === 0) {
+      return {
+        summary: { total: 0, quality: 0, duplicate: 0, wasted: 0, crawler: 0, score: 0 },
+        byHour: [],
+        byCountry: [],
+        byDevice: [],
+        recommendations: [],
+        links: [],
+      };
+    }
+
+    const { data: clicksRaw } = await supabase
+      .from("clicks")
+      .select("is_bot,bot_reason,country,device,created_at")
+      .in("link_id", linkIds)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(50000);
+
+    const clicks = (clicksRaw ?? []) as Array<{
+      is_bot: boolean;
+      bot_reason: string | null;
+      country: string | null;
+      device: string | null;
+      created_at: string;
+    }>;
+
+    const newStat = (): QStat => ({ total: 0, quality: 0, duplicate: 0, wasted: 0, crawler: 0 });
+    const overall = newStat();
+    const byHourMap = new Map<number, QStat>();
+    const byCountryMap = new Map<string, QStat>();
+    const byDeviceMap = new Map<string, QStat>();
+
+    // Pre-seed all 24 hours so chart isn't sparse
+    for (let h = 0; h < 24; h++) byHourMap.set(h, newStat());
+
+    const tzMs = data.tzOffsetMinutes * 60_000;
+
+    for (const c of clicks) {
+      const cls = classifyClick(c);
+      const local = new Date(new Date(c.created_at).getTime() + tzMs);
+      const hour = local.getUTCHours();
+      const country = (c.country || "unknown").toUpperCase();
+      const device = c.device || "unknown";
+
+      const buckets: QStat[] = [
+        overall,
+        byHourMap.get(hour)!,
+        byCountryMap.get(country) ?? (() => { const s = newStat(); byCountryMap.set(country, s); return s; })(),
+        byDeviceMap.get(device) ?? (() => { const s = newStat(); byDeviceMap.set(device, s); return s; })(),
+      ];
+      for (const m of buckets) {
+        m.total++;
+        m[cls]++;
+      }
+    }
+
+    const byHour = Array.from(byHourMap.entries())
+      .map(([hour, s]) => ({ hour, ...s, billable: s.total - s.crawler, score: qualityScore(s) }))
+      .sort((a, b) => a.hour - b.hour);
+
+    const byCountry = Array.from(byCountryMap.entries())
+      .map(([country, s]) => ({ country, ...s, billable: s.total - s.crawler, score: qualityScore(s) }))
+      .filter((x) => x.billable >= 3)
+      .sort((a, b) => b.billable - a.billable)
+      .slice(0, 20);
+
+    const byDevice = Array.from(byDeviceMap.entries())
+      .map(([device, s]) => ({ device, ...s, billable: s.total - s.crawler, score: qualityScore(s) }))
+      .sort((a, b) => b.billable - a.billable);
+
+    const summary = { ...overall, score: qualityScore(overall) };
+
+    // Recommendations
+    const recommendations: { type: "good" | "bad" | "info"; text: string }[] = [];
+    const hoursWithVolume = byHour.filter((h) => h.billable >= 10);
+    if (hoursWithVolume.length >= 3) {
+      const top3 = [...hoursWithVolume].sort((a, b) => b.score - a.score).slice(0, 3);
+      const bot3 = [...hoursWithVolume].sort((a, b) => a.score - b.score).slice(0, 3);
+      recommendations.push({
+        type: "good",
+        text: `Best hours to run ads: ${top3.map((h) => `${String(h.hour).padStart(2, "0")}:00 (${h.score}%)`).join(", ")}`,
+      });
+      recommendations.push({
+        type: "bad",
+        text: `Worst hours (pause if possible): ${bot3.map((h) => `${String(h.hour).padStart(2, "0")}:00 (${h.score}%)`).join(", ")}`,
+      });
+    }
+    const topCountries = byCountry.filter((c) => c.country !== "UNKNOWN").slice(0, 3);
+    if (topCountries.length) {
+      recommendations.push({
+        type: "info",
+        text: `Top GEOs by volume: ${topCountries.map((c) => `${c.country} (${c.score}%)`).join(", ")}`,
+      });
+    }
+    const lowQualityCountries = byCountry.filter((c) => c.billable >= 30 && c.score < 40 && c.country !== "UNKNOWN");
+    if (lowQualityCountries.length) {
+      recommendations.push({
+        type: "bad",
+        text: `Low-quality GEOs to exclude: ${lowQualityCountries.slice(0, 5).map((c) => `${c.country} (${c.score}%)`).join(", ")}`,
+      });
+    }
+    const lowQualityDevices = byDevice.filter((d) => d.billable >= 50 && d.score < 40);
+    if (lowQualityDevices.length) {
+      recommendations.push({
+        type: "bad",
+        text: `Low-quality devices: ${lowQualityDevices.map((d) => `${d.device} (${d.score}%)`).join(", ")} — consider tightening placement`,
+      });
+    }
+    if (summary.score >= 70) {
+      recommendations.push({ type: "good", text: `Overall quality ${summary.score}% — campaign delivery is healthy.` });
+    } else if (summary.score >= 50) {
+      recommendations.push({ type: "info", text: `Overall quality ${summary.score}% — room to improve via GEO/hour targeting.` });
+    } else if (summary.total >= 100) {
+      recommendations.push({ type: "bad", text: `Overall quality only ${summary.score}% — FB delivery is sending low-intent traffic. Tighten audience.` });
+    }
+
+    return {
+      summary,
+      byHour,
+      byCountry,
+      byDevice,
+      recommendations,
+      links: (links ?? []).map((l) => ({ id: l.id, short_code: l.short_code, title: l.title })),
+    };
+  });
