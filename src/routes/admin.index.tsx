@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { getAdminOverview, getAdminAdvancedStats } from "@/lib/admin-stats.functions";
 import { isRecoverableSessionError, withFreshServerFnAuth } from "@/lib/supabase-retry";
+import { getVerifiedClientSession } from "@/lib/auth-guard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,8 +40,8 @@ function AdminDashboard() {
 
   useEffect(() => {
     let active = true;
-    supabase.auth.getSession().then(() => {
-      if (active) setAuthReady(true);
+    void getVerifiedClientSession().then((verified) => {
+      if (active) setAuthReady(!!verified?.session.access_token);
     });
     return () => {
       active = false;
