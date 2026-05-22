@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   BarChart3,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import {
   AreaChart,
