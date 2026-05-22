@@ -20,6 +20,7 @@ import {
   Flame,
   Globe,
   ExternalLink,
+  type LucideIcon,
 } from "lucide-react";
 import { getAdminOverview, getAdminAdvancedStats } from "@/lib/admin-stats.functions";
 import { isRecoverableSessionError, withFreshServerFnAuth } from "@/lib/supabase-retry";
@@ -46,6 +47,8 @@ function AdminDashboard() {
   });
 
   const c = data?.counts;
+  const recentRequests = data?.recentRequests ?? [];
+  const recentLinks = data?.recentLinks ?? [];
   const stats = [
     {
       label: "Users",
@@ -350,11 +353,11 @@ function AdminDashboard() {
               </Link>
             </CardHeader>
             <CardContent>
-              {(data?.recentRequests?.length ?? 0) === 0 ? (
+              {recentRequests.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No requests yet.</p>
               ) : (
                 <ul className="divide-y divide-border/60">
-                  {data!.recentRequests.map((r: any) => (
+                  {recentRequests.map((r) => (
                     <li key={r.id} className="flex items-center justify-between gap-3 py-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 text-sm font-medium">
@@ -393,11 +396,11 @@ function AdminDashboard() {
             <CardDescription>Newest short links created across all users</CardDescription>
           </CardHeader>
           <CardContent>
-            {(data?.recentLinks?.length ?? 0) === 0 ? (
+            {recentLinks.length === 0 ? (
               <p className="text-sm text-muted-foreground">No links yet.</p>
             ) : (
               <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                {data!.recentLinks.map((l: any) => (
+                {recentLinks.map((l) => (
                   <div
                     key={l.id}
                     className="rounded-xl border border-border/60 bg-card-gradient p-4 transition hover:border-primary/40"
@@ -438,7 +441,7 @@ function KpiCard({
   label: string;
   value: string | number;
   sub?: string;
-  icon: any;
+  icon: LucideIcon;
   tone: string;
   loading?: boolean;
 }) {
