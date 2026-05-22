@@ -98,6 +98,7 @@ export const getAnalytics = createServerFn({ method: "POST" })
     }
 
     // Per-link conversion (totals from aggregate; sorted by total desc)
+    // Hide links with 0 clicks in the selected range to avoid ghost/stale rows.
     const byLink = (links ?? []).map((l) => {
       const a = perLinkAgg.get(l.id) ?? { humans: 0, bots: 0 };
       const lTotal = a.humans + a.bots;
@@ -111,7 +112,9 @@ export const getAnalytics = createServerFn({ method: "POST" })
         bots: a.bots,
         conversion: lTotal ? a.humans / lTotal : 0,
       };
-    }).sort((a, b) => b.total - a.total);
+    })
+      .filter((l) => l.total > 0)
+      .sort((a, b) => b.total - a.total);
 
     // Sample of recent rows for breakdowns (country/device/browser/os/variant/reasons/referrers).
     // These are best-effort top-N from up to 10k recent rows — totals above are still accurate.
