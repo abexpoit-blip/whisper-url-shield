@@ -7,9 +7,14 @@ import { parseUA } from "@/lib/ua";
 import { pickVariant, type Variant, type VariantSection } from "@/lib/variants";
 
 function createRedirectAdminClient() {
-  const url = process.env.REDIRECT_SUPABASE_URL || process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "http://127.0.0.1:8000";
+  const url =
+    process.env.REDIRECT_SUPABASE_URL ||
+    process.env.SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    "http://127.0.0.1:8000";
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  if (!key) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY for redirect lookup");
+  if (!key)
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY/SUPABASE_SERVICE_KEY for redirect lookup");
   return createClient<Database>(url, key, {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
@@ -44,7 +49,9 @@ function extractAttribution(urlLike: string | null | undefined) {
     out.utm_campaign = g("utm_campaign");
     out.utm_term = g("utm_term");
     out.utm_content = g("utm_content");
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return out;
 }
 
@@ -161,21 +168,33 @@ async function serverFingerprintHash(
     deviceMemory: 0,
     screen: { w: 0, h: 0, cd: 0 },
     tz: "",
-    canvasHash: [country || "", uaInfo.device, uaInfo.os, uaInfo.browser, request.secChUaMobile].join("|"),
+    canvasHash: [
+      country || "",
+      uaInfo.device,
+      uaInfo.os,
+      uaInfo.browser,
+      request.secChUaMobile,
+    ].join("|"),
   });
 }
 
-
 function refererHost(ref: string | null | undefined) {
   if (!ref) return null;
-  try { return new URL(ref).hostname.replace(/^www\./, "").slice(0, 120); }
-  catch { return null; }
+  try {
+    return new URL(ref).hostname.replace(/^www\./, "").slice(0, 120);
+  } catch {
+    return null;
+  }
 }
 
 function attributionFromRequestUrl() {
   // The request URL on resolveLink is the /r/$code?utm_... URL during SSR
   let urlStr: string | null = null;
-  try { urlStr = getRequestUrl().toString(); } catch { /* ignore */ }
+  try {
+    urlStr = getRequestUrl().toString();
+  } catch {
+    /* ignore */
+  }
   const attr = extractAttribution(urlStr);
   const ref = getRequestHeader("referer") || null;
   attr.referer_host = refererHost(ref);
@@ -194,23 +213,72 @@ function attributionFromReferer() {
 // HARD bot signatures — near-certain non-human. Silent-cloak immediately.
 // Keep this list TIGHT. Anything ambiguous goes in SOFT_BOT_UA_PATTERNS.
 const HARD_BOT_UA_PATTERNS = [
-  "googlebot", "bingbot", "yandexbot", "duckduckbot", "baiduspider", "applebot",
-  "ahrefsbot", "semrushbot", "mj12bot", "dotbot", "petalbot", "facebot",
-  "facebookexternalhit", "facebookcatalog", "meta-externalagent", "meta-externalfetcher",
-  "twitterbot", "linkedinbot", "whatsapp", "telegrambot", "slackbot", "discordbot",
-  "embedly", "pinterestbot", "redditbot", "tiktokbot", "bytespider",
-  "headlesschrome", "phantomjs", "selenium", "puppeteer", "playwright",
-  "chrome-lighthouse", "pagespeed", "gtmetrix", "pingdom", "uptimerobot",
-  "curl/", "wget/", "python-requests", "python-urllib", "scrapy", "go-http-client",
-  "java/", "okhttp/", "ruby/", "axios/", "node-fetch", "got/", "libwww-perl",
+  "googlebot",
+  "bingbot",
+  "yandexbot",
+  "duckduckbot",
+  "baiduspider",
+  "applebot",
+  "ahrefsbot",
+  "semrushbot",
+  "mj12bot",
+  "dotbot",
+  "petalbot",
+  "facebot",
+  "facebookexternalhit",
+  "facebookcatalog",
+  "meta-externalagent",
+  "meta-externalfetcher",
+  "twitterbot",
+  "linkedinbot",
+  "whatsapp",
+  "telegrambot",
+  "slackbot",
+  "discordbot",
+  "embedly",
+  "pinterestbot",
+  "redditbot",
+  "tiktokbot",
+  "bytespider",
+  "headlesschrome",
+  "phantomjs",
+  "selenium",
+  "puppeteer",
+  "playwright",
+  "chrome-lighthouse",
+  "pagespeed",
+  "gtmetrix",
+  "pingdom",
+  "uptimerobot",
+  "curl/",
+  "wget/",
+  "python-requests",
+  "python-urllib",
+  "scrapy",
+  "go-http-client",
+  "java/",
+  "okhttp/",
+  "ruby/",
+  "axios/",
+  "node-fetch",
+  "got/",
+  "libwww-perl",
 ];
 
 // SOFT bot signatures — suspicious but might be a real user with an unusual UA.
 // Adds score only (no silent cloak). User goes through prelander where JS
 // fingerprinting (canvas / webdriver / interaction) makes the final call.
 const SOFT_BOT_UA_PATTERNS = [
-  "bot", "crawler", "spider", "scraper", "preview", "validator", "monitor",
-  "checker", "fetcher", "scan",
+  "bot",
+  "crawler",
+  "spider",
+  "scraper",
+  "preview",
+  "validator",
+  "monitor",
+  "checker",
+  "fetcher",
+  "scan",
 ];
 
 function analyzeRequest() {
@@ -236,38 +304,77 @@ function analyzeRequest() {
   // paid FB traffic on a real mobile user with weird headers.
   let hardBot = false;
 
-  if (!ua) { score += 50; reasons.push("no-ua"); hardBot = true; }
+  if (!ua) {
+    score += 50;
+    reasons.push("no-ua");
+    hardBot = true;
+  }
   // HARD patterns → definite bot, silent cloak
   for (const p of HARD_BOT_UA_PATTERNS) {
-    if (ua.includes(p)) { score += 80; reasons.push(`hardbot:${p}`); hardBot = true; break; }
+    if (ua.includes(p)) {
+      score += 80;
+      reasons.push(`hardbot:${p}`);
+      hardBot = true;
+      break;
+    }
   }
   // SOFT patterns → suspicion only, prelander will verify with JS
   if (!hardBot) {
     for (const p of SOFT_BOT_UA_PATTERNS) {
-      if (ua.includes(p)) { score += 25; reasons.push(`soft:${p}`); break; }
+      if (ua.includes(p)) {
+        score += 25;
+        reasons.push(`soft:${p}`);
+        break;
+      }
     }
   }
 
-  if (!accept.includes("text/html")) { score += 25; reasons.push("no-html-accept"); }
-  if (!acceptLang) { score += 20; reasons.push("no-accept-lang"); }
+  if (!accept.includes("text/html")) {
+    score += 25;
+    reasons.push("no-html-accept");
+  }
+  if (!acceptLang) {
+    score += 20;
+    reasons.push("no-accept-lang");
+  }
   if (!acceptEnc.includes("gzip") && !acceptEnc.includes("br")) {
-    score += 15; reasons.push("no-compression");
+    score += 15;
+    reasons.push("no-compression");
   }
 
   const looksModern = /chrome\/|firefox\/|safari\//.test(ua);
-  if (looksModern && !secFetchMode) { score += 15; reasons.push("no-sec-fetch"); }
-  if (looksModern && !secFetchDest) { score += 10; reasons.push("no-sec-fetch-dest"); }
-  if (ua.includes("chrome/") && !secChUa) { score += 20; reasons.push("chrome-no-ch-ua"); }
+  if (looksModern && !secFetchMode) {
+    score += 15;
+    reasons.push("no-sec-fetch");
+  }
+  if (looksModern && !secFetchDest) {
+    score += 10;
+    reasons.push("no-sec-fetch-dest");
+  }
+  if (ua.includes("chrome/") && !secChUa) {
+    score += 20;
+    reasons.push("chrome-no-ch-ua");
+  }
 
-  if (cfVerifiedBot === "true") { score += 100; reasons.push("cf-verified-bot"); hardBot = true; }
+  if (cfVerifiedBot === "true") {
+    score += 100;
+    reasons.push("cf-verified-bot");
+    hardBot = true;
+  }
   if (cfBotMgmt) {
     const s = parseInt(cfBotMgmt, 10);
-    if (!isNaN(s) && s < 30) { score += 40; reasons.push(`cf-bot-score:${s}`); }
+    if (!isNaN(s) && s < 30) {
+      score += 40;
+      reasons.push(`cf-bot-score:${s}`);
+    }
     if (!isNaN(s) && s < 5) hardBot = true; // CF extremely confident
   }
   if (cfThreatScore) {
     const s = parseInt(cfThreatScore, 10);
-    if (!isNaN(s) && s > 30) { score += 30; reasons.push(`cf-threat:${s}`); }
+    if (!isNaN(s) && s > 30) {
+      score += 30;
+      reasons.push(`cf-threat:${s}`);
+    }
   }
 
   if (!referer && secFetchSite === "none" && score === 0) {
@@ -275,9 +382,15 @@ function analyzeRequest() {
   }
 
   return {
-    ua, isBot: score >= 50, hardBot, score,
+    ua,
+    isBot: score >= 50,
+    hardBot,
+    score,
     reasons: reasons.join(","),
-    acceptLang, secChUa, secChUaMobile, dnt,
+    acceptLang,
+    secChUa,
+    secChUaMobile,
+    dnt,
   };
 }
 
@@ -287,14 +400,26 @@ const SectionSchema = z.object({
 });
 
 function rowToVariant(r: {
-  id: string; slug: string; category: string; title: string; subtitle: string;
-  intro: string; sections: unknown; outro: string;
+  id: string;
+  slug: string;
+  category: string;
+  title: string;
+  subtitle: string;
+  intro: string;
+  sections: unknown;
+  outro: string;
 }): Variant {
   const parsed = z.array(SectionSchema).safeParse(r.sections);
   const sections: VariantSection[] = parsed.success ? parsed.data : [];
   return {
-    id: r.id, slug: r.slug, category: r.category, title: r.title,
-    subtitle: r.subtitle, intro: r.intro, sections, outro: r.outro,
+    id: r.id,
+    slug: r.slug,
+    category: r.category,
+    title: r.title,
+    subtitle: r.subtitle,
+    intro: r.intro,
+    sections,
+    outro: r.outro,
   };
 }
 
@@ -316,8 +441,7 @@ const DEFAULT_PROTECTION: ProtectionConfig = {
   ip_rate_limit_window_sec: 60,
   suspicious_action: "safe_page",
   block_threshold_score: 60,
-  safe_page_message:
-    "This article is temporarily unavailable. Please check back later.",
+  safe_page_message: "This article is temporarily unavailable. Please check back later.",
   signal_weights: {},
   soft_reasons: [],
   inapp_browser_relief: true,
@@ -326,14 +450,17 @@ const DEFAULT_PROTECTION: ProtectionConfig = {
 async function loadProtection(): Promise<ProtectionConfig> {
   const { data } = await supabaseAdmin
     .from("bot_protection_config")
-    .select("ip_rate_limit_per_min,ip_rate_limit_window_sec,suspicious_action,block_threshold_score,safe_page_message,signal_weights,soft_reasons,inapp_browser_relief")
+    .select(
+      "ip_rate_limit_per_min,ip_rate_limit_window_sec,suspicious_action,block_threshold_score,safe_page_message,signal_weights,soft_reasons,inapp_browser_relief",
+    )
     .eq("id", 1)
     .maybeSingle();
   if (!data) return DEFAULT_PROTECTION;
   return {
     ...DEFAULT_PROTECTION,
     ...data,
-    suspicious_action: (data.suspicious_action as ProtectionConfig["suspicious_action"]) ?? "safe_page",
+    suspicious_action:
+      (data.suspicious_action as ProtectionConfig["suspicious_action"]) ?? "safe_page",
     signal_weights: (data.signal_weights as Record<string, number> | null) ?? {},
     soft_reasons: (data.soft_reasons as string[] | null) ?? [],
     inapp_browser_relief: data.inapp_browser_relief ?? true,
@@ -353,13 +480,17 @@ const DEFAULT_REASON_WEIGHTS: Record<string, number> = {
   "cf-verified-bot": 100,
   "cf-bot-score": 40,
   "cf-threat": 30,
-  "ua": 60, // matches "ua:<pattern>" prefix
+  ua: 60, // matches "ua:<pattern>" prefix
 };
 
 // FB/IG/Line in-app browsers strip many of these headers — heavily penalize = false positives.
 const INAPP_SOFT_BASES = new Set([
-  "no-html-accept", "no-accept-lang", "no-compression",
-  "no-sec-fetch", "no-sec-fetch-dest", "chrome-no-ch-ua",
+  "no-html-accept",
+  "no-accept-lang",
+  "no-compression",
+  "no-sec-fetch",
+  "no-sec-fetch-dest",
+  "chrome-no-ch-ua",
 ]);
 
 const INAPP_UA_RE = /fbav|fban|fbios|instagram|line\/|fb_iab|; wv\)|\(.*; wv\)/i;
@@ -371,7 +502,12 @@ function isInAppBrowserUA(ua: string): boolean {
 function applyConfigAdjustments(
   a: ReturnType<typeof analyzeRequest>,
   cfg: ProtectionConfig,
-): { score: number; hardBot: boolean; inapp: boolean; adjustments: Array<{ reason: string; delta: number; rule: string }> } {
+): {
+  score: number;
+  hardBot: boolean;
+  inapp: boolean;
+  adjustments: Array<{ reason: string; delta: number; rule: string }>;
+} {
   const reasons = a.reasons ? a.reasons.split(",").filter(Boolean) : [];
   let score = a.score;
   let hardBot = a.hardBot;
@@ -429,7 +565,6 @@ function logRedirectEvent(evt: string, payload: Record<string, unknown>) {
   }
 }
 
-
 async function ipExceedsRate(ip: string, cfg: ProtectionConfig): Promise<number> {
   if (!ip) return 0;
   const since = new Date(Date.now() - cfg.ip_rate_limit_window_sec * 1000).toISOString();
@@ -439,7 +574,7 @@ async function ipExceedsRate(ip: string, cfg: ProtectionConfig): Promise<number>
     .eq("ip_address", ip)
     .gte("created_at", since);
   const perMinEquivalent = ((count ?? 0) * 60) / Math.max(1, cfg.ip_rate_limit_window_sec);
-  return perMinEquivalent > cfg.ip_rate_limit_per_min ? count ?? 0 : 0;
+  return perMinEquivalent > cfg.ip_rate_limit_per_min ? (count ?? 0) : 0;
 }
 
 // ---------- Targeting (geo / device / language / time) ----------
@@ -447,7 +582,7 @@ async function ipExceedsRate(ip: string, cfg: ProtectionConfig): Promise<number>
 type Targeting = {
   allowed_countries?: string[];
   blocked_countries?: string[];
-  allowed_devices?: string[];   // "desktop" | "mobile" | "tablet"
+  allowed_devices?: string[]; // "desktop" | "mobile" | "tablet"
   blocked_devices?: string[];
   allowed_languages?: string[]; // e.g. ["en","bn"]
   blocked_languages?: string[];
@@ -470,28 +605,56 @@ function checkTargeting(
   const device = (ctx.device || "").toLowerCase();
   const lang = (ctx.lang || "").toLowerCase();
 
-  if (t.allowed_countries?.length && country && !t.allowed_countries.map(c => c.toUpperCase()).includes(country)) {
+  if (
+    t.allowed_countries?.length &&
+    country &&
+    !t.allowed_countries.map((c) => c.toUpperCase()).includes(country)
+  ) {
     return { blocked: true, reason: `geo-not-allowed:${country}` };
   }
-  if (t.blocked_countries?.length && country && t.blocked_countries.map(c => c.toUpperCase()).includes(country)) {
+  if (
+    t.blocked_countries?.length &&
+    country &&
+    t.blocked_countries.map((c) => c.toUpperCase()).includes(country)
+  ) {
     return { blocked: true, reason: `geo-blocked:${country}` };
   }
-  if (t.allowed_devices?.length && device && !t.allowed_devices.map(d => d.toLowerCase()).includes(device)) {
+  if (
+    t.allowed_devices?.length &&
+    device &&
+    !t.allowed_devices.map((d) => d.toLowerCase()).includes(device)
+  ) {
     return { blocked: true, reason: `device-not-allowed:${device}` };
   }
-  if (t.blocked_devices?.length && device && t.blocked_devices.map(d => d.toLowerCase()).includes(device)) {
+  if (
+    t.blocked_devices?.length &&
+    device &&
+    t.blocked_devices.map((d) => d.toLowerCase()).includes(device)
+  ) {
     return { blocked: true, reason: `device-blocked:${device}` };
   }
-  if (t.allowed_languages?.length && lang && !t.allowed_languages.map(l => l.toLowerCase()).includes(lang)) {
+  if (
+    t.allowed_languages?.length &&
+    lang &&
+    !t.allowed_languages.map((l) => l.toLowerCase()).includes(lang)
+  ) {
     return { blocked: true, reason: `lang-not-allowed:${lang}` };
   }
-  if (t.blocked_languages?.length && lang && t.blocked_languages.map(l => l.toLowerCase()).includes(lang)) {
+  if (
+    t.blocked_languages?.length &&
+    lang &&
+    t.blocked_languages.map((l) => l.toLowerCase()).includes(lang)
+  ) {
     return { blocked: true, reason: `lang-blocked:${lang}` };
   }
-  if (t.allowed_hours && typeof t.allowed_hours.start === "number" && typeof t.allowed_hours.end === "number") {
+  if (
+    t.allowed_hours &&
+    typeof t.allowed_hours.start === "number" &&
+    typeof t.allowed_hours.end === "number"
+  ) {
     const h = new Date().getUTCHours();
     const { start, end } = t.allowed_hours;
-    const inWindow = start <= end ? (h >= start && h <= end) : (h >= start || h <= end);
+    const inWindow = start <= end ? h >= start && h <= end : h >= start || h <= end;
     if (!inWindow) return { blocked: true, reason: `hour-blocked:${h}UTC` };
   }
   return { blocked: false, reason: "" };
@@ -501,7 +664,7 @@ function pickWeightedDestination(
   rows: { url: string; weight: number; is_active: boolean }[],
   fallback: string,
 ): string {
-  const active = rows.filter(r => r.is_active && r.weight > 0 && r.url);
+  const active = rows.filter((r) => r.is_active && r.weight > 0 && r.url);
   if (active.length === 0) return fallback;
   const total = active.reduce((s, r) => s + r.weight, 0);
   let pick = Math.random() * total;
@@ -521,7 +684,7 @@ function ipv4ToInt(ip: string): number | null {
   for (const p of parts) {
     const v = parseInt(p, 10);
     if (isNaN(v) || v < 0 || v > 255) return null;
-    n = (n * 256) + v;
+    n = n * 256 + v;
   }
   return n;
 }
@@ -624,11 +787,13 @@ async function pickGeoDeviceDestination(
     if (data) {
       const osLower = (os || "").toLowerCase();
       // Prefer exact device+os match, then device+any, then any+any
-      const exact = data.find(r => r.device === device.toLowerCase() && r.os.toLowerCase() === osLower);
+      const exact = data.find(
+        (r) => r.device === device.toLowerCase() && r.os.toLowerCase() === osLower,
+      );
       if (exact) return exact.adsterra_url;
-      const devAny = data.find(r => r.device === device.toLowerCase() && r.os === "any");
+      const devAny = data.find((r) => r.device === device.toLowerCase() && r.os === "any");
       if (devAny) return devAny.adsterra_url;
-      const anyAny = data.find(r => r.device === "any" && r.os === "any");
+      const anyAny = data.find((r) => r.device === "any" && r.os === "any");
       if (anyAny) return anyAny.adsterra_url;
     }
   }
@@ -636,7 +801,10 @@ async function pickGeoDeviceDestination(
 }
 
 // ───────────────────────────── Admin rotation (every N user clicks → M admin clicks) ─────────────────────────────
-let _rotCfgCache: { at: number; cfg: { enabled: boolean; url: string | null; user: number; admin: number } } | null = null;
+let _rotCfgCache: {
+  at: number;
+  cfg: { enabled: boolean; url: string | null; user: number; admin: number };
+} | null = null;
 async function loadRotationConfig() {
   if (_rotCfgCache && Date.now() - _rotCfgCache.at < 30_000) return _rotCfgCache.cfg;
   const { data } = await supabaseAdmin
@@ -655,16 +823,16 @@ async function loadRotationConfig() {
 }
 
 /** Returns admin rotation URL if this click should go to admin, else null. */
-async function maybeRotateToAdmin(currentClickCount: number | null | undefined): Promise<string | null> {
+async function maybeRotateToAdmin(
+  currentClickCount: number | null | undefined,
+): Promise<string | null> {
   const cfg = await loadRotationConfig();
   if (!cfg.enabled || !cfg.url || cfg.admin <= 0) return null;
   const total = cfg.user + cfg.admin;
-  const click = Math.max(1, (currentClickCount ?? 0));
+  const click = Math.max(1, currentClickCount ?? 0);
   const pos = ((click - 1) % total) + 1; // 1..total
   return pos > cfg.user ? cfg.url : null;
 }
-
-
 
 async function isDuplicateClick(
   ip: string,
@@ -693,13 +861,13 @@ async function recordDuplicateClick(ip: string, linkId: string): Promise<void> {
     .eq("link_id", linkId)
     .maybeSingle();
   if (existing) {
-    await supabaseAdmin.from("duplicate_clicks")
+    await supabaseAdmin
+      .from("duplicate_clicks")
       .update({ last_seen: new Date().toISOString(), hit_count: existing.hit_count + 1 })
       .eq("ip", ip)
       .eq("link_id", linkId);
   } else {
-    await supabaseAdmin.from("duplicate_clicks")
-      .insert({ ip, link_id: linkId, hit_count: 1 });
+    await supabaseAdmin.from("duplicate_clicks").insert({ ip, link_id: linkId, hit_count: 1 });
   }
 }
 
@@ -753,10 +921,7 @@ export const resolveLink = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const aRaw = analyzeRequest();
-    const ip =
-      getRequestHeader("cf-connecting-ip") ||
-      getRequestHeader("x-forwarded-for") ||
-      "";
+    const ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for") || "";
     const country = getRequestHeader("cf-ipcountry") || null;
     const referer = getRequestHeader("referer") || "";
 
@@ -765,7 +930,9 @@ export const resolveLink = createServerFn({ method: "POST" })
       loadProtection(),
       supabaseAdmin
         .from("links")
-        .select("id, user_id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color, clicks_count")
+        .select(
+          "id, user_id, status, targeting, destination_url, duplicate_protection, duplicate_window_minutes, brand_logo_url, brand_name, brand_tagline, brand_color, clicks_count",
+        )
         .eq("short_code", data.code)
         .maybeSingle(),
     ]);
@@ -791,7 +958,8 @@ export const resolveLink = createServerFn({ method: "POST" })
 
     logRedirectEvent("resolve.start", {
       code: data.code,
-      ip, country,
+      ip,
+      country,
       ua: aRaw.ua.slice(0, 120),
       rawScore: aRaw.score,
       adjustedScore: adj.score,
@@ -800,7 +968,6 @@ export const resolveLink = createServerFn({ method: "POST" })
       adjustments: adj.adjustments,
       reasons: aRaw.reasons,
     });
-
 
     // Targeting check (geo/device/lang/time)
     const uaInfoT = parseUA(a.ua);
@@ -829,7 +996,9 @@ export const resolveLink = createServerFn({ method: "POST" })
       a.reasons,
       rateLimited ? `rate:${rateHits}/${cfg.ip_rate_limit_window_sec}s` : "",
       targetingCheck.blocked ? `target:${targetingCheck.reason}` : "",
-    ].filter(Boolean).join(",");
+    ]
+      .filter(Boolean)
+      .join(",");
 
     // Targeting block: also serve silent prelander instead of giving away that we filtered
     const effectiveAction = targetingCheck.blocked ? "safe_page" : cfg.suspicious_action;
@@ -851,7 +1020,10 @@ export const resolveLink = createServerFn({ method: "POST" })
         os: uaInfoB.os,
         browser: uaInfoB.browser,
         variant: null,
-        bot_score: Math.min(a.score + (rateLimited ? 60 : 0) + (targetingCheck.blocked ? 100 : 0), 500),
+        bot_score: Math.min(
+          a.score + (rateLimited ? 60 : 0) + (targetingCheck.blocked ? 100 : 0),
+          500,
+        ),
         fingerprint_hash: serverFpHashB,
         signals: phase3Signals({
           source: "blocked",
@@ -866,8 +1038,11 @@ export const resolveLink = createServerFn({ method: "POST" })
       });
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
       logRedirectEvent("resolve.decision", {
-        code: data.code, branch: "blocked", verifyExpected: false,
-        score: a.score, reasons: suspicionReasons,
+        code: data.code,
+        branch: "blocked",
+        verifyExpected: false,
+        score: a.score,
+        reasons: suspicionReasons,
       });
       return {
         found: true as const,
@@ -876,7 +1051,6 @@ export const resolveLink = createServerFn({ method: "POST" })
         message: cfg.safe_page_message,
       };
     }
-
 
     const uaInfo = parseUA(a.ua);
     const attr = attributionFromRequestUrl();
@@ -892,7 +1066,9 @@ export const resolveLink = createServerFn({ method: "POST" })
       fbHit || "",
       refAction ? `referer:${refAction}:${refHost}` : "",
       timeAction ? `time:${timeAction}` : "",
-    ].filter(Boolean).join(",");
+    ]
+      .filter(Boolean)
+      .join(",");
 
     // requireVerify: traffic looks plausibly human but has at least one
     // suspicion signal (mid-score). Route through the prelander so the client
@@ -917,7 +1093,9 @@ export const resolveLink = createServerFn({ method: "POST" })
         user_agent: a.ua || null,
         referer: referer || null,
         is_bot: false,
-        bot_reason: ["direct", duplicateClick ? "duplicate" : "", defenseReasons].filter(Boolean).join(":"),
+        bot_reason: ["direct", duplicateClick ? "duplicate" : "", defenseReasons]
+          .filter(Boolean)
+          .join(":"),
         device: uaInfo.device,
         os: uaInfo.os,
         browser: uaInfo.browser,
@@ -943,8 +1121,21 @@ export const resolveLink = createServerFn({ method: "POST" })
       if (!duplicateClick) {
         const rotated = await maybeRotateToAdmin((link.clicks_count ?? 0) + 1);
         if (rotated) {
-          logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: rotated, duplicateClick, rotated: true });
-          return { found: true as const, blocked: false as const, direct: true as const, redirectTo: rotated };
+          logRedirectEvent("resolve.decision", {
+            code: data.code,
+            branch: "direct",
+            verifyExpected: false,
+            score: a.score,
+            destination: rotated,
+            duplicateClick,
+            rotated: true,
+          });
+          return {
+            found: true as const,
+            blocked: false as const,
+            direct: true as const,
+            redirectTo: rotated,
+          };
         }
       }
 
@@ -953,25 +1144,61 @@ export const resolveLink = createServerFn({ method: "POST" })
       if (!duplicateClick) {
         const fallback = await enforceUserQuota(link.user_id);
         if (fallback) {
-          logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: fallback, duplicateClick, overQuota: true });
-          return { found: true as const, blocked: false as const, direct: true as const, redirectTo: fallback };
+          logRedirectEvent("resolve.decision", {
+            code: data.code,
+            branch: "direct",
+            verifyExpected: false,
+            score: a.score,
+            destination: fallback,
+            duplicateClick,
+            overQuota: true,
+          });
+          return {
+            found: true as const,
+            blocked: false as const,
+            direct: true as const,
+            redirectTo: fallback,
+          };
         }
       }
 
       const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo.device, uaInfo.os);
       if (geoDev) {
-        logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination: geoDev, duplicateClick });
-        return { found: true as const, blocked: false as const, direct: true as const, redirectTo: geoDev };
+        logRedirectEvent("resolve.decision", {
+          code: data.code,
+          branch: "direct",
+          verifyExpected: false,
+          score: a.score,
+          destination: geoDev,
+          duplicateClick,
+        });
+        return {
+          found: true as const,
+          blocked: false as const,
+          direct: true as const,
+          redirectTo: geoDev,
+        };
       }
       const { data: destRows } = await supabaseAdmin
         .from("link_destinations")
         .select("url,weight,is_active")
         .eq("link_id", link.id);
       const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
-      logRedirectEvent("resolve.decision", { code: data.code, branch: "direct", verifyExpected: false, score: a.score, destination, duplicateClick });
-      return { found: true as const, blocked: false as const, direct: true as const, redirectTo: destination };
+      logRedirectEvent("resolve.decision", {
+        code: data.code,
+        branch: "direct",
+        verifyExpected: false,
+        score: a.score,
+        destination,
+        duplicateClick,
+      });
+      return {
+        found: true as const,
+        blocked: false as const,
+        direct: true as const,
+        redirectTo: destination,
+      };
     }
-
 
     // NOTE: silent bot path renders a real prelander variant, but never
     // auto-triggers verifyHuman and never reveals the real destination.
@@ -995,11 +1222,15 @@ export const resolveLink = createServerFn({ method: "POST" })
         ? false
         : r.country_codes.map((c: string) => c.toUpperCase()).includes(ctry);
     const matchDevice = (r: VRow) => r.device !== "any" && r.device === userDevice;
-    const isGlobal = (r: VRow) => (!r.country_codes || r.country_codes.length === 0) && r.device === "any";
+    const isGlobal = (r: VRow) =>
+      (!r.country_codes || r.country_codes.length === 0) && r.device === "any";
 
     let pool: VRow[] = allRows.filter((r) => matchCountry(r) && matchDevice(r));
     if (pool.length === 0) pool = allRows.filter((r) => matchCountry(r) && r.device === "any");
-    if (pool.length === 0) pool = allRows.filter((r) => matchDevice(r) && (!r.country_codes || r.country_codes.length === 0));
+    if (pool.length === 0)
+      pool = allRows.filter(
+        (r) => matchDevice(r) && (!r.country_codes || r.country_codes.length === 0),
+      );
     if (pool.length === 0) pool = allRows.filter(isGlobal);
     if (pool.length === 0) pool = allRows; // ultimate fallback
 
@@ -1029,7 +1260,8 @@ export const resolveLink = createServerFn({ method: "POST" })
         .limit(1500);
 
       const stats = slugs.map((slug) => {
-        let total = 0, humans = 0;
+        let total = 0,
+          humans = 0;
         for (const r of recent ?? []) {
           if (r.variant !== slug) continue;
           total += 1;
@@ -1058,7 +1290,10 @@ export const resolveLink = createServerFn({ method: "POST" })
         os: uaInfo.os,
         browser: uaInfo.browser,
         variant: chosenVariant.slug,
-        bot_score: Math.min(a.score + (rateLimited ? 60 : 0) + (targetingCheck.blocked ? 100 : 0), 500),
+        bot_score: Math.min(
+          a.score + (rateLimited ? 60 : 0) + (targetingCheck.blocked ? 100 : 0),
+          500,
+        ),
         fingerprint_hash: await serverFingerprintHash(a, uaInfo, country),
         signals: phase3Signals({
           source: "silent",
@@ -1082,7 +1317,9 @@ export const resolveLink = createServerFn({ method: "POST" })
       code: data.code,
       branch: silentBot ? "silent" : "verify",
       verifyExpected: !silentBot, // verifyHuman should be called when this is true
-      score: a.score, reasons: defenseReasons, variant: chosenVariant.slug,
+      score: a.score,
+      reasons: defenseReasons,
+      variant: chosenVariant.slug,
     });
 
     return {
@@ -1103,46 +1340,45 @@ export const resolveLink = createServerFn({ method: "POST" })
     };
   });
 
-
 export const verifyHuman = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({
-      code: z.string().min(1).max(32),
-      variant: z.string().min(1).max(64),
-      fp: z.object({
-        ua: z.string().max(500),
-        webdriver: z.boolean(),
-        languages: z.array(z.string().max(20)).max(20),
-        platform: z.string().max(50),
-        hwConcurrency: z.number().min(0).max(256),
-        deviceMemory: z.number().min(0).max(1024),
-        screen: z.object({
-          w: z.number().min(0).max(20000),
-          h: z.number().min(0).max(20000),
-          cd: z.number().min(0).max(64),
+    z
+      .object({
+        code: z.string().min(1).max(32),
+        variant: z.string().min(1).max(64),
+        fp: z.object({
+          ua: z.string().max(500),
+          webdriver: z.boolean(),
+          languages: z.array(z.string().max(20)).max(20),
+          platform: z.string().max(50),
+          hwConcurrency: z.number().min(0).max(256),
+          deviceMemory: z.number().min(0).max(1024),
+          screen: z.object({
+            w: z.number().min(0).max(20000),
+            h: z.number().min(0).max(20000),
+            cd: z.number().min(0).max(64),
+          }),
+          tz: z.string().max(100),
+          plugins: z.number().min(0).max(100),
+          touchPoints: z.number().min(0).max(50),
+          hasChrome: z.boolean(),
+          mouse: z.number().min(0).max(100000),
+          scroll: z.number().min(0).max(100000),
+          key: z.number().min(0).max(100000),
+          touch: z.number().min(0).max(100000),
+          timeOnPage: z.number().min(0).max(3600000),
+          canvasHash: z.string().max(64),
         }),
-        tz: z.string().max(100),
-        plugins: z.number().min(0).max(100),
-        touchPoints: z.number().min(0).max(50),
-        hasChrome: z.boolean(),
-        mouse: z.number().min(0).max(100000),
-        scroll: z.number().min(0).max(100000),
-        key: z.number().min(0).max(100000),
-        touch: z.number().min(0).max(100000),
-        timeOnPage: z.number().min(0).max(3600000),
-        canvasHash: z.string().max(64),
-      }),
-    }).parse(input),
+      })
+      .parse(input),
   )
   .handler(async ({ data }) => {
     const aRaw = analyzeRequest();
-    const ip =
-      getRequestHeader("cf-connecting-ip") ||
-      getRequestHeader("x-forwarded-for") ||
-      "";
+    const ip = getRequestHeader("cf-connecting-ip") || getRequestHeader("x-forwarded-for") || "";
 
     logRedirectEvent("verify.start", {
-      code: data.code, ip,
+      code: data.code,
+      ip,
       ua: aRaw.ua.slice(0, 120),
       rawScore: aRaw.score,
       reasons: aRaw.reasons,
@@ -1150,7 +1386,9 @@ export const verifyHuman = createServerFn({ method: "POST" })
 
     const { data: link, error: linkError } = await supabaseAdmin
       .from("links")
-      .select("id, user_id, destination_url, status, targeting, duplicate_protection, duplicate_window_minutes, clicks_count")
+      .select(
+        "id, user_id, destination_url, status, targeting, duplicate_protection, duplicate_window_minutes, clicks_count",
+      )
       .eq("short_code", data.code)
       .maybeSingle();
 
@@ -1174,7 +1412,6 @@ export const verifyHuman = createServerFn({ method: "POST" })
     const adj = applyConfigAdjustments(aRaw, cfgEarly);
     const a = { ...aRaw, score: adj.score, hardBot: adj.hardBot, isBot: adj.score >= 50 };
 
-
     // Parallel: FB blocklist + referer rule + time rule are independent
     const asn = asnFromHeaders();
     const refHost = refererHost(getRequestHeader("referer"));
@@ -1186,7 +1423,13 @@ export const verifyHuman = createServerFn({ method: "POST" })
     // Same fix as resolveLink: only honor FB IP/ASN hit when UA itself is a
     // known scraper. Real users in FB in-app browser share these IP ranges.
     const fbHit = fbHitRaw && a.hardBot ? fbHitRaw : null;
-    if (fbHit || refAction === "safe" || refAction === "cloak" || timeAction === "safe" || timeAction === "cloak") {
+    if (
+      fbHit ||
+      refAction === "safe" ||
+      refAction === "cloak" ||
+      timeAction === "safe" ||
+      timeAction === "cloak"
+    ) {
       const uaInfo = parseUA(a.ua);
       const country = getRequestHeader("cf-ipcountry") || null;
       await supabaseAdmin.from("clicks").insert({
@@ -1206,7 +1449,11 @@ export const verifyHuman = createServerFn({ method: "POST" })
         signals: phase3Signals({
           source: "verify-silent",
           request: a,
-          reasons: [fbHit || "", refAction ? `referer:${refAction}:${refHost}` : "", timeAction ? `time:${timeAction}` : ""],
+          reasons: [
+            fbHit || "",
+            refAction ? `referer:${refAction}:${refHost}` : "",
+            timeAction ? `time:${timeAction}` : "",
+          ],
           fbHit,
           refAction,
           timeAction,
@@ -1214,7 +1461,14 @@ export const verifyHuman = createServerFn({ method: "POST" })
         challenge_passed: false,
       });
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
-      logRedirectEvent("verify.decision", { code: data.code, branch: "verify-silent", score: a.score, fbHit, refAction, timeAction });
+      logRedirectEvent("verify.decision", {
+        code: data.code,
+        branch: "verify-silent",
+        score: a.score,
+        fbHit,
+        refAction,
+        timeAction,
+      });
       return { ok: false as const, reason: "blocklist" };
     }
 
@@ -1231,8 +1485,6 @@ export const verifyHuman = createServerFn({ method: "POST" })
     // Re-use config loaded early in handler for adjustments
     const cfg = cfgEarly;
     const rateHits = await ipExceedsRate(ip, cfg);
-
-
 
     const uaInfo2 = parseUA(a.ua);
     const country = getRequestHeader("cf-ipcountry") || null;
@@ -1254,37 +1506,73 @@ export const verifyHuman = createServerFn({ method: "POST" })
     }
     const fp = data.fp;
 
-    if (fp.webdriver) { score += 80; reasons.push("webdriver"); }
-    if (fp.ua.toLowerCase().includes("headless")) { score += 80; reasons.push("fp-headless"); }
-    if (!fp.languages.length) { score += 30; reasons.push("no-languages"); }
-    if (fp.screen.w < 200 || fp.screen.h < 200) { score += 50; reasons.push("tiny-screen"); }
-    if (fp.screen.cd === 0) { score += 30; reasons.push("no-colordepth"); }
-    if (fp.hwConcurrency === 0) { score += 20; reasons.push("no-hw-concurrency"); }
-    if (!fp.tz) { score += 20; reasons.push("no-tz"); }
+    if (fp.webdriver) {
+      score += 80;
+      reasons.push("webdriver");
+    }
+    if (fp.ua.toLowerCase().includes("headless")) {
+      score += 80;
+      reasons.push("fp-headless");
+    }
+    if (!fp.languages.length) {
+      score += 30;
+      reasons.push("no-languages");
+    }
+    if (fp.screen.w < 200 || fp.screen.h < 200) {
+      score += 50;
+      reasons.push("tiny-screen");
+    }
+    if (fp.screen.cd === 0) {
+      score += 30;
+      reasons.push("no-colordepth");
+    }
+    if (fp.hwConcurrency === 0) {
+      score += 20;
+      reasons.push("no-hw-concurrency");
+    }
+    if (!fp.tz) {
+      score += 20;
+      reasons.push("no-tz");
+    }
     if (fp.canvasHash === "blocked" || fp.canvasHash.length < 4) {
-      score += 25; reasons.push("canvas-blocked");
+      score += 25;
+      reasons.push("canvas-blocked");
     }
     const fpUaLower = fp.ua.toLowerCase();
-    const looksLikeRealBrowser = /chrome\/|crios\/|safari\/|firefox\/|fxios\/|edg\//.test(fpUaLower)
-      && !a.hardBot
-      && !fp.webdriver
-      && fp.languages.length > 0
-      && fp.screen.w >= 200
-      && fp.screen.h >= 200;
+    const looksLikeRealBrowser =
+      /chrome\/|crios\/|safari\/|firefox\/|fxios\/|edg\//.test(fpUaLower) &&
+      !a.hardBot &&
+      !fp.webdriver &&
+      fp.languages.length > 0 &&
+      fp.screen.w >= 200 &&
+      fp.screen.h >= 200;
 
-    if (fpUaLower.includes("chrome/") && !fp.hasChrome && !/wv\)|; wv|fbav|instagram|line\//i.test(fp.ua)) {
-      score += 20; reasons.push("chrome-spoof");
+    if (
+      fpUaLower.includes("chrome/") &&
+      !fp.hasChrome &&
+      !/wv\)|; wv|fbav|instagram|line\//i.test(fp.ua)
+    ) {
+      score += 20;
+      reasons.push("chrome-spoof");
     }
     if (/mobile|android|iphone/i.test(fp.ua) && fp.touchPoints === 0) {
-      score += 30; reasons.push("mobile-no-touch");
+      score += 30;
+      reasons.push("mobile-no-touch");
     }
 
     const interactions = fp.mouse + fp.scroll + fp.key + fp.touch;
-    if (interactions === 0) { score += 10; reasons.push("no-interaction"); }
-    if (fp.timeOnPage < 100) { score += 10; reasons.push("too-fast"); }
+    if (interactions === 0) {
+      score += 10;
+      reasons.push("no-interaction");
+    }
+    if (fp.timeOnPage < 100) {
+      score += 10;
+      reasons.push("too-fast");
+    }
 
     if (fp.ua && a.ua && fp.ua.toLowerCase() !== a.ua) {
-      score += 25; reasons.push("ua-mismatch");
+      score += 25;
+      reasons.push("ua-mismatch");
     }
 
     // Phase 3: stable fingerprint hash + repeat-from-different-IPs penalty
@@ -1338,10 +1626,14 @@ export const verifyHuman = createServerFn({ method: "POST" })
       ...attr2,
     });
 
-
     if (isBot) {
       await supabaseAdmin.rpc("increment_link_bot_clicks", { p_link_id: link.id });
-      logRedirectEvent("verify.decision", { code: data.code, branch: "bot-detected", score, reasons });
+      logRedirectEvent("verify.decision", {
+        code: data.code,
+        branch: "bot-detected",
+        score,
+        reasons,
+      });
       return { ok: false as const, reason: "bot-detected" };
     }
 
@@ -1358,7 +1650,14 @@ export const verifyHuman = createServerFn({ method: "POST" })
     if (!duplicateClick) {
       const rotated = await maybeRotateToAdmin((link.clicks_count ?? 0) + 1);
       if (rotated) {
-        logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: rotated, rotated: true });
+        logRedirectEvent("verify.decision", {
+          code: data.code,
+          branch: "human-passed",
+          score,
+          duplicateClick,
+          destination: rotated,
+          rotated: true,
+        });
         return { ok: true as const, destination: rotated };
       }
     }
@@ -1367,7 +1666,14 @@ export const verifyHuman = createServerFn({ method: "POST" })
     if (!duplicateClick) {
       const fallback = await enforceUserQuota(link.user_id);
       if (fallback) {
-        logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: fallback, overQuota: true });
+        logRedirectEvent("verify.decision", {
+          code: data.code,
+          branch: "human-passed",
+          score,
+          duplicateClick,
+          destination: fallback,
+          overQuota: true,
+        });
         return { ok: true as const, destination: fallback };
       }
     }
@@ -1378,7 +1684,13 @@ export const verifyHuman = createServerFn({ method: "POST" })
     //   3) Plain destination_url (THE Adsterra link the user pasted)
     const geoDev = await pickGeoDeviceDestination(link.id, country, uaInfo2.device, uaInfo2.os);
     if (geoDev) {
-      logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination: geoDev });
+      logRedirectEvent("verify.decision", {
+        code: data.code,
+        branch: "human-passed",
+        score,
+        duplicateClick,
+        destination: geoDev,
+      });
       return { ok: true as const, destination: geoDev };
     }
 
@@ -1388,8 +1700,12 @@ export const verifyHuman = createServerFn({ method: "POST" })
       .eq("link_id", link.id);
     const destination = pickWeightedDestination(destRows ?? [], link.destination_url);
 
-    logRedirectEvent("verify.decision", { code: data.code, branch: "human-passed", score, duplicateClick, destination });
+    logRedirectEvent("verify.decision", {
+      code: data.code,
+      branch: "human-passed",
+      score,
+      duplicateClick,
+      destination,
+    });
     return { ok: true as const, destination };
   });
-
-
