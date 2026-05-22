@@ -746,6 +746,14 @@ async function checkRefererRule(host: string | null): Promise<"safe" | "cloak" |
 }
 
 async function checkTimeRule(linkId: string): Promise<"safe" | "cloak" | "pass" | null> {
+  type TimeRuleRow = {
+    days_mask: number;
+    start_minute: number;
+    end_minute: number;
+    action: "safe" | "cloak" | "pass";
+    timezone: string | null;
+    priority: number;
+  };
   const { data } = await supabaseAdmin
     .from("link_time_rules")
     .select("days_mask,start_minute,end_minute,action,timezone,priority")
@@ -754,7 +762,7 @@ async function checkTimeRule(linkId: string): Promise<"safe" | "cloak" | "pass" 
     .order("priority", { ascending: true });
   if (!data || data.length === 0) return null;
   const { pickActiveTimeRule } = await import("@/lib/time-rule-eval");
-  return pickActiveTimeRule(data as any);
+  return pickActiveTimeRule(data as TimeRuleRow[]);
 }
 
 async function pickGeoDeviceDestination(
