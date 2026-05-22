@@ -1,4 +1,4 @@
-import { redirectToLoginPreservingPath, refreshSupabaseSessionOnce } from "@/lib/auth-session";
+import { refreshSupabaseSessionOnce } from "@/lib/auth-session";
 
 function isAuthTokenError(error: unknown) {
   const message = error && typeof error === "object" && "message" in error
@@ -19,15 +19,10 @@ export async function withFreshSupabaseAuth<T extends { error: { message?: strin
 
   const accessToken = await refreshSupabaseSessionOnce();
   if (!accessToken) {
-    redirectToLoginPreservingPath();
-    return { ...first, error: null } as T;
+    return first;
   }
 
   return operation();
-}
-
-function redirectExpiredSession() {
-  redirectToLoginPreservingPath();
 }
 
 export async function withFreshServerFnAuth<T>(operation: () => Promise<T>): Promise<T> {
@@ -39,15 +34,13 @@ export async function withFreshServerFnAuth<T>(operation: () => Promise<T>): Pro
 
   const accessToken = await refreshSupabaseSessionOnce();
   if (!accessToken) {
-    redirectExpiredSession();
-    throw new Error("Session expired. Please sign in again.");
+    throw new Error("Session is still restoring. Please try again in a moment.");
   }
 
   try {
     return await operation();
   } catch (error) {
     if (!isAuthTokenError(error)) throw error;
-    redirectExpiredSession();
-    throw new Error("Session expired. Please sign in again.");
+    throw new Error("Session is still restoring. Please try again in a moment.");
   }
 }
