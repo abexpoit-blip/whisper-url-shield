@@ -82,7 +82,7 @@ export async function refreshSupabaseSessionOnce() {
       const { data, error } = await supabase.auth.refreshSession();
       if (!error && data.session?.access_token) return data.session.access_token;
       if (error && !isAuthStorageError(error)) return null;
-      return waitForStoredSession();
+      return waitForStoredSession(currentToken);
     }).finally(() => {
       refreshPromise = null;
     });
