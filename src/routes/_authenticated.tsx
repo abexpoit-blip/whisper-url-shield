@@ -7,11 +7,11 @@ import { consumeDailyRedirect } from "@/lib/app-settings.functions";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session?.user) {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
       throw redirect({ to: "/login" });
     }
-    return { user: data.session.user };
+    return { user: data.user };
   },
   component: AuthenticatedLayout,
 });
