@@ -7,7 +7,7 @@ import { Link2, Copy, Trash2, Play, Pause, Sparkles, Activity, Shield, Infinity 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { listMyLinks, createLink, deleteLink, toggleLink, getMyProfile } from "@/lib/links.functions";
+import { getDashboardData, createLink, deleteLink, toggleLink } from "@/lib/links.functions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Sleepox" }] }),
@@ -16,14 +16,17 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function DashboardPage() {
   const qc = useQueryClient();
-  const list = useServerFn(listMyLinks);
-  const profile = useServerFn(getMyProfile);
+  const dash = useServerFn(getDashboardData);
   const create = useServerFn(createLink);
   const remove = useServerFn(deleteLink);
   const toggle = useServerFn(toggleLink);
 
-  const linksQ = useQuery({ queryKey: ["links"], queryFn: () => list() });
-  const profileQ = useQuery({ queryKey: ["profile"], queryFn: () => profile() });
+  const dashQ = useQuery({
+    queryKey: ["dashboard"],
+    queryFn: () => dash(),
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  });
 
   const [adsterra, setAdsterra] = useState("");
   const [safe, setSafe] = useState("");
@@ -35,8 +38,7 @@ function DashboardPage() {
     onSuccess: () => {
       toast.success("Link created");
       setAdsterra(""); setSafe(""); setTitle("");
-      qc.invalidateQueries({ queryKey: ["links"] });
-      qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -45,13 +47,13 @@ function DashboardPage() {
     mutationFn: (id: string) => remove({ data: { id } }),
     onSuccess: () => {
       toast.success("Deleted");
-      qc.invalidateQueries({ queryKey: ["links"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 
   const togMut = useMutation({
     mutationFn: (v: { id: string; is_active: boolean }) => toggle({ data: v }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["links"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
   });
 
   const onSubmit = (e: FormEvent) => {
@@ -60,10 +62,11 @@ function DashboardPage() {
   };
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://sleepox.com";
-  const p = profileQ.data;
+  const p = dashQ.data?.profile;
+  const links = dashQ.data?.links ?? [];
 
-  const totalHumans = linksQ.data?.reduce((s, l) => s + (l.clicks_count || 0), 0) ?? 0;
-  const totalBots = linksQ.data?.reduce((s, l) => s + (l.bot_clicks_count || 0), 0) ?? 0;
+  const totalHumans = links.reduce((s, l) => s + (l.clicks_count || 0), 0);
+  const totalBots = links.reduce((s, l) => s + (l.bot_clicks_count || 0), 0);
 
   return (
     <div className="space-y-10">
@@ -139,20 +142,20 @@ function DashboardPage() {
         <div className="flex items-end justify-between">
           <div>
             <h2 className="text-xl font-bold">Your links</h2>
-            <p className="text-xs text-muted-foreground">{linksQ.data?.length ?? 0} total · live traffic stats</p>
+            <p className="text-xs text-muted-foreground">{links.length} total · live traffic stats</p>
           </div>
         </div>
         <div className="mt-5 space-y-3">
-          {linksQ.isLoading && (
+          {dashQ.isLoading && (
             <div className="glass-card rounded-2xl p-6 text-center text-sm text-muted-foreground">Loading links…</div>
           )}
-          {linksQ.data?.length === 0 && (
+          {dashQ.data && links.length === 0 && (
             <div className="glass-card rounded-2xl p-10 text-center">
               <Link2 className="mx-auto h-10 w-10 text-muted-foreground/50" />
               <p className="mt-3 text-sm text-muted-foreground">No links yet. Create your first cloaked link above.</p>
             </div>
           )}
-          {linksQ.data?.map((l) => {
+          {links.map((l) => {
             const shortUrl = `${origin}/r/${l.short_code}`;
             return (
               <div key={l.id} className="glass-card group rounded-2xl p-5 transition hover:sky-glow hover:border-sky">

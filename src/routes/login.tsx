@@ -22,13 +22,14 @@ function LoginPage() {
     e.preventDefault();
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
       return;
     }
-    toast.success("Welcome back!");
+    // Navigate immediately — session is already in localStorage
     navigate({ to: "/dashboard" });
+    toast.success("Welcome back!");
   };
 
   return (
