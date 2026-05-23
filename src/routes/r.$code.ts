@@ -111,7 +111,15 @@ async function recordRedirectClick(input: {
 export const Route = createFileRoute("/r/$code")({
   server: {
     handlers: {
+      HEAD: async ({ request, params }) => handleRedirect(request, params.code),
       GET: async ({ request, params }) => {
+        return handleRedirect(request, params.code);
+      },
+    },
+  },
+});
+
+async function handleRedirect(request: Request, code: string) {
         const code = params.code;
         const url = new URL(request.url);
         const ua = request.headers.get("user-agent") || "";
@@ -271,7 +279,4 @@ export const Route = createFileRoute("/r/$code")({
         });
 
         return Response.redirect(target, 302);
-      },
-    },
-  },
-});
+}
