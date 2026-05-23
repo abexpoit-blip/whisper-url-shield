@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSelfHostedAdmin, requireSelfHostedUser } from "@/lib/self-host-auth.server";
 
 const SlugRe = /^[a-z0-9_-]{2,40}$/;
 
@@ -158,9 +159,8 @@ export const deletePackage = createServerFn({ method: "POST" })
 
 // ---------- Current plan (for any signed-in user) ----------
 export const getMyPlan = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { userId, supabase } = await requireSelfHostedUser();
     const { data: profile } = await (supabase as any)
       .from("profiles")
       .select("plan_slug,link_quota,links_used")
@@ -171,9 +171,8 @@ export const getMyPlan = createServerFn({ method: "GET" })
 
 // ---------- Click quota status (for dashboard popup) ----------
 export const getMyClickStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { userId, supabase } = await requireSelfHostedUser();
     const { data, error } = await (supabase as any).rpc("get_user_click_status", {
       p_user_id: userId,
     });
@@ -332,9 +331,8 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
   });
 
 export const listMyUpgradeRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { userId, supabase } = await requireSelfHostedUser();
     const { data, error } = await (supabase as any)
       .from("upgrade_requests")
       .select(
