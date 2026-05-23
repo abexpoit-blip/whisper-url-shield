@@ -1,11 +1,13 @@
-import { getRequest } from "@tanstack/react-start/server";
 import { createMiddleware } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { Database } from "@/integrations/supabase/types";
 
-function bearerFromCurrentRequest() {
-  const request = getRequest();
+async function bearerFromCurrentRequest() {
+  // Dynamic import keeps `@tanstack/react-start/server` out of the static
+  // client-bundle graph (import-protection blocks that specifier).
+  const mod = await import("@tanstack/react-start/server");
+  const request = mod.getRequest();
   const authHeader = request?.headers.get("authorization") ?? "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) throw new Error("Your session is loading. Please refresh once.");
@@ -25,7 +27,7 @@ function createUserScopedClient(token: string) {
 
 export const requireSelfHostedAuth = createMiddleware({ type: "function" }).server(
   async ({ next }) => {
-    const token = bearerFromCurrentRequest();
+    const token = await bearerFromCurrentRequest();
     const { data, error } = await supabaseAdmin.auth.getUser(token);
     if (error || !data.user?.id) {
       throw new Error(`Your session expired. Please sign in again. (${error?.message ?? "invalid token"})`);
@@ -43,7 +45,7 @@ export const requireSelfHostedAuth = createMiddleware({ type: "function" }).serv
 );
 
 export async function requireSelfHostedUser() {
-  const token = bearerFromCurrentRequest();
+  const token = await bearerFromCurrentRequest();
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !data.user?.id) {
     throw new Error(`Your session expired. Please sign in again. (${error?.message ?? "invalid token"})`);
