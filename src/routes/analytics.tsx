@@ -18,25 +18,26 @@ import {
   RefreshCw,
   Sparkles,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { requireClientUser } from "@/lib/auth-guard";
 import { withFreshServerFnAuth } from "@/lib/supabase-retry";
 import { getAnalytics } from "@/lib/analytics.functions";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ChartSuspense,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "@/components/lazy-recharts";
 import {
   CountryFlag,
   BrandBadge,
@@ -340,13 +341,13 @@ function AnalyticsPage() {
                   <Legend
                     iconType="circle"
                     wrapperStyle={LEGEND_WRAPPER}
-                    onClick={(e) => toggleSeries(String(e.dataKey))}
-                    formatter={(value, entry) => {
+                    onClick={(e: { dataKey?: unknown }) => toggleSeries(String(e.dataKey))}
+                    formatter={(value: unknown, entry: { dataKey?: unknown }) => {
                       const key = String((entry as { dataKey?: string }).dataKey);
                       const off = hidden[key];
                       return (
                         <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
-                          {value}
+                          {String(value)}
                         </span>
                       );
                     }}
@@ -449,7 +450,7 @@ function AnalyticsPage() {
                       label={
                         isMobile
                           ? false
-                          : ({ percent }) => `${Math.round((percent ?? 0) * 100)}%`
+                          : ({ percent }: { percent?: number }) => `${Math.round((percent ?? 0) * 100)}%`
                       }
                       labelLine={false}
                     >
@@ -477,18 +478,18 @@ function AnalyticsPage() {
                       iconType="circle"
                       verticalAlign="bottom"
                       wrapperStyle={LEGEND_WRAPPER}
-                      onClick={(e) => toggleSeries(`dev:${String(e.value)}`)}
+                      onClick={(e: { value?: unknown }) => toggleSeries(`dev:${String(e.value)}`)}
                       payload={data.byDevice.map((d, i) => ({
                         value: d.key,
                         type: "circle",
                         id: d.key,
                         color: hidden[`dev:${d.key}`] ? "#d1d5db" : PIE_COLORS[i % PIE_COLORS.length],
                       }))}
-                      formatter={(value) => {
+                      formatter={(value: unknown) => {
                         const off = hidden[`dev:${String(value)}`];
                         return (
                           <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
-                            {value}
+                            {String(value)}
                           </span>
                         );
                       }}
