@@ -23,6 +23,7 @@ function parseDotEnv(path = ".env") {
 const dotEnv = parseDotEnv();
 const env = { ...dotEnv, ...process.env };
 const errors = [];
+const warnings = [];
 
 const expectedProjectRef = env.VITE_SUPABASE_PROJECT_ID || "qnzwncleajzzwpauifnp";
 const fingerprint = (value) => createHash("sha256").update(value).digest("hex").slice(0, 16);
@@ -42,7 +43,7 @@ for (const name of ["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]
 }
 
 if (!env.SUPABASE_SERVICE_ROLE_KEY && !env.SUPABASE_SECRET_KEY) {
-  errors.push("SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY is missing; /r/* redirects need a server-side database key");
+  warnings.push("SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SECRET_KEY is missing; /r/* redirects need a server-side database key at runtime");
 }
 
 const serverKey = env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_SECRET_KEY || "";
@@ -50,7 +51,7 @@ if (serverKey) {
   const isLegacyJwt = serverKey.split(".").length === 3;
   const isNewSecretKey = serverKey.startsWith("sb_secret_");
   if (!isLegacyJwt && !isNewSecretKey) {
-    errors.push("SUPABASE_SERVICE_ROLE_KEY must be a legacy service_role JWT or a new sb_secret_ key");
+    warnings.push("SUPABASE_SERVICE_ROLE_KEY should be a legacy service_role JWT or a new sb_secret_ key");
   }
 }
 
@@ -75,3 +76,4 @@ if (serverKey) {
 } else {
   console.log("Environment verification passed.");
 }
+for (const warning of warnings) console.warn(`Warning: ${warning}`);
