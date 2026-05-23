@@ -32,6 +32,19 @@ export const getMyProfile = createServerFn({ method: "GET" })
     return data;
   });
 
+// Combined: one server-fn call = one auth round-trip = ~2x faster dashboard load
+export const getDashboardData = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [linksRes, profileRes] = await Promise.all([
+      context.supabase.from("links").select("*").order("created_at", { ascending: false }),
+      context.supabase.from("profiles").select("*").eq("id", context.userId).single(),
+    ]);
+    if (linksRes.error) throw new Error(linksRes.error.message);
+    if (profileRes.error) throw new Error(profileRes.error.message);
+    return { links: linksRes.data, profile: profileRes.data };
+  });
+
 export const createLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
