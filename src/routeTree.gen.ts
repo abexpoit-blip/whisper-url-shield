@@ -9,163 +9,227 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ApiPublicPlisioWebhookRouteImport } from './routes/api/public/plisio-webhook'
-import { Route as ApiPublicPlisioCreateInvoiceRouteImport } from './routes/api/public/plisio-create-invoice'
-import { Route as ApiPublicHooksPlisioRetryQueueRouteImport } from './routes/api/public/hooks/plisio-retry-queue'
-import { Route as ApiPublicHooksDomainHealthRouteImport } from './routes/api/public/hooks/domain-health'
-import { Route as ApiPublicHooksBackfillClicksRouteImport } from './routes/api/public/hooks/backfill-clicks'
-import { Route as ApiPublicHooksAutopilotRouteImport } from './routes/api/public/hooks/autopilot'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as RCodeRouteImport } from './routes/r.$code'
+import { Route as AuthenticatedUpgradeRouteImport } from './routes/_authenticated/upgrade'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
-const ApiPublicPlisioWebhookRoute = ApiPublicPlisioWebhookRouteImport.update({
-  id: '/api/public/plisio-webhook',
-  path: '/api/public/plisio-webhook',
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicPlisioCreateInvoiceRoute =
-  ApiPublicPlisioCreateInvoiceRouteImport.update({
-    id: '/api/public/plisio-create-invoice',
-    path: '/api/public/plisio-create-invoice',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksPlisioRetryQueueRoute =
-  ApiPublicHooksPlisioRetryQueueRouteImport.update({
-    id: '/api/public/hooks/plisio-retry-queue',
-    path: '/api/public/hooks/plisio-retry-queue',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksDomainHealthRoute =
-  ApiPublicHooksDomainHealthRouteImport.update({
-    id: '/api/public/hooks/domain-health',
-    path: '/api/public/hooks/domain-health',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksBackfillClicksRoute =
-  ApiPublicHooksBackfillClicksRouteImport.update({
-    id: '/api/public/hooks/backfill-clicks',
-    path: '/api/public/hooks/backfill-clicks',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicHooksAutopilotRoute = ApiPublicHooksAutopilotRouteImport.update({
-  id: '/api/public/hooks/autopilot',
-  path: '/api/public/hooks/autopilot',
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RCodeRoute = RCodeRouteImport.update({
+  id: '/r/$code',
+  path: '/r/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedUpgradeRoute = AuthenticatedUpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/api/public/plisio-create-invoice': typeof ApiPublicPlisioCreateInvoiceRoute
-  '/api/public/plisio-webhook': typeof ApiPublicPlisioWebhookRoute
-  '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
-  '/api/public/hooks/backfill-clicks': typeof ApiPublicHooksBackfillClicksRoute
-  '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
-  '/api/public/hooks/plisio-retry-queue': typeof ApiPublicHooksPlisioRetryQueueRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
+  '/signup': typeof SignupRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/upgrade': typeof AuthenticatedUpgradeRoute
+  '/r/$code': typeof RCodeRoute
 }
 export interface FileRoutesByTo {
-  '/api/public/plisio-create-invoice': typeof ApiPublicPlisioCreateInvoiceRoute
-  '/api/public/plisio-webhook': typeof ApiPublicPlisioWebhookRoute
-  '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
-  '/api/public/hooks/backfill-clicks': typeof ApiPublicHooksBackfillClicksRoute
-  '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
-  '/api/public/hooks/plisio-retry-queue': typeof ApiPublicHooksPlisioRetryQueueRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
+  '/signup': typeof SignupRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
+  '/upgrade': typeof AuthenticatedUpgradeRoute
+  '/r/$code': typeof RCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/api/public/plisio-create-invoice': typeof ApiPublicPlisioCreateInvoiceRoute
-  '/api/public/plisio-webhook': typeof ApiPublicPlisioWebhookRoute
-  '/api/public/hooks/autopilot': typeof ApiPublicHooksAutopilotRoute
-  '/api/public/hooks/backfill-clicks': typeof ApiPublicHooksBackfillClicksRoute
-  '/api/public/hooks/domain-health': typeof ApiPublicHooksDomainHealthRoute
-  '/api/public/hooks/plisio-retry-queue': typeof ApiPublicHooksPlisioRetryQueueRoute
+  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
+  '/signup': typeof SignupRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/upgrade': typeof AuthenticatedUpgradeRoute
+  '/r/$code': typeof RCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/api/public/plisio-create-invoice'
-    | '/api/public/plisio-webhook'
-    | '/api/public/hooks/autopilot'
-    | '/api/public/hooks/backfill-clicks'
-    | '/api/public/hooks/domain-health'
-    | '/api/public/hooks/plisio-retry-queue'
+    | '/'
+    | '/login'
+    | '/pricing'
+    | '/signup'
+    | '/admin'
+    | '/dashboard'
+    | '/upgrade'
+    | '/r/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/api/public/plisio-create-invoice'
-    | '/api/public/plisio-webhook'
-    | '/api/public/hooks/autopilot'
-    | '/api/public/hooks/backfill-clicks'
-    | '/api/public/hooks/domain-health'
-    | '/api/public/hooks/plisio-retry-queue'
+    | '/'
+    | '/login'
+    | '/pricing'
+    | '/signup'
+    | '/admin'
+    | '/dashboard'
+    | '/upgrade'
+    | '/r/$code'
   id:
     | '__root__'
-    | '/api/public/plisio-create-invoice'
-    | '/api/public/plisio-webhook'
-    | '/api/public/hooks/autopilot'
-    | '/api/public/hooks/backfill-clicks'
-    | '/api/public/hooks/domain-health'
-    | '/api/public/hooks/plisio-retry-queue'
+    | '/'
+    | '/_authenticated'
+    | '/login'
+    | '/pricing'
+    | '/signup'
+    | '/_authenticated/admin'
+    | '/_authenticated/dashboard'
+    | '/_authenticated/upgrade'
+    | '/r/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  ApiPublicPlisioCreateInvoiceRoute: typeof ApiPublicPlisioCreateInvoiceRoute
-  ApiPublicPlisioWebhookRoute: typeof ApiPublicPlisioWebhookRoute
-  ApiPublicHooksAutopilotRoute: typeof ApiPublicHooksAutopilotRoute
-  ApiPublicHooksBackfillClicksRoute: typeof ApiPublicHooksBackfillClicksRoute
-  ApiPublicHooksDomainHealthRoute: typeof ApiPublicHooksDomainHealthRoute
-  ApiPublicHooksPlisioRetryQueueRoute: typeof ApiPublicHooksPlisioRetryQueueRoute
+  IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
+  SignupRoute: typeof SignupRoute
+  RCodeRoute: typeof RCodeRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/api/public/plisio-webhook': {
-      id: '/api/public/plisio-webhook'
-      path: '/api/public/plisio-webhook'
-      fullPath: '/api/public/plisio-webhook'
-      preLoaderRoute: typeof ApiPublicPlisioWebhookRouteImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/plisio-create-invoice': {
-      id: '/api/public/plisio-create-invoice'
-      path: '/api/public/plisio-create-invoice'
-      fullPath: '/api/public/plisio-create-invoice'
-      preLoaderRoute: typeof ApiPublicPlisioCreateInvoiceRouteImport
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/plisio-retry-queue': {
-      id: '/api/public/hooks/plisio-retry-queue'
-      path: '/api/public/hooks/plisio-retry-queue'
-      fullPath: '/api/public/hooks/plisio-retry-queue'
-      preLoaderRoute: typeof ApiPublicHooksPlisioRetryQueueRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/domain-health': {
-      id: '/api/public/hooks/domain-health'
-      path: '/api/public/hooks/domain-health'
-      fullPath: '/api/public/hooks/domain-health'
-      preLoaderRoute: typeof ApiPublicHooksDomainHealthRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/backfill-clicks': {
-      id: '/api/public/hooks/backfill-clicks'
-      path: '/api/public/hooks/backfill-clicks'
-      fullPath: '/api/public/hooks/backfill-clicks'
-      preLoaderRoute: typeof ApiPublicHooksBackfillClicksRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/autopilot': {
-      id: '/api/public/hooks/autopilot'
-      path: '/api/public/hooks/autopilot'
-      fullPath: '/api/public/hooks/autopilot'
-      preLoaderRoute: typeof ApiPublicHooksAutopilotRouteImport
+    '/r/$code': {
+      id: '/r/$code'
+      path: '/r/$code'
+      fullPath: '/r/$code'
+      preLoaderRoute: typeof RCodeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/upgrade': {
+      id: '/_authenticated/upgrade'
+      path: '/upgrade'
+      fullPath: '/upgrade'
+      preLoaderRoute: typeof AuthenticatedUpgradeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedUpgradeRoute: typeof AuthenticatedUpgradeRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedUpgradeRoute: AuthenticatedUpgradeRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  ApiPublicPlisioCreateInvoiceRoute: ApiPublicPlisioCreateInvoiceRoute,
-  ApiPublicPlisioWebhookRoute: ApiPublicPlisioWebhookRoute,
-  ApiPublicHooksAutopilotRoute: ApiPublicHooksAutopilotRoute,
-  ApiPublicHooksBackfillClicksRoute: ApiPublicHooksBackfillClicksRoute,
-  ApiPublicHooksDomainHealthRoute: ApiPublicHooksDomainHealthRoute,
-  ApiPublicHooksPlisioRetryQueueRoute: ApiPublicHooksPlisioRetryQueueRoute,
+  IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
+  SignupRoute: SignupRoute,
+  RCodeRoute: RCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
