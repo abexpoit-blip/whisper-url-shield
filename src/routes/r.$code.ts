@@ -120,7 +120,6 @@ export const Route = createFileRoute("/r/$code")({
 });
 
 async function handleRedirect(request: Request, code: string) {
-        const code = params.code;
         const url = new URL(request.url);
         const ua = request.headers.get("user-agent") || "";
         const referer = request.headers.get("referer") || "";
