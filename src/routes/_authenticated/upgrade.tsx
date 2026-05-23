@@ -65,7 +65,7 @@ function UpgradePage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {packages?.map((p) => {
           const isFree = p.slug === "free";
-          const meta = PLAN_META[p.slug] ?? { blurb: "", features: [] };
+          const meta: PlanMeta = PLAN_META[p.slug] ?? { blurb: "", features: [] };
           const highlight = p.slug === "monthly";
           return (
             <div
