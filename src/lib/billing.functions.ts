@@ -86,9 +86,8 @@ const PACKAGE_COLUMNS =
   "id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,is_featured,created_at";
 
 export const listPackages = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase } = context;
+  .handler(async () => {
+    const { supabase } = await requireSelfHostedAdmin();
     const { data, error } = await (supabase as any)
       .from("packages")
       .select(PACKAGE_COLUMNS)
@@ -109,34 +108,20 @@ export const listAvailablePackages = createServerFn({ method: "GET" }).handler(a
 });
 
 export const createPackage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PackageCreateSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: role } = await (context.supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) throw new Error("Unauthorized: Admin access required");
-    const { error } = await (context.supabase as any).from("packages").insert(data);
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
+    const { error } = await (supabase as any).from("packages").insert(data);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const updatePackage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PackageUpdateSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: role } = await (context.supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) throw new Error("Unauthorized: Admin access required");
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
     const { id, ...patch } = data;
-    const { error } = await (context.supabase as any).from("packages").update(patch).eq("id", id);
+    const { error } = await (supabase as any).from("packages").update(patch).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
