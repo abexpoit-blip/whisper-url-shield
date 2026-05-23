@@ -1,3 +1,17 @@
+ALTER TABLE public.clicks
+  ADD COLUMN IF NOT EXISTS utm_source text,
+  ADD COLUMN IF NOT EXISTS utm_medium text,
+  ADD COLUMN IF NOT EXISTS utm_campaign text,
+  ADD COLUMN IF NOT EXISTS utm_term text,
+  ADD COLUMN IF NOT EXISTS utm_content text,
+  ADD COLUMN IF NOT EXISTS referer_host text,
+  ADD COLUMN IF NOT EXISTS bot_score integer,
+  ADD COLUMN IF NOT EXISTS signals jsonb,
+  ADD COLUMN IF NOT EXISTS challenge_passed boolean NOT NULL DEFAULT false;
+
+CREATE INDEX IF NOT EXISTS idx_clicks_link_utm_source
+  ON public.clicks (link_id, utm_source);
+
 CREATE OR REPLACE FUNCTION public.record_redirect_click(
   _link_id uuid,
   _user_id uuid,
