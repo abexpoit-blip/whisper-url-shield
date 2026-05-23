@@ -29,6 +29,8 @@ if [ ! -f "${WRANGLER_CLI}" ]; then
   exit 1
 fi
 
+bun run verify-env
+
 if [ ! -f "${WRANGLER_CONFIG}" ]; then
   echo "Built server config not found at ${WRANGLER_CONFIG}. Building the app before start..." >&2
   bun run build
