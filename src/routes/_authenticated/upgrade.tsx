@@ -10,6 +10,24 @@ export const Route = createFileRoute("/_authenticated/upgrade")({
   component: UpgradePage,
 });
 
+type PlanMeta = { blurb: string; features: string[]; badge?: string };
+const PLAN_META: Record<string, PlanMeta> = {
+  free: {
+    blurb: "Best for testing and personal links.",
+    features: ["Edge-fast redirects", "Real-time analytics", "Traffic quality filter"],
+  },
+  monthly: {
+    blurb: "Recommended for active campaigns.",
+    features: ["Everything in Free", "Geo + device routing", "Priority redirect lane", "Link health score"],
+    badge: "⭐ RECOMMENDED",
+  },
+  lifetime: {
+    blurb: "Best long-term value. Pay once, use forever.",
+    features: ["Everything in Pro", "Unlimited clicks", "Unlimited links", "Priority support", "Early access"],
+    badge: "💎 BEST VALUE",
+  },
+};
+
 function UpgradePage() {
   const buy = useServerFn(createInvoice);
   const orders = useServerFn(getMyOrders);
