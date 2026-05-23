@@ -347,7 +347,7 @@ function AnalyticsPage() {
                       const off = hidden[key];
                       return (
                         <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
-                          {value}
+                          {String(value)}
                         </span>
                       );
                     }}
@@ -489,7 +489,7 @@ function AnalyticsPage() {
                         const off = hidden[`dev:${String(value)}`];
                         return (
                           <span style={{ color: off ? "#9ca3af" : "#374151", textDecoration: off ? "line-through" : "none" }}>
-                            {value}
+                            {String(value)}
                           </span>
                         );
                       }}
