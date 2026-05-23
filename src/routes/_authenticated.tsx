@@ -40,11 +40,13 @@ function AuthenticatedLayout() {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <Link to="/dashboard" className="text-lg font-semibold">Sleepox</Link>
+          <Link to="/dashboard" className="flex items-center gap-2">
+            <Wordmark />
+          </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link to="/dashboard" className="hover:underline">Dashboard</Link>
             <Link to="/upgrade" className="hover:underline">Upgrade</Link>
-            {isAdmin && <Link to="/admin" className="hover:underline">Admin</Link>}
+            {isAdmin && <Link to="/control-panel" className="hover:underline">Control Panel</Link>}
             <span className="text-xs text-muted-foreground">{user.email}</span>
             <Button size="sm" variant="outline" onClick={logout}>Logout</Button>
           </nav>
