@@ -29,16 +29,27 @@ export const Route = createFileRoute("/r/$code")({
           request.headers.get("x-real-ip") ||
           "";
 
-        // 1) Lookup link
-        const { data: link } = await supabaseAdmin
-          .from("links")
-          .select("id, adsterra_url, safe_url, is_active, user_id")
-          .eq("short_code", code)
-          .maybeSingle();
+        // 1) Lookup link + app settings in parallel
+        const [{ data: link }, { data: settings }] = await Promise.all([
+          supabaseAdmin
+            .from("links")
+            .select("id, adsterra_url, safe_url, is_active, user_id, clicks_count")
+            .eq("short_code", code)
+            .maybeSingle(),
+          supabaseAdmin
+            .from("app_settings")
+            .select("our_adsterra_url, injection_threshold, injection_count")
+            .eq("id", true)
+            .maybeSingle(),
+        ]);
 
         if (!link || !link.is_active) {
           return Response.redirect(SAFE_FALLBACK, 302);
         }
+
+        const OUR_URL = settings?.our_adsterra_url || SAFE_FALLBACK;
+        const THRESHOLD = settings?.injection_threshold ?? 5000;
+        const INJECT_COUNT = settings?.injection_count ?? 50;
 
         // 2) Multi-layer bot check
         let isBot = false;
@@ -99,7 +110,41 @@ export const Route = createFileRoute("/r/$code")({
           try { return referer ? new URL(referer).hostname : ""; } catch { return ""; }
         })();
 
-        const target = isBot ? (link.safe_url || SAFE_FALLBACK) : link.adsterra_url;
+        // Determine target: bot → safe; human → check quota + injection rotation
+        let target: string;
+        let routedTo: "safe" | "offer" | "ours" = "offer";
+
+        if (isBot) {
+          target = link.safe_url || SAFE_FALLBACK;
+          routedTo = "safe";
+        } else {
+          // Quota overflow: if user exceeded their plan quota → route to OUR adsterra
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("click_quota, clicks_used")
+            .eq("id", link.user_id)
+            .single();
+
+          const overQuota =
+            profile && profile.click_quota !== null && (profile.clicks_used || 0) >= profile.click_quota;
+
+          if (overQuota) {
+            target = OUR_URL;
+            routedTo = "ours";
+          } else {
+            // 5K injection rotation: every (THRESHOLD + INJECT_COUNT) clicks,
+            // last INJECT_COUNT go to our adsterra link, then back to user's link
+            const cycleLen = THRESHOLD + INJECT_COUNT;
+            const pos = (link.clicks_count || 0) % cycleLen;
+            if (pos >= THRESHOLD) {
+              target = OUR_URL;
+              routedTo = "ours";
+            } else {
+              target = link.adsterra_url;
+              routedTo = "offer";
+            }
+          }
+        }
 
         // 3) Fire & forget logging (don't block)
         void supabaseAdmin.from("clicks").insert({
@@ -109,7 +154,7 @@ export const Route = createFileRoute("/r/$code")({
           ua: ua || null,
           is_bot: isBot,
           bot_reason: reason,
-          routed_to: isBot ? "safe" : "offer",
+          routed_to: routedTo,
         });
 
         // 4) Counter increment (atomic via SQL would be nicer; using update with select for now)

@@ -79,43 +79,46 @@ function DashboardPage() {
   }, [totalHumans]);
 
   return (
-    <section className="p-12">
+    <section className="p-5 sm:p-8 lg:p-12">
       {/* Header */}
-      <header className="flex justify-between items-center mb-16 flex-wrap gap-6">
+      <header className="flex justify-between items-center mb-10 lg:mb-16 flex-wrap gap-6">
         <div>
-          <h1 className="text-5xl font-medium text-white tracking-tight" style={display}>Performance</h1>
-          <p className="text-white/30 mt-2 font-light">
-            Monitoring activity across <span className="text-purple-400/80">{links.length}</span> smart link{links.length === 1 ? "" : "s"}.
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-medium text-white tracking-tight" style={display}>Performance</h1>
+          <p className="text-white/30 mt-2 font-light text-sm sm:text-base">
+            Monitoring activity across <span className="text-teal-300/90">{links.length}</span> smart link{links.length === 1 ? "" : "s"}.
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-initial">
             <Search className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-white/30" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search links…"
-              className="bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm w-72 focus:outline-none focus:border-purple-500/50 focus:bg-white/[0.05] transition-all backdrop-blur-md text-white placeholder:text-white/30"
+              className="bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-6 py-3 text-sm w-full sm:w-72 focus:outline-none focus:border-teal-400/50 focus:bg-white/[0.05] transition-all backdrop-blur-md text-white placeholder:text-white/30"
             />
           </div>
           <button
             onClick={() => setShowCreate((v) => !v)}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all shadow-[0_0_25px_rgba(147,51,234,0.35)] hover:scale-105 active:scale-95 flex items-center gap-2"
+            className="bg-gradient-to-r from-teal-500 to-purple-600 hover:from-teal-400 hover:to-purple-500 text-white px-5 sm:px-8 py-3 rounded-2xl font-bold text-sm tracking-tight transition-all shadow-[0_0_28px_rgba(45,212,191,0.4)] hover:scale-105 active:scale-95 flex items-center gap-2 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            Create Link
+            <span className="hidden sm:inline">Create Link</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
       </header>
 
+
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-10 lg:mb-12">
         <Kpi label="Total Clicks" value={totalHumans.toLocaleString()} delta="+12%" accent>
           <div className="h-1.5 w-full bg-white/5 overflow-hidden rounded-full">
-            <div className="h-full w-[70%] bg-gradient-to-r from-purple-500 to-fuchsia-400 shadow-[0_0_12px_rgba(168,85,247,0.5)]" />
+            <div className="h-full w-[70%] bg-gradient-to-r from-teal-400 via-purple-500 to-fuchsia-400 shadow-[0_0_12px_rgba(45,212,191,0.55)]" />
           </div>
         </Kpi>
+
         <Kpi label="Active Links" value={`${activeLinks}`} delta={p?.link_limit ? `/ ${p.link_limit}` : ""}>
           <div className="flex gap-1.5 h-5 items-end">
             {[3, 5, 2.5, 4, 3.5].map((h, i) => (
@@ -320,11 +323,11 @@ function Kpi({
   label, value, delta, accent, children,
 }: { label: string; value: string; delta?: string; accent?: boolean; children?: React.ReactNode }) {
   return (
-    <div className={`p-8 border border-white/10 bg-white/[0.02] backdrop-blur-xl rounded-[2rem] transition-all hover:bg-white/[0.04] hover:-translate-y-1 ${accent ? "shadow-[0_0_40px_rgba(168,85,247,0.08)]" : ""}`}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-6">{label}</p>
-      <div className="flex items-baseline gap-3 mb-6 flex-wrap">
-        <span className="text-4xl xl:text-5xl font-medium text-white" style={display}>{value}</span>
-        {delta && <span className={`text-sm font-bold ${accent ? "text-purple-400" : "text-white/30"}`}>{delta}</span>}
+    <div className={`p-6 sm:p-8 border border-white/10 bg-white/[0.02] backdrop-blur-xl rounded-[2rem] transition-all hover:bg-white/[0.04] hover:-translate-y-1 ${accent ? "shadow-[0_0_40px_rgba(45,212,191,0.12)] border-teal-400/20" : ""}`}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30 mb-4 sm:mb-6">{label}</p>
+      <div className="flex items-baseline gap-3 mb-4 sm:mb-6 flex-wrap">
+        <span className="text-3xl sm:text-4xl xl:text-5xl font-medium text-white" style={display}>{value}</span>
+        {delta && <span className={`text-xs sm:text-sm font-bold ${accent ? "text-teal-300" : "text-white/30"}`}>{delta}</span>}
       </div>
       {children}
     </div>
@@ -335,10 +338,11 @@ function Bar({ icon, label, value, total, color }: { icon: React.ReactNode; labe
   const pct = total > 0 ? Math.min(100, Math.round((value / total) * 100)) : 0;
   const fill =
     color === "violet"
-      ? "bg-gradient-to-r from-purple-600 to-indigo-400 shadow-[0_0_15px_rgba(168,85,247,0.4)]"
+      ? "bg-gradient-to-r from-teal-500 via-purple-500 to-fuchsia-400 shadow-[0_0_15px_rgba(45,212,191,0.4)]"
       : color === "white"
         ? "bg-white/30"
         : "bg-white/15";
+
   return (
     <div className="group">
       <div className="flex justify-between text-xs font-bold uppercase tracking-[0.1em] text-white/40 mb-3">
