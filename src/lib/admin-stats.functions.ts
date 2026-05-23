@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { requireSelfHostedAdmin } from "@/lib/self-host-auth.server";
 type Click7dRow = {
   is_bot: boolean;
   country: string | null;
@@ -25,9 +25,8 @@ function throwIfError(label: string, error: { message?: string } | null) {
 }
 
 export const getAdminOverview = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
+  .handler(async () => {
+    await requireSelfHostedAdmin();
     const [users, links, clicks, pending, domains, packages] = await Promise.all([
       supabaseAdmin.from("profiles").select("id", { count: "exact", head: true }),
       supabaseAdmin.from("links").select("id", { count: "exact", head: true }),
@@ -95,9 +94,8 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 // =============== ADVANCED STATS ===============
 
 export const getAdminAdvancedStats = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await assertAdmin(context.userId);
+  .handler(async () => {
+    await requireSelfHostedAdmin();
 
     const now = new Date();
     const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

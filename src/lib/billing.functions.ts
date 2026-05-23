@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSelfHostedAdmin, requireSelfHostedUser } from "@/lib/self-host-auth.server";
 
 const SlugRe = /^[a-z0-9_-]{2,40}$/;
 
@@ -85,9 +85,8 @@ const PACKAGE_COLUMNS =
   "id,slug,name,price_monthly,price_onetime,billing_period,link_limit,click_limit,features,sort_order,is_active,is_featured,created_at";
 
 export const listPackages = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase } = context;
+  .handler(async () => {
+    const { supabase } = await requireSelfHostedAdmin();
     const { data, error } = await (supabase as any)
       .from("packages")
       .select(PACKAGE_COLUMNS)
@@ -108,59 +107,37 @@ export const listAvailablePackages = createServerFn({ method: "GET" }).handler(a
 });
 
 export const createPackage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PackageCreateSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: role } = await (context.supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) throw new Error("Unauthorized: Admin access required");
-    const { error } = await (context.supabase as any).from("packages").insert(data);
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
+    const { error } = await (supabase as any).from("packages").insert(data);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const updatePackage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PackageUpdateSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: role } = await (context.supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) throw new Error("Unauthorized: Admin access required");
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
     const { id, ...patch } = data;
-    const { error } = await (context.supabase as any).from("packages").update(patch).eq("id", id);
+    const { error } = await (supabase as any).from("packages").update(patch).eq("id", id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 export const deletePackage = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => IdSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: role } = await (context.supabase as any)
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) throw new Error("Unauthorized: Admin access required");
-    const { error } = await (context.supabase as any).from("packages").delete().eq("id", data.id);
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
+    const { error } = await (supabase as any).from("packages").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
 
 // ---------- Current plan (for any signed-in user) ----------
 export const getMyPlan = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { userId, supabase } = await requireSelfHostedUser();
     const { data: profile } = await (supabase as any)
       .from("profiles")
       .select("plan_slug,link_quota,links_used")
@@ -171,9 +148,8 @@ export const getMyPlan = createServerFn({ method: "GET" })
 
 // ---------- Click quota status (for dashboard popup) ----------
 export const getMyClickStatus = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { userId, supabase } = await requireSelfHostedUser();
     const { data, error } = await (supabase as any).rpc("get_user_click_status", {
       p_user_id: userId,
     });
@@ -191,9 +167,9 @@ export const getMyClickStatus = createServerFn({ method: "GET" })
 
 // ---------- Upgrade requests ----------
 export const requestUpgrade = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => UpgradeRequestSchema.parse(i))
   .handler(async () => {
+    await requireSelfHostedUser();
     throw new Error("Manual upgrade requests are disabled. Please use automatic Plisio checkout.");
   });
 
@@ -332,9 +308,8 @@ export const createPlisioInvoice = createServerFn({ method: "POST" })
   });
 
 export const listMyUpgradeRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { userId, supabase } = await requireSelfHostedUser();
     const { data, error } = await (supabase as any)
       .from("upgrade_requests")
       .select(
@@ -347,9 +322,8 @@ export const listMyUpgradeRequests = createServerFn({ method: "GET" })
   });
 
 export const listAllUpgradeRequests = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase } = context;
+  .handler(async () => {
+    const { supabase } = await requireSelfHostedAdmin();
     const { data, error } = await (supabase as any)
       .from("upgrade_requests")
       .select(
@@ -372,14 +346,13 @@ export const listAllUpgradeRequests = createServerFn({ method: "GET" })
   });
 
 export const getUpgradeRequestDetail = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => {
     const v: any = i;
     if (!v?.id || typeof v.id !== "string") throw new Error("id required");
     return { id: v.id as string };
   })
-  .handler(async ({ data, context }) => {
-    const { supabase } = context;
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
     const { data: req, error } = await (supabase as any)
       .from("upgrade_requests")
       .select("*")
@@ -406,10 +379,9 @@ export const getUpgradeRequestDetail = createServerFn({ method: "POST" })
   });
 
 export const reviewUpgradeRequest = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => ReviewSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
+  .handler(async ({ data }) => {
+    const { supabase, userId } = await requireSelfHostedAdmin();
     const { data: req, error: re } = await (supabase as any)
       .from("upgrade_requests")
       .select("id,user_id,package_slug,status")
@@ -442,9 +414,9 @@ export const reviewUpgradeRequest = createServerFn({ method: "POST" })
 
 // ---------- Payment settings ----------
 export const getPaymentSettings = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await (context.supabase as any)
+  .handler(async () => {
+    const { supabase } = await requireSelfHostedAdmin();
+    const { data, error } = await (supabase as any)
       .from("payment_settings")
       .select("plisio_enabled,plisio_api_key,plisio_webhook_secret,payment_instructions,updated_at")
       .eq("id", 1)
@@ -465,10 +437,10 @@ export const getPublicPaymentSettings = createServerFn({ method: "GET" }).handle
 });
 
 export const updatePaymentSettings = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => PaymentSettingsSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { error } = await (context.supabase as any)
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
+    const { error } = await (supabase as any)
       .from("payment_settings")
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq("id", 1);
@@ -478,10 +450,10 @@ export const updatePaymentSettings = createServerFn({ method: "POST" })
 
 // ---------- Admin: directly assign a plan to a user ----------
 export const adminAssignPlan = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => AssignPlanSchema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { error } = await (context.supabase as any)
+  .handler(async ({ data }) => {
+    const { supabase } = await requireSelfHostedAdmin();
+    const { error } = await (supabase as any)
       .from("profiles")
       .update({ plan_slug: data.package_slug })
       .eq("id", data.user_id);
@@ -506,9 +478,8 @@ export const listActivePackages = createServerFn({ method: "GET" }).handler(asyn
 // Auto-expire any Plisio invoices older than 30 minutes that never completed.
 // Called from the upgrade page on load so the UI always reflects accurate state.
 export const expireStalePlisioRequests = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .handler(async () => {
+    const { supabase, userId } = await requireSelfHostedUser();
     const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data, error } = await (supabase as any)
       .from("upgrade_requests")
