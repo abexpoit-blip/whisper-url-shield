@@ -9,7 +9,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
  */
 export const createInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ package_slug: z.enum(["monthly", "lifetime"]) }).parse(d))
+  .inputValidator((d) => z.object({ package_slug: z.string().min(1).max(64).regex(/^[a-z0-9_-]+$/) }).parse(d))
   .handler(async ({ data, context }) => {
     const apiKey = process.env.PLISIO_API_KEY;
     if (!apiKey) throw new Error("Plisio API key not configured");
@@ -18,8 +18,10 @@ export const createInvoice = createServerFn({ method: "POST" })
       .from("packages")
       .select("slug, name, price_usd")
       .eq("slug", data.package_slug)
+      .eq("is_active", true)
       .single();
     if (pkgErr || !pkg) throw new Error("Package not found");
+    if (Number(pkg.price_usd) <= 0) throw new Error("This package does not require payment");
 
     // Create local order first
     const { data: req, error: reqErr } = await supabaseAdmin

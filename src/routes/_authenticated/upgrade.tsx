@@ -48,7 +48,7 @@ function UpgradePage() {
   });
 
   const buyMut = useMutation({
-    mutationFn: (slug: "monthly" | "lifetime") => buy({ data: { package_slug: slug } }),
+    mutationFn: (slug: string) => buy({ data: { package_slug: slug } }),
     onSuccess: (r) => { window.location.href = r.invoice_url; },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -99,7 +99,7 @@ function UpgradePage() {
               </ul>
               <button
                 disabled={isFree || buyMut.isPending}
-                onClick={() => buyMut.mutate(p.slug as "monthly" | "lifetime")}
+                onClick={() => buyMut.mutate(p.slug)}
                 className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold ${highlight ? "bg-sky-gradient text-primary-foreground sky-glow" : "border border-sky hover:bg-secondary"} ${isFree ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {isFree ? "Current free plan" : buyMut.isPending ? "Creating invoice…" : `Pay with crypto`}
