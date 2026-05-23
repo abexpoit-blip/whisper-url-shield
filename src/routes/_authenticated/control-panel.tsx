@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { adminStats, adminListUsers, adminBanUser } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/_authenticated/control-panel")({
   beforeLoad: async ({ context }) => {
     const user = (context as { user?: { id: string } }).user;
     if (!user) throw redirect({ to: "/login" });
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
       .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
     if (!data) throw redirect({ to: "/dashboard" });
   },
-  head: () => ({ meta: [{ title: "Admin — Sleepox" }] }),
+  head: () => ({ meta: [{ title: "Control Panel — Sleepox" }] }),
   component: AdminPage,
 });
 
@@ -36,7 +36,7 @@ function AdminPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-semibold">Admin</h1>
+      <h1 className="text-2xl font-semibold">Control Panel</h1>
       <div className="grid grid-cols-3 gap-4">
         <Stat label="Users" value={stats.data?.users ?? "..."} />
         <Stat label="Links" value={stats.data?.links ?? "..."} />
