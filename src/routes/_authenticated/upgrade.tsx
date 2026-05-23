@@ -28,7 +28,7 @@ function UpgradePage() {
             <h3 className="font-semibold">{p.name}</h3>
             <div className="mt-3 text-3xl font-bold">${Number(p.price_usd).toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">{p.click_quota ? `${p.click_quota.toLocaleString()} clicks/mo` : "Unlimited clicks"}</p>
-            <p className="text-xs text-muted-foreground">{p.link_limit} link{p.link_limit > 1 ? "s" : ""}</p>
+            <p className="text-xs text-muted-foreground">{p.link_limit === null ? "Unlimited links" : `${p.link_limit} link${p.link_limit > 1 ? "s" : ""}`}</p>
           </div>
         ))}
       </div>
