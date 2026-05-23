@@ -67,7 +67,7 @@ async function recordRedirectClick(input: {
     bot_score: input.botScore,
     signals: input.signals,
     challenge_passed: input.challengePassed,
-  });
+  } as never);
 
   if (insertError) {
     await supabaseAdmin.from("clicks").insert({
