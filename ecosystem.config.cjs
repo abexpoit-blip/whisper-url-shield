@@ -2,6 +2,7 @@ module.exports = {
   apps: [
     {
       name: "sleepox",
+      cwd: "/opt/sleepox-app-new",
       script: "bun",
       args: "run serve:selfhost",
       env: {
