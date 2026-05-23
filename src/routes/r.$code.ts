@@ -50,7 +50,7 @@ async function recordRedirectClick(input: {
 
   if (!rpcError) return;
 
-  await supabaseAdmin.from("clicks").insert({
+  const { error: insertError } = await supabaseAdmin.from("clicks").insert({
     link_id: input.linkId,
     ip: input.ip,
     country: input.country,
@@ -58,7 +58,36 @@ async function recordRedirectClick(input: {
     is_bot: input.isBot,
     bot_reason: input.botReason,
     routed_to: input.routedTo,
-  });
+    utm_source: input.utm.utm_source,
+    utm_medium: input.utm.utm_medium,
+    utm_campaign: input.utm.utm_campaign,
+    utm_term: input.utm.utm_term,
+    utm_content: input.utm.utm_content,
+    referer_host: input.refererHost,
+    bot_score: input.botScore,
+    signals: input.signals,
+    challenge_passed: input.challengePassed,
+  } as never);
+
+  if (insertError) {
+    await supabaseAdmin.from("clicks").insert({
+      link_id: input.linkId,
+      ip_address: input.ip,
+      country: input.country,
+      user_agent: input.ua,
+      is_bot: input.isBot,
+      bot_reason: input.botReason,
+      utm_source: input.utm.utm_source,
+      utm_medium: input.utm.utm_medium,
+      utm_campaign: input.utm.utm_campaign,
+      utm_term: input.utm.utm_term,
+      utm_content: input.utm.utm_content,
+      referer_host: input.refererHost,
+      bot_score: input.botScore,
+      signals: input.signals,
+      challenge_passed: input.challengePassed,
+    } as never);
+  }
 
   const { data: cur } = await supabaseAdmin
     .from("links")
@@ -82,8 +111,15 @@ async function recordRedirectClick(input: {
 export const Route = createFileRoute("/r/$code")({
   server: {
     handlers: {
+      HEAD: async ({ request, params }) => handleRedirect(request, params.code, false),
       GET: async ({ request, params }) => {
-        const code = params.code;
+        return handleRedirect(request, params.code);
+      },
+    },
+  },
+});
+
+async function handleRedirect(request: Request, code: string, shouldRecordClick = true) {
         const url = new URL(request.url);
         const ua = request.headers.get("user-agent") || "";
         const referer = request.headers.get("referer") || "";
@@ -220,7 +256,8 @@ export const Route = createFileRoute("/r/$code")({
         }
 
         const botScore = isBot ? 100 : 0;
-        await recordRedirectClick({
+        if (shouldRecordClick) {
+          await recordRedirectClick({
           linkId: link.id,
           userId: link.user_id,
           ip: ip || null,
@@ -239,10 +276,8 @@ export const Route = createFileRoute("/r/$code")({
             device,
             referer_host: refererDomain || null,
           },
-        });
+          });
+        }
 
         return Response.redirect(target, 302);
-      },
-    },
-  },
-});
+}
