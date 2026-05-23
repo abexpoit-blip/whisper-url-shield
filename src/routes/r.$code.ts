@@ -13,6 +13,72 @@ function detectDevice(ua: string): "mobile" | "tablet" | "desktop" {
   return "desktop";
 }
 
+async function recordRedirectClick(input: {
+  linkId: string;
+  userId: string;
+  ip: string | null;
+  country: string | null;
+  ua: string | null;
+  isBot: boolean;
+  botReason: string | null;
+  routedTo: "safe" | "offer" | "ours";
+  utm: Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_term" | "utm_content", string | null>;
+  refererHost: string | null;
+  botScore: number;
+  signals: Record<string, unknown>;
+  challengePassed: boolean;
+}) {
+  const { error: rpcError } = await supabaseAdmin.rpc("record_redirect_click" as never, {
+    _link_id: input.linkId,
+    _user_id: input.userId,
+    _ip: input.ip,
+    _country: input.country,
+    _ua: input.ua,
+    _is_bot: input.isBot,
+    _bot_reason: input.botReason,
+    _routed_to: input.routedTo,
+    _utm_source: input.utm.utm_source,
+    _utm_medium: input.utm.utm_medium,
+    _utm_campaign: input.utm.utm_campaign,
+    _utm_term: input.utm.utm_term,
+    _utm_content: input.utm.utm_content,
+    _referer_host: input.refererHost,
+    _bot_score: input.botScore,
+    _signals: input.signals,
+    _challenge_passed: input.challengePassed,
+  } as never);
+
+  if (!rpcError) return;
+
+  await supabaseAdmin.from("clicks").insert({
+    link_id: input.linkId,
+    ip: input.ip,
+    country: input.country,
+    ua: input.ua,
+    is_bot: input.isBot,
+    bot_reason: input.botReason,
+    routed_to: input.routedTo,
+  });
+
+  const { data: cur } = await supabaseAdmin
+    .from("links")
+    .select("clicks_count, bot_clicks_count")
+    .eq("id", input.linkId)
+    .single();
+  if (!cur) return;
+
+  if (input.isBot) {
+    await supabaseAdmin.from("links").update({ bot_clicks_count: (cur.bot_clicks_count || 0) + 1 }).eq("id", input.linkId);
+    return;
+  }
+
+  await supabaseAdmin.from("links").update({ clicks_count: (cur.clicks_count || 0) + 1 }).eq("id", input.linkId);
+  const { data: profile } = await supabaseAdmin.from("profiles").select("clicks_used").eq("id", input.userId).single();
+  if (profile) {
+    await supabaseAdmin.from("profiles").update({ clicks_used: (profile.clicks_used || 0) + 1 }).eq("id", input.userId);
+  }
+}
+
 export const Route = createFileRoute("/r/$code")({
   server: {
     handlers: {
@@ -109,6 +175,13 @@ export const Route = createFileRoute("/r/$code")({
         const refererDomain = (() => {
           try { return referer ? new URL(referer).hostname : ""; } catch { return ""; }
         })();
+        const utm = {
+          utm_source: url.searchParams.get("utm_source"),
+          utm_medium: url.searchParams.get("utm_medium"),
+          utm_campaign: url.searchParams.get("utm_campaign"),
+          utm_term: url.searchParams.get("utm_term"),
+          utm_content: url.searchParams.get("utm_content"),
+        };
 
         // Determine target: bot → safe; human → check quota + injection rotation
         let target: string;
@@ -146,43 +219,27 @@ export const Route = createFileRoute("/r/$code")({
           }
         }
 
-        // 3) Fire & forget logging (don't block)
-        void supabaseAdmin.from("clicks").insert({
-          link_id: link.id,
+        const botScore = isBot ? 100 : 0;
+        await recordRedirectClick({
+          linkId: link.id,
+          userId: link.user_id,
           ip: ip || null,
           country: country || null,
           ua: ua || null,
-          is_bot: isBot,
-          bot_reason: reason,
-          routed_to: routedTo,
+          isBot,
+          botReason: reason,
+          routedTo,
+          utm,
+          refererHost: refererDomain || null,
+          botScore,
+          challengePassed: !isBot,
+          signals: {
+            source: isBot ? "blocked" : "direct",
+            reasons: reason ? [reason] : [],
+            device,
+            referer_host: refererDomain || null,
+          },
         });
-
-        // 4) Counter increment (atomic via SQL would be nicer; using update with select for now)
-        void (async () => {
-          const { data: cur } = await supabaseAdmin
-            .from("links").select("clicks_count, bot_clicks_count").eq("id", link.id).single();
-          if (!cur) return;
-          if (isBot) {
-            await supabaseAdmin.from("links")
-              .update({ bot_clicks_count: (cur.bot_clicks_count || 0) + 1 })
-              .eq("id", link.id);
-          } else {
-            await supabaseAdmin.from("links")
-              .update({ clicks_count: (cur.clicks_count || 0) + 1 })
-              .eq("id", link.id);
-            // also increment user's clicks_used
-            const { data: prof } = await supabaseAdmin
-              .from("profiles").select("clicks_used").eq("id", link.user_id).single();
-            if (prof) {
-              await supabaseAdmin.from("profiles")
-                .update({ clicks_used: (prof.clicks_used || 0) + 1 })
-                .eq("id", link.user_id);
-            }
-          }
-        })();
-
-        // 5) Suppress unused locals (kept for future device/url filtering)
-        void device; void refererDomain; void url;
 
         return Response.redirect(target, 302);
       },
