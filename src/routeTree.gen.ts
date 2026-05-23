@@ -17,7 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RCodeRouteImport } from './routes/r.$code'
 import { Route as AuthenticatedUpgradeRouteImport } from './routes/_authenticated/upgrade'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedControlPanelRouteImport } from './routes/_authenticated/control-panel'
 import { Route as ApiPublicPlisioWebhookRouteImport } from './routes/api/public/plisio-webhook'
 
 const SignupRoute = SignupRouteImport.update({
@@ -59,11 +59,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
+const AuthenticatedControlPanelRoute =
+  AuthenticatedControlPanelRouteImport.update({
+    id: '/control-panel',
+    path: '/control-panel',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const ApiPublicPlisioWebhookRoute = ApiPublicPlisioWebhookRouteImport.update({
   id: '/api/public/plisio-webhook',
   path: '/api/public/plisio-webhook',
@@ -75,7 +76,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/control-panel': typeof AuthenticatedControlPanelRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/upgrade': typeof AuthenticatedUpgradeRoute
   '/r/$code': typeof RCodeRoute
@@ -86,7 +87,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
-  '/admin': typeof AuthenticatedAdminRoute
+  '/control-panel': typeof AuthenticatedControlPanelRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/upgrade': typeof AuthenticatedUpgradeRoute
   '/r/$code': typeof RCodeRoute
@@ -99,7 +100,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/pricing': typeof PricingRoute
   '/signup': typeof SignupRoute
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/control-panel': typeof AuthenticatedControlPanelRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/upgrade': typeof AuthenticatedUpgradeRoute
   '/r/$code': typeof RCodeRoute
@@ -112,7 +113,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
-    | '/admin'
+    | '/control-panel'
     | '/dashboard'
     | '/upgrade'
     | '/r/$code'
@@ -123,7 +124,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
-    | '/admin'
+    | '/control-panel'
     | '/dashboard'
     | '/upgrade'
     | '/r/$code'
@@ -135,7 +136,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/pricing'
     | '/signup'
-    | '/_authenticated/admin'
+    | '/_authenticated/control-panel'
     | '/_authenticated/dashboard'
     | '/_authenticated/upgrade'
     | '/r/$code'
@@ -210,11 +211,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/admin': {
-      id: '/_authenticated/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+    '/_authenticated/control-panel': {
+      id: '/_authenticated/control-panel'
+      path: '/control-panel'
+      fullPath: '/control-panel'
+      preLoaderRoute: typeof AuthenticatedControlPanelRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/api/public/plisio-webhook': {
@@ -228,13 +229,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedControlPanelRoute: typeof AuthenticatedControlPanelRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedUpgradeRoute: typeof AuthenticatedUpgradeRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedControlPanelRoute: AuthenticatedControlPanelRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedUpgradeRoute: AuthenticatedUpgradeRoute,
 }

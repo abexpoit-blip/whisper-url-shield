@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { adminStats, adminListUsers, adminBanUser } from "@/lib/admin.functions";
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/_authenticated/control-panel")({
   beforeLoad: async ({ context }) => {
     const user = (context as { user?: { id: string } }).user;
     if (!user) throw redirect({ to: "/login" });
