@@ -14,7 +14,7 @@ export const Route = createFileRoute("/_authenticated/control-panel")({
       .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
     if (!data) throw redirect({ to: "/dashboard" });
   },
-  head: () => ({ meta: [{ title: "Admin — Sleepox" }] }),
+  head: () => ({ meta: [{ title: "Control Panel — Sleepox" }] }),
   component: AdminPage,
 });
 
