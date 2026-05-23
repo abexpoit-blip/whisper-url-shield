@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { requireSelfHostedAdmin, requireSelfHostedUser } from "@/lib/self-host-auth.server";
 
 const SlugRe = /^[a-z0-9_-]{2,40}$/;

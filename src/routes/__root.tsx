@@ -119,13 +119,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         property: "og:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60ce39b9-ef4c-44c7-9266-6c4831b3f9e4/id-preview-35a3a1ec--a5ab0c94-43e0-46fe-a916-25eab8563989.lovable.app-1779208529876.png",
+        content: "https://sleepox.com/icon-512x512.png",
       },
       {
         name: "twitter:image",
-        content:
-          "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60ce39b9-ef4c-44c7-9266-6c4831b3f9e4/id-preview-35a3a1ec--a5ab0c94-43e0-46fe-a916-25eab8563989.lovable.app-1779208529876.png",
+        content: "https://sleepox.com/icon-512x512.png",
       },
     ],
 
