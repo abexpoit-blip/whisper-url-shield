@@ -15,6 +15,10 @@ export CLOUDFLARE_INCLUDE_PROCESS_ENV="${CLOUDFLARE_INCLUDE_PROCESS_ENV:-true}"
 export CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV="${CLOUDFLARE_LOAD_DEV_VARS_FROM_DOT_ENV:-true}"
 export WRANGLER_CI_DISABLE_CONFIG_WATCHING="${WRANGLER_CI_DISABLE_CONFIG_WATCHING:-true}"
 
+if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ] && [ -n "${SUPABASE_SECRET_KEY:-}" ]; then
+  export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SECRET_KEY}"
+fi
+
 if [ -f .wrangler/deploy/config.json ] && [ ! -f "${WRANGLER_CONFIG}" ]; then
   rm -f .wrangler/deploy/config.json
 fi
@@ -28,6 +32,8 @@ if [ ! -f "${WRANGLER_CLI}" ]; then
   echo "Wrangler is not installed. Run bun install first." >&2
   exit 1
 fi
+
+bun run verify-env
 
 if [ ! -f "${WRANGLER_CONFIG}" ]; then
   echo "Built server config not found at ${WRANGLER_CONFIG}. Building the app before start..." >&2
