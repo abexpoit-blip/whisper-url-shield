@@ -123,10 +123,7 @@ function AuthenticatedLayout() {
             <Crown className="w-4 h-4" />
             Upgrade Pro
           </Link>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-white/40 hover:text-white/80 hover:bg-white/[0.02] rounded-2xl transition-all">
-            <Settings className="w-4 h-4" />
-            Settings
-          </button>
+
           {isAdmin && (
             <Link
               to="/control-panel"
