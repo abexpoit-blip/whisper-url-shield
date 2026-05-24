@@ -1,27 +1,27 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Link2, BarChart3, Globe, Settings, Crown, ShieldCheck, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, BarChart3, Crown, ShieldCheck, LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { consumeDailyRedirect } from "@/lib/app-settings.functions";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
+    // getSession() reads from localStorage (instant) — getUser() hits the network on every nav
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) {
       throw redirect({ to: "/login" });
     }
-    return { user: data.user };
+    return { user: data.session.user };
   },
   component: AuthenticatedLayout,
 });
 
 const navMgmt = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/dashboard", label: "Links", icon: Link2 },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/dashboard", label: "Domains", icon: Globe },
 ] as const;
+
 
 function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
