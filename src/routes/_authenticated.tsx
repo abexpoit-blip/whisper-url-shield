@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated")({
 const navMgmt = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/dashboard", label: "Links", icon: Link2 },
-  { to: "/dashboard", label: "Analytics", icon: BarChart3 },
+  { to: "/analytics", label: "Analytics", icon: BarChart3 },
   { to: "/dashboard", label: "Domains", icon: Globe },
 ] as const;
 
@@ -92,8 +92,8 @@ function AuthenticatedLayout() {
       <nav className="flex-1 space-y-8">
         <div className="space-y-1">
           <p className="text-[10px] uppercase tracking-[0.2em] text-white/20 font-bold mb-4 ml-3">Management</p>
-          {navMgmt.map((item, i) => {
-            const active = i === 0 && pathname === item.to;
+          {navMgmt.map((item) => {
+            const active = pathname === item.to;
             return (
               <Link
                 key={item.label}
