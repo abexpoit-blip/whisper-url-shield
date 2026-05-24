@@ -117,7 +117,7 @@ export const createLink = createServerFn({ method: "POST" })
       .select()
       .single();
 
-    let link: unknown = createdModern.data;
+    let link: DashboardLink | null = createdModern.data ? normalizeLink(createdModern.data as LinkRow) : null;
     let error: { message: string } | null = createdModern.error;
 
     if (error) {
