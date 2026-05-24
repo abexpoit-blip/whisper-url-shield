@@ -2,6 +2,41 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+type LinkRow = {
+  id: string;
+  user_id: string;
+  short_code: string;
+  title: string | null;
+  clicks_count: number | null;
+  bot_clicks_count: number | null;
+  created_at: string;
+  adsterra_url?: string | null;
+  safe_url?: string | null;
+  is_active?: boolean;
+  destination_url?: string | null;
+  adsterra_direct_link?: string | null;
+  status?: string | null;
+};
+
+function normalizeLink(row: LinkRow) {
+  return {
+    ...row,
+    adsterra_url: row.adsterra_url ?? row.adsterra_direct_link ?? row.destination_url ?? "",
+    safe_url: row.safe_url ?? row.destination_url ?? "https://sleepox.com/",
+    is_active: row.is_active ?? row.status === "active",
+  };
+}
+
+async function selectLinks(supabase: any) {
+  const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
+  if (!modern.error) return modern;
+  const legacy = await supabase
+    .from("links")
+    .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
+    .order("created_at", { ascending: false });
+  return legacy.error ? modern : { data: (legacy.data ?? []).map(normalizeLink), error: null };
+}
+
 function randomCode(len = 6) {
   const chars = "abcdefghijkmnpqrstuvwxyz23456789";
   let out = "";
@@ -12,10 +47,7 @@ function randomCode(len = 6) {
 export const listMyLinks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("links")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await selectLinks(context.supabase);
     if (error) throw new Error(error.message);
     return data;
   });
@@ -37,7 +69,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const [linksRes, profileRes] = await Promise.all([
-      context.supabase.from("links").select("*").order("created_at", { ascending: false }),
+      selectLinks(context.supabase),
       context.supabase.from("profiles").select("*").eq("id", context.userId).single(),
     ]);
     if (linksRes.error) throw new Error(linksRes.error.message);
