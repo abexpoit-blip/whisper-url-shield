@@ -5,7 +5,15 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { adminStats, adminListUsers, adminBanUser } from "@/lib/admin.functions";
+import {
+  adminStats,
+  adminListUsers,
+  adminBanUser,
+  adminListPackages,
+  adminSetUserPlan,
+  adminListUpgradeRequests,
+  adminDecideUpgradeRequest,
+} from "@/lib/admin.functions";
 import { getAppSettings, updateAppSettings } from "@/lib/app-settings.functions";
 
 export const Route = createFileRoute("/_authenticated/control-panel")({
@@ -27,16 +35,44 @@ function AdminPage() {
   const banFn = useServerFn(adminBanUser);
   const settingsFn = useServerFn(getAppSettings);
   const updateSettingsFn = useServerFn(updateAppSettings);
+  const packagesFn = useServerFn(adminListPackages);
+  const setPlanFn = useServerFn(adminSetUserPlan);
+  const upgradesFn = useServerFn(adminListUpgradeRequests);
+  const decideFn = useServerFn(adminDecideUpgradeRequest);
 
   const stats = useQuery({ queryKey: ["admin-stats"], queryFn: () => statsFn() });
   const users = useQuery({ queryKey: ["admin-users"], queryFn: () => usersFn() });
   const settings = useQuery({ queryKey: ["app-settings"], queryFn: () => settingsFn() });
+  const packages = useQuery({ queryKey: ["admin-packages"], queryFn: () => packagesFn() });
+  const upgrades = useQuery({ queryKey: ["admin-upgrades"], queryFn: () => upgradesFn() });
 
   const banMut = useMutation({
     mutationFn: (v: { id: string; is_banned: boolean }) => banFn({ data: v }),
     onSuccess: () => { toast.success("Updated"); qc.invalidateQueries({ queryKey: ["admin-users"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const planMut = useMutation({
+    mutationFn: (v: { user_id: string; package_slug: string }) => setPlanFn({ data: v }),
+    onSuccess: () => {
+      toast.success("Plan updated");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const decideMut = useMutation({
+    mutationFn: (v: { id: string; decision: "approve" | "reject" }) => decideFn({ data: v }),
+    onSuccess: (_, v) => {
+      toast.success(v.decision === "approve" ? "Approved & plan applied" : "Rejected");
+      qc.invalidateQueries({ queryKey: ["admin-upgrades"] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
 
   // ── App-wide settings form ─────────────────────────────────────────
   const [fallbackUrl, setFallbackUrl] = useState("");
@@ -75,10 +111,11 @@ function AdminPage() {
         Control Panel
       </h1>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Stat label="Users" value={stats.data?.users ?? "..."} />
         <Stat label="Links" value={stats.data?.links ?? "..."} />
         <Stat label="Clicks" value={stats.data?.clicks ?? "..."} />
+        <Stat label="Pending upgrades" value={stats.data?.pending ?? "..."} />
       </div>
 
       {/* App-wide traffic settings */}
@@ -123,6 +160,62 @@ function AdminPage() {
         </div>
       </section>
 
+      {/* Upgrade requests */}
+      <section>
+        <h2 className="text-lg font-semibold text-white mb-4">Upgrade requests</h2>
+        <div className="overflow-x-auto rounded-lg border border-white/10">
+          <table className="w-full text-sm">
+            <thead className="bg-white/5 text-left text-white/60">
+              <tr>
+                <th className="p-3">When</th>
+                <th className="p-3">User</th>
+                <th className="p-3">Package</th>
+                <th className="p-3">Amount</th>
+                <th className="p-3">Invoice</th>
+                <th className="p-3">Status</th>
+                <th className="p-3"></th>
+              </tr>
+            </thead>
+            <tbody className="text-white/80">
+              {upgrades.data?.length ? upgrades.data.map((r) => (
+                <tr key={r.id} className="border-t border-white/10">
+                  <td className="p-3 whitespace-nowrap text-white/60">{new Date(r.created_at).toLocaleString()}</td>
+                  <td className="p-3">{r.email || r.user_id.slice(0, 8)}</td>
+                  <td className="p-3">{r.package_slug}</td>
+                  <td className="p-3">${Number(r.amount).toFixed(2)}</td>
+                  <td className="p-3">
+                    {r.plisio_invoice_url
+                      ? <a href={r.plisio_invoice_url} target="_blank" rel="noreferrer" className="text-teal-300 hover:underline">View</a>
+                      : <span className="text-white/30">—</span>}
+                  </td>
+                  <td className="p-3">
+                    <span className={
+                      r.status === "paid" ? "text-teal-300" :
+                      r.status === "rejected" ? "text-red-400" :
+                      "text-amber-300"
+                    }>{r.status}</span>
+                  </td>
+                  <td className="p-3">
+                    {r.status === "pending" && (
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => decideMut.mutate({ id: r.id, decision: "approve" })}
+                          className="bg-teal-500 hover:bg-teal-400 text-black">Approve</Button>
+                        <Button size="sm" variant="outline" onClick={() => decideMut.mutate({ id: r.id, decision: "reject" })}>
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )) : (
+                <tr><td colSpan={7} className="p-6 text-center text-white/40">No upgrade requests yet.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* Users */}
       <section>
         <h2 className="text-lg font-semibold text-white mb-4">Users</h2>
         <div className="overflow-x-auto rounded-lg border border-white/10">
@@ -131,6 +224,7 @@ function AdminPage() {
               <tr>
                 <th className="p-3">Email</th>
                 <th className="p-3">Plan</th>
+                <th className="p-3">Change plan</th>
                 <th className="p-3">Links</th>
                 <th className="p-3">Clicks</th>
                 <th className="p-3">Status</th>
@@ -141,9 +235,28 @@ function AdminPage() {
               {users.data?.map((u) => (
                 <tr key={u.id} className="border-t border-white/10">
                   <td className="p-3">{u.email}</td>
-                  <td className="p-3">{u.plan_slug}</td>
+                  <td className="p-3"><span className="px-2 py-0.5 rounded-md bg-white/10 text-white/80">{u.plan_slug}</span></td>
+                  <td className="p-3">
+                    <select
+                      value={u.plan_slug}
+                      onChange={(e) => {
+                        if (e.target.value !== u.plan_slug && confirm(`Change ${u.email} to ${e.target.value}?`)) {
+                          planMut.mutate({ user_id: u.id, package_slug: e.target.value });
+                        }
+                      }}
+                      className="bg-white/[0.04] border border-white/10 rounded-md px-2 py-1 text-xs text-white"
+                    >
+                      {packages.data?.map((p) => (
+                        <option key={p.slug} value={p.slug} className="bg-zinc-900">{p.name}</option>
+                      ))}
+                      {/* fallback option for unknown slug so the select stays controlled */}
+                      {!packages.data?.some((p) => p.slug === u.plan_slug) && (
+                        <option value={u.plan_slug} className="bg-zinc-900">{u.plan_slug}</option>
+                      )}
+                    </select>
+                  </td>
                   <td className="p-3">{u.links_used} / {u.link_limit}</td>
-                  <td className="p-3">{u.clicks_used.toLocaleString()}</td>
+                  <td className="p-3">{u.clicks_used.toLocaleString()}{u.click_quota ? ` / ${u.click_quota.toLocaleString()}` : " / ∞"}</td>
                   <td className="p-3">{u.is_banned ? <span className="text-red-400">Banned</span> : <span className="text-teal-300">Active</span>}</td>
                   <td className="p-3">
                     <Button size="sm" variant="outline" onClick={() => banMut.mutate({ id: u.id, is_banned: !u.is_banned })}>
