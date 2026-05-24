@@ -238,26 +238,28 @@ function AnalyticsPage() {
         </Card>
 
         <Card className="col-span-12 xl:col-span-4" title="Live Event Stream">
-          <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
             {d.liveEvents.length === 0 && <Empty label="Waiting for events…" />}
             {d.liveEvents.map((e, i) => {
               const color = e.isBot
                 ? "border-amber-400/60 text-amber-300"
                 : e.routed === "safe"
                 ? "border-indigo-400/60 text-indigo-300"
-                : "border-sky-400/60 text-sky-300";
+                : "border-emerald-400/60 text-emerald-300";
               return (
                 <div
                   key={e.id}
-                  className={`flex items-center gap-3 text-xs border-l-2 ${color} pl-3 py-2 bg-white/[0.02] rounded-r-md`}
-                  style={{ opacity: 1 - i * 0.05 }}
+                  className={`flex items-center gap-2 text-xs border-l-2 ${color} pl-2 py-2 bg-white/[0.02] rounded-r-md`}
+                  style={{ opacity: 1 - i * 0.03 }}
                 >
-                  <span className="font-mono text-[10px] text-white/40">
+                  <span className="font-mono text-[10px] text-white/40 w-14 shrink-0">
                     {new Date(e.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </span>
-                  <span className="text-base leading-none">{e.flag}</span>
-                  <span className="text-white/80 truncate flex-1">
-                    {e.isBot ? "Bot blocked" : e.routed === "safe" ? "Safe redirect" : "Offer click"} · {e.country}
+                  <Flag code={e.country} small />
+                  <DeviceIcon name={e.device} />
+                  <BrowserIcon slug={e.browserSlug} color={e.browserColor} title={e.browser} />
+                  <span className="text-white/80 truncate flex-1 text-[11px]">
+                    {e.isBot ? "🛡 Bot blocked" : e.routed === "safe" ? "↪ Safe redirect" : "✓ Offer click"}
                   </span>
                 </div>
               );
@@ -266,8 +268,8 @@ function AnalyticsPage() {
         </Card>
       </section>
 
-      {/* Devices + Browsers + Top Links */}
-      <section className="grid grid-cols-12 gap-6 pb-10">
+      {/* Devices + Browsers + OS */}
+      <section className="grid grid-cols-12 gap-6">
         <Card className="col-span-12 md:col-span-6 xl:col-span-4" title="Devices">
           <div className="flex items-center justify-center mb-6">
             <Donut
@@ -279,17 +281,17 @@ function AnalyticsPage() {
               centerValue={`${d.devices[0]?.pct ?? 0}%`}
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {d.devices.length === 0 && <Empty label="No device data" />}
             {d.devices.map((dv, i) => (
               <div key={dv.name} className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-2 text-white/70">
+                <span className="flex items-center gap-2.5 text-white/80">
                   <span
                     className="w-2 h-2 rounded-full"
                     style={{ backgroundColor: ["#38BDF8", "#6366F1", "#A78BFA", "#475569"][i % 4] }}
                   />
-                  <MonitorSmartphone className="w-3 h-3 text-white/30" />
-                  {dv.name}
+                  <DeviceIcon name={dv.name} />
+                  <span className="font-medium">{dv.name}</span>
                 </span>
                 <span className="font-mono text-white/50">{dv.count.toLocaleString()} · {dv.pct}%</span>
               </div>
@@ -298,18 +300,21 @@ function AnalyticsPage() {
         </Card>
 
         <Card className="col-span-12 md:col-span-6 xl:col-span-4" title="Browsers">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {d.browsers.length === 0 && <Empty label="No browser data" />}
             {d.browsers.map((b) => (
               <div key={b.name} className="space-y-1.5">
-                <div className="flex justify-between text-xs text-white/70">
-                  <span className="font-medium">{b.name}</span>
-                  <span className="font-mono text-white/40">{b.count.toLocaleString()} · {b.pct}%</span>
+                <div className="flex items-center gap-3">
+                  <BrowserIcon slug={b.slug} color={b.color} title={b.name} large />
+                  <div className="flex-1">
+                    <p className="text-sm text-white/90 font-medium">{b.name}</p>
+                  </div>
+                  <span className="font-mono text-xs text-white/60">{b.count.toLocaleString()} · {b.pct}%</span>
                 </div>
                 <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-sky-400 via-cyan-400 to-indigo-500 rounded-full"
-                    style={{ width: `${Math.max(b.pct, 2)}%` }}
+                    className="h-full rounded-full"
+                    style={{ width: `${Math.max(b.pct, 2)}%`, background: `linear-gradient(90deg, #${b.color}, #${b.color}88)` }}
                   />
                 </div>
               </div>
@@ -317,7 +322,53 @@ function AnalyticsPage() {
           </div>
         </Card>
 
-        <Card className="col-span-12 xl:col-span-4" title="Top Performing Links">
+        <Card className="col-span-12 xl:col-span-4" title="Operating Systems">
+          <div className="space-y-3">
+            {d.operatingSystems.length === 0 && <Empty label="No OS data" />}
+            {d.operatingSystems.map((o) => (
+              <div key={o.name} className="space-y-1.5">
+                <div className="flex items-center gap-3">
+                  <BrowserIcon slug={o.slug} color="94a3b8" title={o.name} large />
+                  <div className="flex-1">
+                    <p className="text-sm text-white/90 font-medium">{o.name}</p>
+                  </div>
+                  <span className="font-mono text-xs text-white/60">{o.count.toLocaleString()} · {o.pct}%</span>
+                </div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-slate-300 to-slate-500 rounded-full" style={{ width: `${Math.max(o.pct, 2)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* Bot Reasons + Top Links */}
+      <section className="grid grid-cols-12 gap-6 pb-10">
+        <Card
+          className="col-span-12 xl:col-span-5"
+          title="Bot Detection Breakdown"
+          right={<span className="text-[10px] text-amber-300/70 uppercase tracking-widest flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> Protected</span>}
+        >
+          <div className="space-y-3">
+            {d.botReasons.length === 0 && <Empty label="No bot traffic detected — clean!" />}
+            {d.botReasons.map((r) => (
+              <div key={r.name} className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-400/70 shrink-0" />
+                  <p className="text-sm text-white/85 font-medium flex-1">{r.name}</p>
+                  <span className="font-mono text-xs text-amber-300">{r.count.toLocaleString()}</span>
+                  <span className="font-mono text-[10px] text-white/40 w-12 text-right">{r.pct}%</span>
+                </div>
+                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style={{ width: `${Math.max(r.pct, 2)}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="col-span-12 xl:col-span-7" title="Top Performing Links">
           <div className="space-y-3">
             {d.topLinks.length === 0 && <Empty label="No link data yet" />}
             {d.topLinks.map((l, i) => (
@@ -325,20 +376,24 @@ function AnalyticsPage() {
                 key={l.id}
                 className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 hover:border-sky-400/30 transition-colors"
               >
-                <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-300 text-xs font-bold">
+                <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-400/20 flex items-center justify-center text-sky-300 text-xs font-bold shrink-0">
                   {i + 1}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-white truncate">
-                    /{l.code}
-                  </p>
-                  <p className="text-[10px] uppercase tracking-wider text-white/30 truncate">
+                  <p className="text-sm font-semibold text-white truncate font-mono">/{l.code}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 truncate">
                     {l.title ?? "Untitled link"}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-white font-mono">{l.count.toLocaleString()}</p>
-                  <p className="text-[9px] text-sky-300 uppercase tracking-wider">clicks</p>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-emerald-300 font-mono">{l.humans.toLocaleString()} ✓</p>
+                  <p className="text-[10px] text-amber-300 font-mono">{l.bots.toLocaleString()} 🛡</p>
+                </div>
+                <div className="text-right shrink-0 min-w-[58px]">
+                  <p className={`text-sm font-bold font-mono ${l.health >= 70 ? "text-emerald-300" : l.health >= 40 ? "text-amber-300" : "text-rose-300"}`}>
+                    {l.health}%
+                  </p>
+                  <p className="text-[9px] uppercase tracking-wider text-white/40">Health</p>
                 </div>
               </div>
             ))}
