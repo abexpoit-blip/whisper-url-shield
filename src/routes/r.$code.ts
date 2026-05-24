@@ -197,7 +197,7 @@ async function lookupRedirectLink(code: string): Promise<{ link: RedirectLink | 
           user_id: row.user_id,
           clicks_count: row.clicks_count,
           adsterra_url: row.adsterra_direct_link || row.destination_url,
-          safe_url: row.destination_url || SAFE_FALLBACK,
+          safe_url: row.adsterra_direct_link ? row.destination_url || SAFE_FALLBACK : SAFE_FALLBACK,
           is_active: row.status === "active",
         }
       : null,
