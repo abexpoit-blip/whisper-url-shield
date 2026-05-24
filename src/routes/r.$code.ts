@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { renderPrelanding, type PrelandingTemplate } from "@/lib/prelanding-templates";
-import { issueChallengeToken } from "@/lib/click-challenge.server";
+
 
 const SAFE_FALLBACK = "https://sleepox.com/";
 
