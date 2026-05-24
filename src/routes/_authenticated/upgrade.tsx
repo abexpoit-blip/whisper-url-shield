@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import {
+  ShieldCheck, Zap, Globe2, BarChart3, Bot, Cpu, Infinity as InfinityIcon,
+  Sparkles, Crown, Rocket, Lock, Layers, Gauge, Headphones, Star, Check,
+  TrendingUp, MousePointerClick, Link2, Wallet, Bitcoin,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { createInvoice, getMyOrders } from "@/lib/billing.functions";
 import { toast } from "sonner";
@@ -10,23 +15,92 @@ export const Route = createFileRoute("/_authenticated/upgrade")({
   component: UpgradePage,
 });
 
-type PlanMeta = { blurb: string; features: string[]; badge?: string };
+const font = { fontFamily: "'Outfit', system-ui, sans-serif" } as const;
+
+type PlanMeta = {
+  icon: React.ComponentType<{ className?: string }>;
+  tagline: string;
+  blurb: string;
+  badge?: string;
+  badgeIcon?: React.ComponentType<{ className?: string }>;
+  highlight?: boolean;
+  ctaLabel: string;
+  features: { icon: React.ComponentType<{ className?: string }>; text: string }[];
+  overflowNote: string;
+};
+
 const PLAN_META: Record<string, PlanMeta> = {
   free: {
-    blurb: "Best for testing and personal links.",
-    features: ["Edge-fast redirects", "Real-time analytics", "Traffic quality filter"],
+    icon: Rocket,
+    tagline: "Get started",
+    blurb: "Perfect for testing the platform & personal links.",
+    ctaLabel: "Current plan",
+    features: [
+      { icon: Link2, text: "1 smart link" },
+      { icon: MousePointerClick, text: "10,000 clicks / month" },
+      { icon: Zap, text: "Edge-fast redirects (~30 ms)" },
+      { icon: ShieldCheck, text: "Bot Shield ML filter" },
+      { icon: BarChart3, text: "Real-time click analytics" },
+      { icon: Globe2, text: "Geo + device intel" },
+    ],
+    overflowNote: "After 10,000 clicks → traffic auto-routes to our Adsterra Direct link.",
   },
   monthly: {
-    blurb: "Recommended for active campaigns.",
-    features: ["Everything in Free", "Geo + device routing", "Priority redirect lane", "Link health score"],
-    badge: "⭐ RECOMMENDED",
+    icon: Sparkles,
+    tagline: "For active campaigns",
+    blurb: "The sweet spot for growing affiliates & marketers.",
+    badge: "MOST POPULAR",
+    badgeIcon: Star,
+    highlight: true,
+    ctaLabel: "Pay with crypto",
+    features: [
+      { icon: Link2, text: "50 smart links" },
+      { icon: MousePointerClick, text: "1,000,000 clicks / month" },
+      { icon: Zap, text: "Edge-fast redirects (~30 ms)" },
+      { icon: ShieldCheck, text: "Advanced Bot Shield ML" },
+      { icon: Bot, text: "Bot traffic auto-filtering" },
+      { icon: BarChart3, text: "Real-time analytics + history" },
+      { icon: Globe2, text: "Geo + device + ISP routing" },
+      { icon: Gauge, text: "Priority redirect lane" },
+      { icon: Layers, text: "Custom pre-landers" },
+      { icon: Cpu, text: "Smart traffic rotation engine" },
+    ],
+    overflowNote: "After 1,000,000 clicks → overflow routes to our Adsterra Direct link.",
   },
   lifetime: {
-    blurb: "Best long-term value. Pay once, use forever.",
-    features: ["Everything in Pro", "Unlimited clicks", "Unlimited links", "Priority support", "Early access"],
-    badge: "💎 BEST VALUE",
+    icon: Crown,
+    tagline: "Pay once. Use forever.",
+    blurb: "Maximum scale — built for serious operators.",
+    badge: "BEST VALUE",
+    badgeIcon: Crown,
+    ctaLabel: "Unlock lifetime",
+    features: [
+      { icon: InfinityIcon, text: "Unlimited smart links" },
+      { icon: InfinityIcon, text: "Unlimited monthly clicks" },
+      { icon: Zap, text: "Edge-fast redirects (~30 ms)" },
+      { icon: ShieldCheck, text: "Elite Bot Shield ML" },
+      { icon: Bot, text: "AI bot/scraper auto-filter" },
+      { icon: BarChart3, text: "Real-time analytics + full history" },
+      { icon: Globe2, text: "Geo + device + ISP + carrier routing" },
+      { icon: Gauge, text: "Highest priority redirect lane" },
+      { icon: Layers, text: "Unlimited custom pre-landers" },
+      { icon: Cpu, text: "Smart traffic rotation engine" },
+      { icon: Lock, text: "Cloaking + safe-page system" },
+      { icon: Headphones, text: "Priority 24/7 support" },
+      { icon: TrendingUp, text: "Early access to new features" },
+    ],
+    overflowNote: "No overflow — you have unlimited clicks, forever.",
   },
 };
+
+const SYSTEM_FEATURES = [
+  { icon: ShieldCheck, title: "Bot Shield ML", desc: "Machine-learning engine that filters scrapers, crawlers & fake clicks in real time." },
+  { icon: Zap, title: "Edge Redirects", desc: "30 ms global redirects deployed to 280+ edge locations worldwide." },
+  { icon: Cpu, title: "Smart Rotation", desc: "Auto-rotate traffic between offers based on quota, geo & device fingerprint." },
+  { icon: Globe2, title: "Geo Intelligence", desc: "Country, region, device, ISP & carrier-aware routing on every click." },
+  { icon: BarChart3, title: "Live Analytics", desc: "Real-time click stream with bot vs human breakdown and 7-day retention." },
+  { icon: Lock, title: "Safe-Page Cloaking", desc: "Show clean pages to bots & reviewers, money pages to real humans." },
+];
 
 function UpgradePage() {
   const buy = useServerFn(createInvoice);
@@ -54,100 +128,257 @@ function UpgradePage() {
   });
 
   return (
-    <div className="space-y-10">
-      <div>
-        <h1 className="text-3xl font-bold">Upgrade your plan</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Pay with crypto (USDT, BTC, LTC) via Plisio. Instant activation after blockchain confirmation.
-        </p>
-      </div>
+    <div className="relative min-h-screen bg-[#FFF9F5] text-[#4A3728] overflow-hidden" style={font}>
+      {/* Warm blobs */}
+      <div className="fixed top-[-20%] left-[-10%] w-[55%] h-[55%] bg-[#FF7E5F]/15 blur-[160px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-[-15%] right-[-15%] w-[55%] h-[55%] bg-[#FEB47B]/20 blur-[160px] rounded-full pointer-events-none" />
+      <div className="fixed top-[40%] left-[35%] w-[35%] h-[35%] bg-[#FFEDD5]/40 blur-[140px] rounded-full pointer-events-none" />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {packages?.map((p) => {
-          const isFree = p.slug === "free";
-          const meta: PlanMeta = PLAN_META[p.slug] ?? { blurb: "", features: [] };
-          const highlight = p.slug === "monthly";
-          return (
-            <div
-              key={p.id}
-              className={`relative rounded-2xl p-8 ${highlight ? "glass-panel sky-glow border border-sky scale-[1.02]" : "glass-card"}`}
-            >
-              {meta.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-sky-gradient px-3 py-1 text-xs font-bold text-primary-foreground whitespace-nowrap">
-                  {meta.badge}
-                </div>
-              )}
-              <h3 className="text-xl font-bold">{p.name}</h3>
-              {meta.blurb && <p className="mt-1 text-xs text-muted-foreground">{meta.blurb}</p>}
-              <div className="mt-4 flex items-baseline gap-2">
-                <span className="text-5xl font-bold text-gradient-sky">${Number(p.price_usd).toFixed(0)}</span>
-                <span className="text-sm text-muted-foreground">
-                  {p.slug === "lifetime" ? "/ lifetime" : p.slug === "monthly" ? "/ month" : ""}
-                </span>
-              </div>
-              <div className="mt-6 space-y-1 text-sm">
-                <div className="font-medium">{p.click_quota ? `${p.click_quota.toLocaleString()} clicks` : "Unlimited clicks"}</div>
-                <div className="text-muted-foreground">{p.link_limit === null ? "Unlimited links" : `${p.link_limit} link${p.link_limit > 1 ? "s" : ""}`}</div>
-              </div>
-              <ul className="mt-5 space-y-2 text-sm">
-                {meta.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className="mt-0.5 text-success">✓</span>
-                    <span>{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <button
-                disabled={isFree || buyMut.isPending}
-                onClick={() => buyMut.mutate(p.slug)}
-                className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold ${highlight ? "bg-sky-gradient text-primary-foreground sky-glow" : "border border-sky hover:bg-secondary"} ${isFree ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                {isFree ? "Current free plan" : buyMut.isPending ? "Creating invoice…" : `Pay with crypto`}
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="text-center text-sm text-muted-foreground">
-        💡 Smart pick: <span className="font-semibold text-foreground">Lifetime Unlimited</span> pays for itself in 10 months vs Monthly Pro.
-      </p>
-
-      {ordersList && ordersList.length > 0 && (
-        <div>
-          <h2 className="text-lg font-semibold">Order history</h2>
-          <div className="mt-4 overflow-hidden rounded-xl border border-border">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/30 text-left">
-                <tr>
-                  <th className="px-4 py-2">Date</th>
-                  <th className="px-4 py-2">Package</th>
-                  <th className="px-4 py-2">Amount</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Invoice</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordersList.map((o) => (
-                  <tr key={o.id} className="border-t border-border">
-                    <td className="px-4 py-2">{new Date(o.created_at).toLocaleDateString()}</td>
-                    <td className="px-4 py-2">{o.package_slug}</td>
-                    <td className="px-4 py-2">${Number(o.amount).toFixed(2)}</td>
-                    <td className="px-4 py-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${o.status === "completed" ? "bg-success/20 text-success" : o.status === "pending" ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{o.status}</span>
-                    </td>
-                    <td className="px-4 py-2">
-                      {o.plisio_invoice_url && o.status === "pending" && (
-                        <a href={o.plisio_invoice_url} target="_blank" rel="noreferrer" className="text-primary hover:underline">Open</a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="relative z-10 max-w-[1400px] mx-auto px-5 sm:px-8 lg:px-12 py-10 sm:py-16 space-y-20">
+        {/* Hero */}
+        <header className="text-center max-w-3xl mx-auto space-y-5">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-xl border border-white/80 text-[#FF7E5F] text-[10px] font-bold uppercase tracking-widest shadow-sm">
+            <Sparkles className="w-3 h-3" /> Premium plans · Crypto checkout
           </div>
-        </div>
-      )}
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-[#2D1B0D] leading-[1.05]">
+            Scale your traffic
+            <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF7E5F] via-[#FEB47B] to-[#FF7E5F]">
+              at the edge of every click.
+            </span>
+          </h1>
+          <p className="text-[#7A5C45] text-lg max-w-xl mx-auto">
+            Edge redirects, ML bot shield, geo routing & smart rotation — built for serious operators running real volume.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-2 text-xs text-[#7A5C45]">
+            <span className="inline-flex items-center gap-1.5"><Bitcoin className="w-3.5 h-3.5 text-[#FF7E5F]" /> BTC · USDT · LTC</span>
+            <span className="inline-flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-[#FF7E5F]" /> Instant activation</span>
+            <span className="inline-flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-[#FF7E5F]" /> No card required</span>
+          </div>
+        </header>
+
+        {/* Pricing cards */}
+        <section className="grid gap-6 lg:grid-cols-3">
+          {packages?.map((p) => {
+            const meta = PLAN_META[p.slug] ?? PLAN_META.free;
+            const Icon = meta.icon;
+            const BadgeIcon = meta.badgeIcon;
+            const isFree = p.slug === "free";
+            const highlight = meta.highlight;
+
+            return (
+              <div
+                key={p.id}
+                className={`relative rounded-3xl p-7 sm:p-8 backdrop-blur-xl transition-all hover:-translate-y-1 ${
+                  highlight
+                    ? "bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] text-white border border-white/30 shadow-[0_30px_80px_-20px_rgba(255,126,95,0.55)] lg:scale-[1.04] lg:my-[-8px]"
+                    : "bg-white/70 border border-white/80 shadow-[0_20px_60px_-30px_rgba(255,126,95,0.3)]"
+                }`}
+              >
+                {meta.badge && (
+                  <div className={`absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest shadow-md ${
+                    highlight ? "bg-white text-[#FF7E5F]" : "bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] text-white"
+                  }`}>
+                    {BadgeIcon && <BadgeIcon className="w-3 h-3" />}
+                    {meta.badge}
+                  </div>
+                )}
+
+                {/* Plan head */}
+                <div className="flex items-center gap-3">
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
+                    highlight ? "bg-white/20 backdrop-blur" : "bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] shadow-[0_6px_20px_-6px_rgba(255,126,95,0.6)]"
+                  }`}>
+                    <Icon className={`w-5 h-5 ${highlight ? "text-white" : "text-white"}`} />
+                  </div>
+                  <div>
+                    <div className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? "text-white/80" : "text-[#7A5C45]"}`}>
+                      {meta.tagline}
+                    </div>
+                    <h3 className={`text-2xl font-extrabold ${highlight ? "text-white" : "text-[#2D1B0D]"}`}>{p.name}</h3>
+                  </div>
+                </div>
+
+                <p className={`mt-3 text-sm ${highlight ? "text-white/85" : "text-[#7A5C45]"}`}>{meta.blurb}</p>
+
+                {/* Price */}
+                <div className="mt-6 flex items-baseline gap-2">
+                  <span className={`text-6xl font-extrabold tracking-tight ${highlight ? "text-white" : "bg-clip-text text-transparent bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B]"}`}>
+                    ${Number(p.price_usd).toFixed(0)}
+                  </span>
+                  <span className={`text-sm font-medium ${highlight ? "text-white/80" : "text-[#7A5C45]"}`}>
+                    {p.slug === "lifetime" ? "/ lifetime" : p.slug === "monthly" ? "/ month" : "/ forever"}
+                  </span>
+                </div>
+
+                {/* Quotas highlight strip */}
+                <div className={`mt-6 grid grid-cols-2 gap-3 rounded-2xl p-4 ${
+                  highlight ? "bg-white/15 backdrop-blur" : "bg-[#FFEDD5]/60"
+                }`}>
+                  <div>
+                    <div className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? "text-white/70" : "text-[#7A5C45]"}`}>Links</div>
+                    <div className={`mt-1 text-xl font-extrabold ${highlight ? "text-white" : "text-[#2D1B0D]"}`}>
+                      {p.link_limit === null ? <InfinityIcon className="w-6 h-6" /> : p.link_limit}
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-[10px] font-bold uppercase tracking-widest ${highlight ? "text-white/70" : "text-[#7A5C45]"}`}>Clicks / mo</div>
+                    <div className={`mt-1 text-xl font-extrabold ${highlight ? "text-white" : "text-[#2D1B0D]"}`}>
+                      {p.click_quota === null ? <InfinityIcon className="w-6 h-6" /> : p.click_quota >= 1_000_000 ? `${(p.click_quota / 1_000_000).toFixed(0)}M` : p.click_quota >= 1000 ? `${(p.click_quota / 1000).toFixed(0)}K` : p.click_quota}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Features */}
+                <ul className="mt-6 space-y-2.5">
+                  {meta.features.map((f, i) => {
+                    const FIcon = f.icon;
+                    return (
+                      <li key={i} className="flex items-start gap-2.5 text-sm">
+                        <div className={`mt-0.5 w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 ${
+                          highlight ? "bg-white/20" : "bg-[#FFEDD5]"
+                        }`}>
+                          <FIcon className={`w-3 h-3 ${highlight ? "text-white" : "text-[#FF7E5F]"}`} />
+                        </div>
+                        <span className={highlight ? "text-white/95" : "text-[#4A3728]"}>{f.text}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+
+                {/* Overflow note */}
+                <div className={`mt-6 rounded-xl p-3 text-xs leading-relaxed ${
+                  highlight ? "bg-white/10 text-white/85" : "bg-[#FFF4EA] text-[#7A5C45] border border-[#FFE4D0]"
+                }`}>
+                  <span className="font-semibold">Quota overflow:</span> {meta.overflowNote}
+                </div>
+
+                {/* CTA */}
+                <button
+                  disabled={isFree || buyMut.isPending}
+                  onClick={() => buyMut.mutate(p.slug)}
+                  className={`mt-7 w-full rounded-2xl py-3.5 text-sm font-bold transition-all ${
+                    isFree
+                      ? highlight ? "bg-white/20 text-white/70 cursor-not-allowed" : "bg-[#FFEDD5] text-[#A8907A] cursor-not-allowed"
+                      : highlight
+                        ? "bg-white text-[#FF7E5F] hover:bg-white/95 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.3)]"
+                        : "bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] text-white hover:opacity-95 shadow-[0_10px_30px_-10px_rgba(255,126,95,0.5)]"
+                  }`}
+                >
+                  {buyMut.isPending && buyMut.variables === p.slug ? "Creating invoice…" : meta.ctaLabel}
+                </button>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* Why Sleepox / system features */}
+        <section className="space-y-8">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-xl border border-white/80 text-[#FF7E5F] text-[10px] font-bold uppercase tracking-widest shadow-sm">
+              <Cpu className="w-3 h-3" /> What you get on every plan
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B0D]">
+              Every system. Every plan.
+            </h2>
+            <p className="text-[#7A5C45]">
+              The infrastructure runs the same for everyone — paid plans just unlock more capacity.
+            </p>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {SYSTEM_FEATURES.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.title} className="group relative rounded-2xl border border-white/80 bg-white/60 backdrop-blur-xl p-6 shadow-[0_10px_40px_-20px_rgba(255,126,95,0.25)] hover:-translate-y-1 hover:shadow-[0_20px_60px_-20px_rgba(255,126,95,0.4)] transition-all">
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] flex items-center justify-center shadow-[0_6px_20px_-6px_rgba(255,126,95,0.6)]">
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-bold text-[#2D1B0D]">{f.title}</h3>
+                  <p className="mt-1.5 text-sm text-[#7A5C45] leading-relaxed">{f.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Smart pick banner */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2D1B0D] via-[#4A2818] to-[#2D1B0D] text-white p-8 sm:p-12 shadow-[0_30px_80px_-20px_rgba(45,27,13,0.5)]">
+          <div className="absolute top-[-30%] right-[-10%] w-[60%] h-[120%] bg-[#FF7E5F]/30 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-[-30%] left-[-10%] w-[40%] h-[100%] bg-[#FEB47B]/20 blur-[100px] rounded-full pointer-events-none" />
+          <div className="relative grid md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur border border-white/20 text-[#FEB47B] text-[10px] font-bold uppercase tracking-widest">
+                <Crown className="w-3 h-3" /> Smart Pick
+              </div>
+              <h3 className="mt-4 text-3xl sm:text-4xl font-extrabold tracking-tight">
+                Lifetime pays for itself in <span className="text-[#FEB47B]">10 months</span>.
+              </h3>
+              <p className="mt-3 text-white/70 max-w-xl">
+                Unlimited links, unlimited clicks, priority support & every future feature — for one flat payment.
+              </p>
+            </div>
+            <button
+              onClick={() => buyMut.mutate("lifetime")}
+              disabled={buyMut.isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] text-white px-7 py-4 font-bold shadow-[0_15px_40px_-10px_rgba(255,126,95,0.6)] hover:opacity-95"
+            >
+              <Crown className="w-4 h-4" /> Get Lifetime
+            </button>
+          </div>
+        </section>
+
+        {/* Orders */}
+        {ordersList && ordersList.length > 0 && (
+          <section className="rounded-3xl border border-white/80 bg-white/60 backdrop-blur-xl p-6 sm:p-8 shadow-[0_20px_60px_-30px_rgba(255,126,95,0.3)]">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] flex items-center justify-center shadow-[0_6px_20px_-6px_rgba(255,126,95,0.6)]">
+                <Wallet className="w-4 h-4 text-white" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-[#2D1B0D] tracking-tight">Order history</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[10px] font-bold uppercase tracking-widest text-[#7A5C45]">
+                    <th className="px-3 py-3">Date</th>
+                    <th className="px-3 py-3">Package</th>
+                    <th className="px-3 py-3">Amount</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Invoice</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ordersList.map((o) => (
+                    <tr key={o.id} className="border-t border-[#FFE4D0]/60">
+                      <td className="px-3 py-3 text-[#7A5C45]">{new Date(o.created_at).toLocaleDateString()}</td>
+                      <td className="px-3 py-3">
+                        <span className="inline-flex px-2 py-0.5 rounded-md bg-[#FFEDD5] text-[#FF7E5F] text-xs font-semibold">{o.package_slug}</span>
+                      </td>
+                      <td className="px-3 py-3 font-semibold">${Number(o.amount).toFixed(2)}</td>
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold ${
+                          o.status === "completed" || o.status === "paid" ? "bg-emerald-100 text-emerald-700" :
+                          o.status === "pending" ? "bg-amber-100 text-amber-700" :
+                          "bg-rose-100 text-rose-700"
+                        }`}>
+                          {(o.status === "completed" || o.status === "paid") && <Check className="w-3 h-3" />}
+                          {o.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        {o.plisio_invoice_url && o.status === "pending"
+                          ? <a href={o.plisio_invoice_url} target="_blank" rel="noreferrer" className="text-[#FF7E5F] font-semibold hover:underline">Open</a>
+                          : <span className="text-[#A8907A]">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }
