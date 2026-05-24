@@ -163,14 +163,15 @@ export async function lookupRedirectLink(code: string): Promise<{ link: Redirect
     (row.safe_url as string | null) ?? (adsterraDirect ? destination : null) ?? SAFE_FALLBACK;
   const isActive =
     typeof row.is_active === "boolean" ? (row.is_active as boolean) : row.status === "active";
-  const tpl = (row.prelanding_template as string) || "verify";
+  const tpl = (row.prelanding_template as string) || "article_health";
   const allowedTpls = new Set([
     "none", "verify", "reward", "countdown", "article",
     "article_health", "article_news", "article_finance", "article_lifestyle",
+    "article_tech", "article_celebrity", "article_business", "article_travel",
   ]);
   const validTpl: RedirectLink["prelanding_template"] = allowedTpls.has(tpl)
     ? (tpl as RedirectLink["prelanding_template"])
-    : "verify";
+    : "article_health";
 
   return {
     error: null,
