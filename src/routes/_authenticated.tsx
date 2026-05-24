@@ -6,12 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { consumeDailyRedirect } from "@/lib/app-settings.functions";
 
 export const Route = createFileRoute("/_authenticated")({
+  head: () => ({
+    links: [
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" },
+    ],
+  }),
   beforeLoad: async () => {
-    // getSession() reads from localStorage (instant) — getUser() hits the network on every nav
     const { data } = await supabase.auth.getSession();
-    if (!data.session?.user) {
-      throw redirect({ to: "/login" });
-    }
+    if (!data.session?.user) throw redirect({ to: "/login" });
     return { user: data.session.user };
   },
   component: AuthenticatedLayout,
@@ -25,7 +29,6 @@ const navMgmt = [
   { to: "/dashboard", label: "Domains", icon: Globe },
   { to: "/dashboard", label: "Settings", icon: Settings },
 ] as const;
-
 
 function AuthenticatedLayout() {
   const { user } = Route.useRouteContext();
@@ -43,24 +46,17 @@ function AuthenticatedLayout() {
     })();
   }, [user.id]);
 
-  // Daily auto-redirect: first dashboard hit each UTC day → open fallback URL in a NEW tab
-  // (never replace current tab — that breaks the login flow and the user can't reach the dashboard)
   useEffect(() => {
     const t = setTimeout(async () => {
       try {
         const res = await dailyFn();
-        if (res?.url) {
-          window.open(res.url, "_blank", "noopener,noreferrer");
-        }
-      } catch {
-        /* silent */
-      }
-    }, 1500); // let dashboard paint first so login feels instant
+        if (res?.url) window.open(res.url, "_blank", "noopener,noreferrer");
+      } catch { /* silent */ }
+    }, 1500);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const logout = async () => {
@@ -72,20 +68,15 @@ function AuthenticatedLayout() {
 
   const SidebarContent = (
     <>
-      <div className="flex items-center justify-between mb-14">
-        <Link to="/dashboard" className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-500 to-indigo-600 shadow-[0_0_25px_rgba(56,189,248,0.45)] flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white rounded-sm rotate-45" />
+      <div className="flex items-center justify-between mb-12">
+        <Link to="/dashboard" className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] shadow-lg shadow-orange-500/30 flex items-center justify-center">
+            <div className="w-4 h-4 border-2 border-white rounded-sm rotate-45" />
           </div>
-          <span
-            className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-sky-200 to-indigo-300 bg-clip-text text-transparent"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-          >
-            SLEEP OX
-          </span>
+          <span className="text-xl font-bold tracking-tight text-[#2D1B0D]">Sleepox</span>
         </Link>
         <button
-          className="lg:hidden p-2 text-white/60 hover:text-white"
+          className="lg:hidden p-2 text-[#7D6452] hover:text-[#2D1B0D]"
           onClick={() => setMenuOpen(false)}
           aria-label="Close menu"
         >
@@ -95,7 +86,7 @@ function AuthenticatedLayout() {
 
       <nav className="flex-1 space-y-8">
         <div className="space-y-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/20 font-bold mb-4 ml-3">Management</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#A38D7D] font-bold mb-3 ml-3">Management</p>
           {navMgmt.map((item) => {
             const active = pathname === item.to;
             return (
@@ -104,8 +95,8 @@ function AuthenticatedLayout() {
                 to={item.to}
                 className={
                   active
-                    ? "flex items-center gap-3 px-4 py-3 text-white bg-gradient-to-r from-sky-500/15 via-indigo-500/10 to-transparent rounded-2xl border border-sky-400/20 shadow-[0_0_25px_rgba(56,189,248,0.18)] backdrop-blur-md transition-all"
-                    : "flex items-center gap-3 px-4 py-3 text-white/40 hover:text-white/80 hover:bg-white/[0.02] rounded-2xl transition-all"
+                    ? "flex items-center gap-3 px-4 py-2.5 text-[#FF7E5F] bg-gradient-to-r from-[#FF7E5F]/15 to-transparent rounded-2xl border border-[#FF7E5F]/25 shadow-sm font-semibold transition-all"
+                    : "flex items-center gap-3 px-4 py-2.5 text-[#7D6452] hover:text-[#2D1B0D] hover:bg-white/40 rounded-2xl transition-all font-medium"
                 }
               >
                 <item.icon className="w-4 h-4" />
@@ -114,14 +105,15 @@ function AuthenticatedLayout() {
             );
           })}
         </div>
+
         <div className="space-y-1">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/20 font-bold mb-4 ml-3">Account</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-[#A38D7D] font-bold mb-3 ml-3">Account</p>
           <Link
             to="/upgrade"
             className={
               pathname === "/upgrade"
-                ? "flex items-center gap-3 px-4 py-3 text-sky-200 font-medium bg-sky-500/10 rounded-2xl border border-sky-400/30 shadow-[0_0_25px_rgba(56,189,248,0.2)]"
-                : "flex items-center gap-3 px-4 py-3 text-sky-300 font-medium bg-sky-500/5 rounded-2xl border border-sky-400/10 hover:bg-sky-500/10 transition-all"
+                ? "flex items-center gap-3 px-4 py-2.5 text-white font-semibold bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] rounded-2xl shadow-lg shadow-orange-500/30"
+                : "flex items-center gap-3 px-4 py-2.5 text-[#FF7E5F] font-semibold bg-[#FF7E5F]/10 rounded-2xl border border-[#FF7E5F]/20 hover:bg-[#FF7E5F]/15 transition-all"
             }
           >
             <Crown className="w-4 h-4" />
@@ -133,8 +125,8 @@ function AuthenticatedLayout() {
               to="/control-panel"
               className={
                 pathname === "/control-panel"
-                  ? "flex items-center gap-3 px-4 py-3 text-sky-200 bg-sky-500/10 rounded-2xl border border-sky-400/30"
-                  : "flex items-center gap-3 px-4 py-3 text-white/40 hover:text-white/80 hover:bg-white/[0.02] rounded-2xl transition-all"
+                  ? "flex items-center gap-3 px-4 py-2.5 text-[#FF7E5F] bg-[#FF7E5F]/10 rounded-2xl border border-[#FF7E5F]/25 font-semibold"
+                  : "flex items-center gap-3 px-4 py-2.5 text-[#7D6452] hover:text-[#2D1B0D] hover:bg-white/40 rounded-2xl transition-all font-medium"
               }
             >
               <ShieldCheck className="w-4 h-4" />
@@ -143,7 +135,7 @@ function AuthenticatedLayout() {
           )}
           <button
             onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-white/40 hover:text-white/80 hover:bg-white/[0.02] rounded-2xl transition-all"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-[#7D6452] hover:text-[#2D1B0D] hover:bg-white/40 rounded-2xl transition-all font-medium"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -151,16 +143,14 @@ function AuthenticatedLayout() {
         </div>
       </nav>
 
-      <div className="mt-auto pt-8 border-t border-white/5">
-        <div className="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-400 via-indigo-500 to-indigo-500 p-[1px]">
-            <div className="w-full h-full bg-[#050B1F] rounded-[11px] flex items-center justify-center text-xs font-bold">
-              {initials}
-            </div>
+      <div className="mt-auto pt-6 border-t border-[#FFEDD5]">
+        <div className="flex items-center gap-3 bg-white/60 p-3 rounded-2xl border border-white/80 shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] flex items-center justify-center text-white text-xs font-bold shadow-md">
+            {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{user.email}</p>
-            <p className="text-[10px] text-sky-300/70 uppercase tracking-wider">{isAdmin ? "Admin" : "Premium Tier"}</p>
+            <p className="text-sm font-semibold text-[#2D1B0D] truncate">{user.email}</p>
+            <p className="text-[10px] text-[#FF7E5F] uppercase tracking-wider font-bold">{isAdmin ? "Admin" : "Premium Tier"}</p>
           </div>
         </div>
       </div>
@@ -169,25 +159,25 @@ function AuthenticatedLayout() {
 
   return (
     <div
-      className="min-h-screen w-full flex bg-[#050B1F] text-[#f0f0f5] overflow-hidden relative"
-      style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+      className="min-h-screen w-full flex bg-[#FFF9F5] text-[#4A3728] overflow-hidden relative"
+      style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}
     >
-      {/* Aurora Glass ambient overlays — teal / purple / fuchsia */}
-      <div className="fixed top-[-15%] left-[-10%] w-[55%] h-[55%] bg-sky-500/15 blur-[140px] rounded-full pointer-events-none animate-pulse" style={{ animationDuration: "8s" }} />
-      <div className="fixed top-[10%] right-[-15%] w-[50%] h-[55%] bg-indigo-600/15 blur-[140px] rounded-full pointer-events-none animate-pulse" style={{ animationDuration: "10s" }} />
-      <div className="fixed bottom-[-10%] left-[20%] w-[45%] h-[45%] bg-indigo-600/10 blur-[130px] rounded-full pointer-events-none animate-pulse" style={{ animationDuration: "12s" }} />
+      {/* Warm ambient blobs */}
+      <div className="fixed top-[-15%] left-[-10%] w-[55%] h-[55%] bg-[#FF7E5F]/15 blur-[140px] rounded-full pointer-events-none" />
+      <div className="fixed top-[10%] right-[-15%] w-[50%] h-[55%] bg-[#FEB47B]/20 blur-[140px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-[-10%] left-[20%] w-[45%] h-[45%] bg-[#FFEDD5]/40 blur-[130px] rounded-full pointer-events-none" />
 
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between px-5 py-4 backdrop-blur-2xl bg-[#050B1F]/80 border-b border-white/5">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between px-5 py-4 backdrop-blur-2xl bg-white/70 border-b border-white/60">
         <Link to="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 shadow-[0_0_15px_rgba(56,189,248,0.4)] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] shadow-lg shadow-orange-500/30 flex items-center justify-center">
             <div className="w-4 h-4 border-2 border-white rounded-sm rotate-45" />
           </div>
-          <span className="font-bold text-white tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>SLEEP OX</span>
+          <span className="font-bold text-[#2D1B0D] tracking-tight">Sleepox</span>
         </Link>
         <button
           onClick={() => setMenuOpen(true)}
-          className="p-2 rounded-xl bg-white/5 border border-white/10 text-white"
+          className="p-2 rounded-xl bg-white/60 border border-white/80 text-[#2D1B0D]"
           aria-label="Open menu"
         >
           <Menu className="w-5 h-5" />
@@ -196,16 +186,13 @@ function AuthenticatedLayout() {
 
       {/* Mobile drawer overlay */}
       {menuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-          onClick={() => setMenuOpen(false)}
-        />
+        <div className="lg:hidden fixed inset-0 z-40 bg-[#2D1B0D]/40 backdrop-blur-sm" onClick={() => setMenuOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
         className={
-          "fixed lg:static inset-y-0 left-0 z-50 w-72 border-r border-white/5 flex flex-col p-8 backdrop-blur-3xl bg-[#050B1F]/90 lg:bg-white/[0.01] shrink-0 transition-transform duration-300 " +
+          "fixed lg:static inset-y-0 left-0 z-50 w-72 border-r border-white/60 flex flex-col p-7 backdrop-blur-3xl bg-white/70 lg:bg-white/40 shrink-0 transition-transform duration-300 " +
           (menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")
         }
       >
