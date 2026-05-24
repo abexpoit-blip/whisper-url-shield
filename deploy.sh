@@ -12,6 +12,7 @@ APP_DIR="/opt/sleepox-app-new"
 PM2_NAME="sleepox"
 SUPABASE_DIR="/opt/supabase-docker"
 SCRIPT_PATH="$APP_DIR/deploy.sh"
+BUILD_STAMP_FILE="dist/.sleepox-build"
 
 cd "$APP_DIR"
 
@@ -51,7 +52,15 @@ case "$action" in
     bun install
 
     echo "🔨 [3/4] bun run build..."
-    bun run build
+    rm -rf dist
+    APP_BUILD_VERSION="$(git rev-parse --short HEAD)-$(date +%s)" bun run build
+
+    if [ ! -f "dist/server/wrangler.json" ] || [ ! -d "dist/client" ]; then
+      echo "❌ Build output is incomplete. Missing dist/server/wrangler.json or dist/client."
+      exit 1
+    fi
+
+    date -u +"%Y-%m-%dT%H:%M:%SZ" > "$BUILD_STAMP_FILE"
 
     echo "♻️  [4/4] pm2 restart $PM2_NAME..."
     pm2 restart "$PM2_NAME" --update-env
@@ -59,6 +68,7 @@ case "$action" in
 
     echo ""
     echo "✅ Deploy complete!"
+    echo "Build stamp: $(cat "$BUILD_STAMP_FILE")"
     pm2 list
     ;;
   *)
