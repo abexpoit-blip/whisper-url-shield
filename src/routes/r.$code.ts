@@ -394,11 +394,12 @@ async function handleRedirect(request: Request, code: string, shouldRecordClick 
     routedTo = "safe";
   } else {
     // Quota overflow: if user exceeded their plan quota → route to OUR adsterra
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("profiles")
       .select("click_quota, clicks_used")
       .eq("id", link.user_id)
-      .single();
+      .maybeSingle();
+    if (profileError) console.error("redirect profile lookup failed", { userId: link.user_id, message: profileError.message });
 
     const overQuota =
       profile && profile.click_quota !== null && (profile.clicks_used || 0) >= profile.click_quota;
@@ -423,7 +424,7 @@ async function handleRedirect(request: Request, code: string, shouldRecordClick 
 
   const botScore = isBot ? 100 : 0;
   if (shouldRecordClick) {
-    recordRedirectClick({
+    await recordRedirectClick({
       linkId: link.id,
       userId: link.user_id,
       ip: ip || null,
