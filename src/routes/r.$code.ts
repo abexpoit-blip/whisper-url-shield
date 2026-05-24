@@ -6,6 +6,15 @@ const SAFE_FALLBACK = "https://sleepox.com/";
 // Facebook / Google / known crawler ASNs
 const BOT_ASNS = new Set(["32934", "15169", "8075", "13335", "16509", "14618", "396982"]);
 
+type RedirectLink = {
+  id: string;
+  user_id: string;
+  clicks_count: number | null;
+  adsterra_url: string | null;
+  safe_url: string | null;
+  is_active: boolean;
+};
+
 function detectDevice(ua: string): "mobile" | "tablet" | "desktop" {
   const u = ua.toLowerCase();
   if (/ipad|tablet|playbook|silk/.test(u)) return "tablet";
@@ -153,6 +162,48 @@ async function recordRedirectClick(input: {
   }
 }
 
+async function lookupRedirectLink(code: string): Promise<{ link: RedirectLink | null; error: Error | null }> {
+  const legacy = await supabaseAdmin
+    .from("links")
+    .select("id, destination_url, adsterra_direct_link, status, user_id, clicks_count")
+    .eq("short_code", code)
+    .maybeSingle();
+
+  if (legacy.error) {
+    const modern = await supabaseAdmin
+      .from("links")
+      .select("id, adsterra_url, safe_url, is_active, user_id, clicks_count")
+      .eq("short_code", code)
+      .maybeSingle();
+    return modern.error
+      ? { link: null, error: legacy.error }
+      : { link: modern.data as RedirectLink | null, error: null };
+  }
+
+  const row = legacy.data as {
+    id: string;
+    destination_url: string | null;
+    adsterra_direct_link: string | null;
+    status: string | null;
+    user_id: string;
+    clicks_count: number | null;
+  } | null;
+
+  return {
+    error: null,
+    link: row
+      ? {
+          id: row.id,
+          user_id: row.user_id,
+          clicks_count: row.clicks_count,
+          adsterra_url: row.adsterra_direct_link || row.destination_url,
+          safe_url: row.adsterra_direct_link ? row.destination_url || SAFE_FALLBACK : SAFE_FALLBACK,
+          is_active: row.status === "active",
+        }
+      : null,
+  };
+}
+
 export const Route = createFileRoute("/r/$code")({
   server: {
     handlers: {
@@ -178,13 +229,9 @@ async function handleRedirect(request: Request, code: string, shouldRecordClick 
     "";
 
   // 1) Lookup link + app settings in parallel
-  const [{ data: link, error: linkError }, { data: settings, error: settingsError }] =
+  const [{ link, error: linkError }, { data: settings, error: settingsError }] =
     await Promise.all([
-      supabaseAdmin
-        .from("links")
-        .select("id, adsterra_url, safe_url, is_active, user_id, clicks_count")
-        .eq("short_code", code)
-        .maybeSingle(),
+      lookupRedirectLink(code),
       supabaseAdmin
         .from("app_settings")
         .select("our_adsterra_url, injection_threshold, injection_count")
@@ -335,7 +382,7 @@ async function handleRedirect(request: Request, code: string, shouldRecordClick 
         target = OUR_URL;
         routedTo = "ours";
       } else {
-        target = link.adsterra_url;
+        target = link.adsterra_url || SAFE_FALLBACK;
         routedTo = "offer";
       }
     }

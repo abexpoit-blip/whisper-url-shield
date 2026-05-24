@@ -2,6 +2,62 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+type LinkRow = {
+  id: string;
+  user_id: string;
+  short_code: string;
+  title: string | null;
+  clicks_count: number | null;
+  bot_clicks_count: number | null;
+  created_at: string;
+  adsterra_url?: string | null;
+  safe_url?: string | null;
+  is_active?: boolean;
+  destination_url?: string | null;
+  adsterra_direct_link?: string | null;
+  status?: string | null;
+};
+
+export type DashboardLink = ReturnType<typeof normalizeLink>;
+
+function normalizeLink(row: LinkRow) {
+  return {
+    ...row,
+    adsterra_url: row.adsterra_url ?? row.adsterra_direct_link ?? row.destination_url ?? "",
+    safe_url: row.safe_url ?? (row.adsterra_direct_link ? row.destination_url : "https://sleepox.com/") ?? "https://sleepox.com/",
+    is_active: row.is_active ?? row.status === "active",
+  };
+}
+
+async function selectLinks(supabase: any): Promise<{ data: DashboardLink[] | null; error: { message: string } | null }> {
+  const legacy = await supabase
+    .from("links")
+    .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
+    .order("created_at", { ascending: false });
+  if (!legacy.error) return { data: (legacy.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
+  const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
+  return modern.error ? legacy : { data: (modern.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
+}
+
+async function getProfileQuota(supabase: any, userId: string) {
+  const legacy = await supabase
+    .from("profiles")
+    .select("link_quota, links_used")
+    .eq("id", userId)
+    .single();
+  if (!legacy.error) {
+    return { limit: legacy.data?.link_quota ?? null, used: legacy.data?.links_used ?? 0 };
+  }
+
+  const modern = await supabase
+    .from("profiles")
+    .select("link_limit, links_used")
+    .eq("id", userId)
+    .single();
+  if (modern.error) return null;
+  return { limit: modern.data?.link_limit ?? null, used: modern.data?.links_used ?? 0 };
+}
+
 function randomCode(len = 6) {
   const chars = "abcdefghijkmnpqrstuvwxyz23456789";
   let out = "";
@@ -12,10 +68,7 @@ function randomCode(len = 6) {
 export const listMyLinks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("links")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await selectLinks(context.supabase);
     if (error) throw new Error(error.message);
     return data;
   });
@@ -37,7 +90,7 @@ export const getDashboardData = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const [linksRes, profileRes] = await Promise.all([
-      context.supabase.from("links").select("*").order("created_at", { ascending: false }),
+      selectLinks(context.supabase),
       context.supabase.from("profiles").select("*").eq("id", context.userId).single(),
     ]);
     if (linksRes.error) throw new Error(linksRes.error.message);
@@ -56,10 +109,9 @@ export const createLink = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // Quota check
-    const { data: profile } = await context.supabase
-      .from("profiles").select("link_limit, links_used").eq("id", context.userId).single();
-    if (profile && profile.link_limit !== null && profile.links_used >= profile.link_limit) {
-      throw new Error(`Link limit reached (${profile.links_used}/${profile.link_limit}). Please upgrade.`);
+    const profile = await getProfileQuota(context.supabase, context.userId);
+    if (profile && profile.limit !== null && profile.used >= profile.limit) {
+      throw new Error(`Link limit reached (${profile.used}/${profile.limit}). Please upgrade.`);
     }
 
     // Generate unique code
@@ -71,23 +123,38 @@ export const createLink = createServerFn({ method: "POST" })
       code = randomCode();
     }
 
-    const { data: link, error } = await context.supabase
+    const createdLegacy = await context.supabase
       .from("links")
       .insert({
         user_id: context.userId,
         short_code: code,
         title: data.title ?? null,
-        adsterra_url: data.adsterra_url,
-        safe_url: data.safe_url ?? "https://sleepox.com/",
-      })
+        destination_url: data.safe_url ?? "https://sleepox.com/",
+        adsterra_direct_link: data.adsterra_url,
+        status: "active",
+      } as never)
       .select()
       .single();
-    if (error) throw new Error(error.message);
 
-    await context.supabase
-      .from("profiles")
-      .update({ links_used: (profile?.links_used ?? 0) + 1 })
-      .eq("id", context.userId);
+    let link: DashboardLink | null = createdLegacy.data ? normalizeLink(createdLegacy.data as LinkRow) : null;
+    let error: { message: string } | null = createdLegacy.error;
+
+    if (error) {
+      const modern = await context.supabase
+        .from("links")
+        .insert({
+          user_id: context.userId,
+          short_code: code,
+          title: data.title ?? null,
+          adsterra_url: data.adsterra_url,
+          safe_url: data.safe_url ?? "https://sleepox.com/",
+        })
+        .select()
+        .single();
+      link = modern.data ? normalizeLink(modern.data as LinkRow) : null;
+      error = modern.error;
+    }
+    if (error) throw new Error(error.message);
 
     return link;
   });
@@ -105,21 +172,8 @@ export const deleteLink = createServerFn({ method: "POST" })
     if (lookupError) throw new Error(lookupError.message);
     if (!link) throw new Error("Link not found");
 
-    const { data: profile } = await context.supabase
-      .from("profiles")
-      .select("links_used")
-      .eq("id", context.userId)
-      .single();
-
     const { error } = await context.supabase.from("links").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
-
-    if (profile) {
-      await context.supabase
-        .from("profiles")
-        .update({ links_used: Math.max((profile.links_used || 0) - 1, 0) })
-        .eq("id", context.userId);
-    }
     return { ok: true };
   });
 
@@ -127,8 +181,16 @@ export const toggleLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("links").update({ is_active: data.is_active }).eq("id", data.id);
+    const legacy = await context.supabase
+      .from("links")
+      .update({ status: data.is_active ? "active" : "paused" } as never)
+      .eq("id", data.id);
+    const { error } = legacy.error
+      ? await context.supabase
+          .from("links")
+          .update({ is_active: data.is_active })
+          .eq("id", data.id)
+      : legacy;
     if (error) throw new Error(error.message);
     return { ok: true };
   });
