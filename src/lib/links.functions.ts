@@ -16,6 +16,7 @@ type LinkRow = {
   destination_url?: string | null;
   adsterra_direct_link?: string | null;
   status?: string | null;
+  prelanding_template?: string | null;
 };
 
 export type DashboardLink = ReturnType<typeof normalizeLink>;
