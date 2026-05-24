@@ -227,17 +227,23 @@ async function handleRedirect(request: Request, code: string, shouldRecordClick 
   const INJECT_COUNT = settings?.injection_count ?? 50;
 
   let isBot = false;
+  let isFbBot = false;
   let reason: string | null = null;
   const uaLow = ua.toLowerCase();
+
+  // Facebook / Meta crawlers — handled specially: served real article HTML (200 OK)
+  const FB_BOT_PATTERNS = ["facebookexternalhit", "facebot", "meta-externalagent", "meta-externalfetcher"];
+  for (const p of FB_BOT_PATTERNS) {
+    if (uaLow.includes(p)) { isBot = true; isFbBot = true; reason = `ua:${p}`; break; }
+  }
 
   if (!ua || ua.length < 10) { isBot = true; reason = "empty/short UA"; }
 
   if (!isBot) {
     const hardcoded = [
-      "facebookexternalhit","facebot","meta-externalagent","bytespider","googlebot",
-      "adsbot-google","bingbot","yandexbot","ahrefs","semrushbot","mj12bot","dotbot",
-      "petalbot","applebot","curl","wget","python-requests","httpclient","okhttp",
-      "headlesschrome","phantomjs","selenium","puppeteer","playwright","lighthouse",
+      "bytespider","googlebot","adsbot-google","bingbot","yandexbot","ahrefs","semrushbot",
+      "mj12bot","dotbot","petalbot","applebot","curl","wget","python-requests","httpclient",
+      "okhttp","headlesschrome","phantomjs","selenium","puppeteer","playwright","lighthouse",
       "pingdom","uptimerobot",
     ];
     for (const p of hardcoded) {
