@@ -30,13 +30,13 @@ function normalizeLink(row: LinkRow) {
 }
 
 async function selectLinks(supabase: any): Promise<{ data: DashboardLink[] | null; error: { message: string } | null }> {
-  const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
-  if (!modern.error) return { data: (modern.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
   const legacy = await supabase
     .from("links")
     .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
     .order("created_at", { ascending: false });
-  return legacy.error ? modern : { data: (legacy.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
+  if (!legacy.error) return { data: (legacy.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
+  const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
+  return modern.error ? legacy : { data: (modern.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
 }
 
 function randomCode(len = 6) {
@@ -105,36 +105,36 @@ export const createLink = createServerFn({ method: "POST" })
       code = randomCode();
     }
 
-    const createdModern = await context.supabase
+    const createdLegacy = await context.supabase
       .from("links")
       .insert({
         user_id: context.userId,
         short_code: code,
         title: data.title ?? null,
-        adsterra_url: data.adsterra_url,
-        safe_url: data.safe_url ?? "https://sleepox.com/",
-      })
+        destination_url: data.safe_url ?? "https://sleepox.com/",
+        adsterra_direct_link: data.adsterra_url,
+        status: "active",
+      } as never)
       .select()
       .single();
 
-    let link: DashboardLink | null = createdModern.data ? normalizeLink(createdModern.data as LinkRow) : null;
-    let error: { message: string } | null = createdModern.error;
+    let link: DashboardLink | null = createdLegacy.data ? normalizeLink(createdLegacy.data as LinkRow) : null;
+    let error: { message: string } | null = createdLegacy.error;
 
     if (error) {
-      const legacy = await context.supabase
+      const modern = await context.supabase
         .from("links")
         .insert({
           user_id: context.userId,
           short_code: code,
           title: data.title ?? null,
-          destination_url: data.safe_url ?? "https://sleepox.com/",
-          adsterra_direct_link: data.adsterra_url,
-          status: "active",
-        } as never)
+          adsterra_url: data.adsterra_url,
+          safe_url: data.safe_url ?? "https://sleepox.com/",
+        })
         .select()
         .single();
-      link = legacy.data ? normalizeLink(legacy.data as LinkRow) : null;
-      error = legacy.error;
+      link = modern.data ? normalizeLink(modern.data as LinkRow) : null;
+      error = modern.error;
     }
     if (error) throw new Error(error.message);
 
@@ -181,14 +181,16 @@ export const toggleLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const modern = await context.supabase
-      .from("links").update({ is_active: data.is_active }).eq("id", data.id);
-    const { error } = modern.error
+    const legacy = await context.supabase
+      .from("links")
+      .update({ status: data.is_active ? "active" : "paused" } as never)
+      .eq("id", data.id);
+    const { error } = legacy.error
       ? await context.supabase
           .from("links")
-          .update({ status: data.is_active ? "active" : "paused" } as never)
+          .update({ is_active: data.is_active })
           .eq("id", data.id)
-      : modern;
+      : legacy;
     if (error) throw new Error(error.message);
     return { ok: true };
   });
