@@ -18,6 +18,8 @@ type LinkRow = {
   status?: string | null;
 };
 
+export type DashboardLink = ReturnType<typeof normalizeLink>;
+
 function normalizeLink(row: LinkRow) {
   return {
     ...row,
@@ -27,14 +29,14 @@ function normalizeLink(row: LinkRow) {
   };
 }
 
-async function selectLinks(supabase: any) {
+async function selectLinks(supabase: any): Promise<{ data: DashboardLink[] | null; error: { message: string } | null }> {
   const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
   if (!modern.error) return modern;
   const legacy = await supabase
     .from("links")
     .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
     .order("created_at", { ascending: false });
-  return legacy.error ? modern : { data: (legacy.data ?? []).map(normalizeLink), error: null };
+  return legacy.error ? modern : { data: (legacy.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
 }
 
 function randomCode(len = 6) {
@@ -103,7 +105,7 @@ export const createLink = createServerFn({ method: "POST" })
       code = randomCode();
     }
 
-    const { data: link, error } = await context.supabase
+    let { data: link, error } = await context.supabase
       .from("links")
       .insert({
         user_id: context.userId,
@@ -114,6 +116,23 @@ export const createLink = createServerFn({ method: "POST" })
       })
       .select()
       .single();
+
+    if (error) {
+      const legacy = await context.supabase
+        .from("links")
+        .insert({
+          user_id: context.userId,
+          short_code: code,
+          title: data.title ?? null,
+          destination_url: data.safe_url ?? "https://sleepox.com/",
+          adsterra_direct_link: data.adsterra_url,
+          status: "active",
+        })
+        .select()
+        .single();
+      link = legacy.data ? normalizeLink(legacy.data as LinkRow) : null;
+      error = legacy.error;
+    }
     if (error) throw new Error(error.message);
 
     await context.supabase
@@ -159,8 +178,14 @@ export const toggleLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ id: z.string().uuid(), is_active: z.boolean() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const modern = await context.supabase
       .from("links").update({ is_active: data.is_active }).eq("id", data.id);
+    const { error } = modern.error
+      ? await context.supabase
+          .from("links")
+          .update({ status: data.is_active ? "active" : "paused" })
+          .eq("id", data.id)
+      : modern;
     if (error) throw new Error(error.message);
     return { ok: true };
   });
