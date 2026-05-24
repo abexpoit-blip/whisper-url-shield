@@ -8,7 +8,7 @@ set -e
 
 VPS_USER="${VPS_USER:-root}"
 VPS_HOST="${VPS_HOST:-supabase.sleepox.com}"
-APP_DIR="${APP_DIR:-/opt/sleepox}"
+APP_DIR="${APP_DIR:-/opt/sleepox-app-new}"
 
 case "${1:-deploy}" in
   deploy)
