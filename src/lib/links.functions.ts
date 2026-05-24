@@ -31,7 +31,7 @@ function normalizeLink(row: LinkRow) {
 
 async function selectLinks(supabase: any): Promise<{ data: DashboardLink[] | null; error: { message: string } | null }> {
   const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
-  if (!modern.error) return modern;
+  if (!modern.error) return { data: (modern.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
   const legacy = await supabase
     .from("links")
     .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
