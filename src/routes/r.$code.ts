@@ -383,7 +383,7 @@ async function handleRedirect(request: Request, code: string, shouldRecordClick 
         target = OUR_URL;
         routedTo = "ours";
       } else {
-        target = link.adsterra_url;
+        target = link.adsterra_url || SAFE_FALLBACK;
         routedTo = "offer";
       }
     }
