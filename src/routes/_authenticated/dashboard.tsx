@@ -247,6 +247,7 @@ function DashboardPage() {
                   <tr>
                     <th className="px-6 py-4 font-semibold">Link Name</th>
                     <th className="px-6 py-4 font-semibold">Performance</th>
+                    <th className="px-6 py-4 font-semibold">Cloak Page</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
                   </tr>
