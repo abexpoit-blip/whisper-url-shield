@@ -163,23 +163,22 @@ async function recordRedirectClick(input: {
 }
 
 async function lookupRedirectLink(code: string): Promise<{ link: RedirectLink | null; error: Error | null }> {
-  const modern = await supabaseAdmin
-    .from("links")
-    .select("id, adsterra_url, safe_url, is_active, user_id, clicks_count")
-    .eq("short_code", code)
-    .maybeSingle();
-
-  if (!modern.error) {
-    return { link: modern.data as RedirectLink | null, error: null };
-  }
-
   const legacy = await supabaseAdmin
     .from("links")
     .select("id, destination_url, adsterra_direct_link, status, user_id, clicks_count")
     .eq("short_code", code)
     .maybeSingle();
 
-  if (legacy.error) return { link: null, error: modern.error };
+  if (legacy.error) {
+    const modern = await supabaseAdmin
+      .from("links")
+      .select("id, adsterra_url, safe_url, is_active, user_id, clicks_count")
+      .eq("short_code", code)
+      .maybeSingle();
+    return modern.error
+      ? { link: null, error: legacy.error }
+      : { link: modern.data as RedirectLink | null, error: null };
+  }
 
   const row = legacy.data as {
     id: string;
