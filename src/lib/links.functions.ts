@@ -33,7 +33,7 @@ function normalizeLink(row: LinkRow) {
 async function selectLinks(supabase: any): Promise<{ data: DashboardLink[] | null; error: { message: string } | null }> {
   const legacy = await supabase
     .from("links")
-    .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
+    .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at, prelanding_template")
     .order("created_at", { ascending: false });
   if (!legacy.error) return { data: (legacy.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
   const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
