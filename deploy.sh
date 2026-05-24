@@ -43,6 +43,14 @@ case "$action" in
     old_head="$(git rev-parse HEAD 2>/dev/null || true)"
     git pull --ff-only
     new_head="$(git rev-parse HEAD 2>/dev/null || true)"
+    build_version="${new_head:-unknown}-$(date +%s)"
+
+    if [ ! -f "dist/server/wrangler.json" ] && [ -d "$BACKUP_DIST" ]; then
+      echo "🛟 Live dist is missing/incomplete. Restoring previous dist before building..."
+      rm -rf dist
+      mv "$BACKUP_DIST" dist
+      pm2 restart "$PM2_NAME" --update-env || true
+    fi
 
     if [ -n "$old_head" ] && [ "$old_head" != "$new_head" ] && git diff --name-only "$old_head" "$new_head" -- deploy.sh | grep -qx "deploy.sh"; then
       echo "🔁 deploy.sh updated from GitHub. Restarting with the latest deploy script..."
@@ -65,7 +73,7 @@ case "$action" in
     (
       cd "$STAGING_DIR"
       bun install
-      APP_BUILD_VERSION="$(git rev-parse --short HEAD)-$(date +%s)" bun run build
+      APP_BUILD_VERSION="$build_version" bun run build
     )
 
     if [ ! -f "$STAGING_DIR/dist/server/wrangler.json" ] || [ ! -d "$STAGING_DIR/dist/client" ]; then
