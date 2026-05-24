@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
-import { Activity, Download, Globe2, MonitorSmartphone, Zap, ShieldCheck } from "lucide-react";
+import { Activity, Download, Globe2, Smartphone, Monitor, Tablet, HelpCircle, Zap, ShieldCheck, ShieldAlert, AlertTriangle } from "lucide-react";
 import { getAnalyticsData } from "@/lib/analytics.functions";
 
 export const Route = createFileRoute("/_authenticated/analytics")({
