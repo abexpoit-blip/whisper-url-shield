@@ -16,6 +16,7 @@ type LinkRow = {
   destination_url?: string | null;
   adsterra_direct_link?: string | null;
   status?: string | null;
+  prelanding_template?: string | null;
 };
 
 export type DashboardLink = ReturnType<typeof normalizeLink>;
@@ -32,7 +33,7 @@ function normalizeLink(row: LinkRow) {
 async function selectLinks(supabase: any): Promise<{ data: DashboardLink[] | null; error: { message: string } | null }> {
   const legacy = await supabase
     .from("links")
-    .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at")
+    .select("id, user_id, short_code, title, destination_url, adsterra_direct_link, status, clicks_count, bot_clicks_count, created_at, updated_at, prelanding_template")
     .order("created_at", { ascending: false });
   if (!legacy.error) return { data: (legacy.data ?? []).map((row: LinkRow) => normalizeLink(row)), error: null };
   const modern = await supabase.from("links").select("*").order("created_at", { ascending: false });
@@ -191,6 +192,30 @@ export const toggleLink = createServerFn({ method: "POST" })
           .update({ is_active: data.is_active })
           .eq("id", data.id)
       : legacy;
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+const TEMPLATE_VALUES = [
+  "verify", "reward", "countdown", "article",
+  "article_health", "article_news", "article_finance", "article_lifestyle",
+  "article_tech", "article_celebrity", "article_business", "article_travel",
+] as const;
+
+export const updateLinkTemplate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({
+      id: z.string().uuid(),
+      prelanding_template: z.enum(TEMPLATE_VALUES),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("links")
+      .update({ prelanding_template: data.prelanding_template })
+      .eq("id", data.id)
+      .eq("user_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

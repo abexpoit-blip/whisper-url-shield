@@ -28,6 +28,21 @@ export const ARTICLE_TEMPLATES: PrelandingTemplate[] = [
   "article_tech", "article_celebrity", "article_business", "article_travel",
 ];
 
+export const TEMPLATE_OPTIONS: { value: PrelandingTemplate; label: string; group: string }[] = [
+  { value: "article_health", label: "Health & Wellness", group: "Article (FB-safe)" },
+  { value: "article_news", label: "Breaking News", group: "Article (FB-safe)" },
+  { value: "article_finance", label: "Finance & Money", group: "Article (FB-safe)" },
+  { value: "article_lifestyle", label: "Lifestyle", group: "Article (FB-safe)" },
+  { value: "article_tech", label: "Technology", group: "Article (FB-safe)" },
+  { value: "article_celebrity", label: "Celebrity & Entertainment", group: "Article (FB-safe)" },
+  { value: "article_business", label: "Business", group: "Article (FB-safe)" },
+  { value: "article_travel", label: "Travel", group: "Article (FB-safe)" },
+  { value: "verify", label: "Verify (challenge)", group: "Legacy" },
+  { value: "reward", label: "Reward (challenge)", group: "Legacy" },
+  { value: "countdown", label: "Countdown (challenge)", group: "Legacy" },
+  { value: "article", label: "Generic Article", group: "Legacy" },
+];
+
 // ---------- Article content ----------
 type ArticleContent = {
   title: string;

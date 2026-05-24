@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Copy, Trash2, Play, Pause, Plus, Search, MoreHorizontal, ChevronRight } from "lucide-react";
-import { getDashboardData, createLink, deleteLink, toggleLink } from "@/lib/links.functions";
+import { getDashboardData, createLink, deleteLink, toggleLink, updateLinkTemplate } from "@/lib/links.functions";
+import { TEMPLATE_OPTIONS, type PrelandingTemplate } from "@/lib/prelanding-templates";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Sleepox" }] }),
@@ -19,6 +20,7 @@ function DashboardPage() {
   const create = useServerFn(createLink);
   const remove = useServerFn(deleteLink);
   const toggle = useServerFn(toggleLink);
+  const updateTpl = useServerFn(updateLinkTemplate);
 
   const dashQ = useQuery({
     queryKey: ["dashboard"],
@@ -49,6 +51,11 @@ function DashboardPage() {
   const togMut = useMutation({
     mutationFn: (v: { id: string; is_active: boolean }) => toggle({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["dashboard"] }),
+  });
+  const tplMut = useMutation({
+    mutationFn: (v: { id: string; prelanding_template: PrelandingTemplate }) => updateTpl({ data: v }),
+    onSuccess: () => { toast.success("Cloak page updated"); qc.invalidateQueries({ queryKey: ["dashboard"] }); },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const onSubmit = (e: FormEvent) => {
@@ -240,6 +247,7 @@ function DashboardPage() {
                   <tr>
                     <th className="px-6 py-4 font-semibold">Link Name</th>
                     <th className="px-6 py-4 font-semibold">Performance</th>
+                    <th className="px-6 py-4 font-semibold">Cloak Page</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
                   </tr>
@@ -269,6 +277,25 @@ function DashboardPage() {
                               <div className="h-full bg-gradient-to-r from-sky-400 to-indigo-500" style={{ width: `${pct}%` }} />
                             </div>
                           </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <select
+                            value={(l as { prelanding_template?: string }).prelanding_template || "article_health"}
+                            onChange={(e) => tplMut.mutate({ id: l.id, prelanding_template: e.target.value as PrelandingTemplate })}
+                            disabled={tplMut.isPending}
+                            className="bg-slate-950/60 border border-slate-700 text-xs rounded-lg px-2.5 py-1.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-500/40 hover:border-sky-500/50 transition-colors cursor-pointer max-w-[180px]"
+                          >
+                            <optgroup label="Article (FB-safe)">
+                              {TEMPLATE_OPTIONS.filter((t) => t.group.startsWith("Article")).map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </optgroup>
+                            <optgroup label="Legacy">
+                              {TEMPLATE_OPTIONS.filter((t) => t.group === "Legacy").map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </optgroup>
+                          </select>
                         </td>
                         <td className="px-6 py-5">
                           <button
