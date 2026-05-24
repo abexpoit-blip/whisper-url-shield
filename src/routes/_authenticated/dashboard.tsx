@@ -5,7 +5,7 @@ import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import {
   Copy, Trash2, Play, Pause, Plus, Search, Bell, ArrowRight,
-  TrendingUp, TrendingDown, Filter, RefreshCw, ChevronRight, Smartphone,
+  TrendingUp, Filter, RefreshCw, ChevronRight, Smartphone,
 } from "lucide-react";
 import { getDashboardData, createLink, deleteLink, toggleLink, updateLinkTemplate } from "@/lib/links.functions";
 import { TEMPLATE_OPTIONS, type PrelandingTemplate } from "@/lib/prelanding-templates";
