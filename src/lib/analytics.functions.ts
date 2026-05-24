@@ -14,15 +14,6 @@ type Click = {
 };
 
 async function selectClicks(supabase: any, linkIds: string[], sevenDaysAgo: string) {
-  const modern = await supabase
-    .from("clicks")
-    .select("id, link_id, country, ua, is_bot, routed_to, created_at")
-    .in("link_id", linkIds)
-    .gte("created_at", sevenDaysAgo)
-    .order("created_at", { ascending: false })
-    .limit(50000);
-  if (!modern.error) return modern;
-
   const legacy = await supabase
     .from("clicks")
     .select("id, link_id, country, user_agent, is_bot, bot_reason, variant, created_at")
@@ -31,9 +22,8 @@ async function selectClicks(supabase: any, linkIds: string[], sevenDaysAgo: stri
     .order("created_at", { ascending: false })
     .limit(50000);
 
-  return legacy.error
-    ? modern
-    : {
+  if (!legacy.error) {
+    return {
         data: (legacy.data ?? []).map((c: Click) => ({
           ...c,
           ua: c.user_agent ?? null,
@@ -41,6 +31,16 @@ async function selectClicks(supabase: any, linkIds: string[], sevenDaysAgo: stri
         })),
         error: null,
       };
+  }
+
+  const modern = await supabase
+    .from("clicks")
+    .select("id, link_id, country, ua, is_bot, routed_to, created_at")
+    .in("link_id", linkIds)
+    .gte("created_at", sevenDaysAgo)
+    .order("created_at", { ascending: false })
+    .limit(50000);
+  return modern.error ? legacy : modern;
 }
 
 function deviceFromUA(ua: string | null): "Mobile" | "Desktop" | "Tablet" | "Other" {
