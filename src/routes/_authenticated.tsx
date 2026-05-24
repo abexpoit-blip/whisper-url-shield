@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, Link2, BarChart3, Shield, Globe, Settings, Crown, ShieldCheck, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, BarChart3, Crown, ShieldCheck, LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { consumeDailyRedirect } from "@/lib/app-settings.functions";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/_authenticated")({
   head: () => ({
@@ -23,11 +24,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 const navMgmt = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/dashboard", label: "Links", icon: Link2 },
   { to: "/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/dashboard", label: "Shield", icon: Shield },
-  { to: "/dashboard", label: "Domains", icon: Globe },
-  { to: "/dashboard", label: "Settings", icon: Settings },
 ] as const;
 
 function AuthenticatedLayout() {
@@ -69,11 +66,8 @@ function AuthenticatedLayout() {
   const SidebarContent = (
     <>
       <div className="flex items-center justify-between mb-12">
-        <Link to="/dashboard" className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] shadow-lg shadow-orange-500/30 flex items-center justify-center">
-            <div className="w-4 h-4 border-2 border-white rounded-sm rotate-45" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-[#2D1B0D]">Sleepox</span>
+        <Link to="/dashboard" aria-label="Sleepox dashboard">
+          <BrandLogo />
         </Link>
         <button
           className="lg:hidden p-2 text-[#7D6452] hover:text-[#2D1B0D]"
@@ -169,11 +163,8 @@ function AuthenticatedLayout() {
 
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between px-5 py-4 backdrop-blur-2xl bg-white/70 border-b border-white/60">
-        <Link to="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#FF7E5F] to-[#FEB47B] shadow-lg shadow-orange-500/30 flex items-center justify-center">
-            <div className="w-4 h-4 border-2 border-white rounded-sm rotate-45" />
-          </div>
-          <span className="font-bold text-[#2D1B0D] tracking-tight">Sleepox</span>
+        <Link to="/dashboard" aria-label="Sleepox dashboard">
+          <BrandLogo />
         </Link>
         <button
           onClick={() => setMenuOpen(true)}

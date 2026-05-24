@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import logoSrc from "@/assets/sleepox-logo.png";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,9 +47,8 @@ function HomePage() {
       {/* Nav */}
       <nav className="sticky top-6 z-50 max-w-5xl mx-auto px-6 py-4">
         <div className="bg-white/40 backdrop-blur-2xl border border-white/40 rounded-full px-6 sm:px-8 py-3 flex items-center justify-between shadow-xl shadow-orange-900/5">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logoSrc} alt="Sleepox" className="h-7 w-auto" />
-            <span className="text-xl font-bold tracking-tight text-[#2D1B0D] hidden sm:inline">Sleepox</span>
+          <Link to="/" aria-label="Sleepox home">
+            <BrandLogo />
           </Link>
           <div className="hidden md:flex items-center gap-8 font-medium text-[#7D6452] text-sm">
             <a href="#features" className="hover:text-[#FF7E5F] transition-colors">Features</a>

@@ -3,13 +3,14 @@ import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Mail, Lock, User, Send, ArrowRight, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { BrandLogo } from "@/components/brand-logo";
 
 export const Route = createFileRoute("/signup")({
-  head: () => ({ meta: [{ title: "Sign up — Sleepox" }] }),
+  head: () => ({ meta: [{ title: "Create account — Sleepox" }] }),
   component: SignupPage,
 });
 
-const display = { fontFamily: "'Space Grotesk', sans-serif" } as const;
+const font = { fontFamily: "'Outfit', system-ui, sans-serif" } as const;
 
 function SignupPage() {
   const navigate = useNavigate();
@@ -30,142 +31,125 @@ function SignupPage() {
         data: { full_name: fullName.trim(), telegram: tg },
       },
     });
-    setLoading(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) { setLoading(false); toast.error(error.message); return; }
     const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInErr) {
-      toast.success("Account created. Please login.");
-      navigate({ to: "/login" });
-      return;
-    }
+    setLoading(false);
+    if (signInErr) { toast.success("Check your email to confirm."); navigate({ to: "/login" }); return; }
     toast.success("Welcome to Sleepox!");
     navigate({ to: "/dashboard" });
   };
 
   return (
-    <div className="relative min-h-screen w-full bg-[#050B1F] text-white overflow-hidden grid lg:grid-cols-2">
-      {/* Ambient glow blobs */}
-      <div className="fixed top-[-15%] right-[-10%] w-[55%] h-[55%] bg-sky-500/15 blur-[140px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-[-15%] left-[-10%] w-[50%] h-[55%] bg-indigo-600/15 blur-[140px] rounded-full pointer-events-none" />
-      <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.12]"
-        style={{ backgroundImage: "radial-gradient(#38BDF8 0.5px, transparent 0.5px)", backgroundSize: "32px 32px" }}
-      />
+    <div
+      className="relative min-h-screen w-full bg-[#FFF9F5] text-[#4A3728] overflow-hidden grid lg:grid-cols-2"
+      style={font}
+    >
+      {/* warm blobs */}
+      <div className="fixed top-[-15%] left-[-10%] w-[55%] h-[55%] bg-[#FF7E5F]/20 blur-[140px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-[-15%] right-[-10%] w-[50%] h-[55%] bg-[#FEB47B]/25 blur-[140px] rounded-full pointer-events-none" />
+      <div className="fixed top-[30%] left-[30%] w-[35%] h-[35%] bg-[#FFEDD5]/50 blur-[120px] rounded-full pointer-events-none" />
 
-      {/* LEFT — signup form */}
+      {/* FORM */}
       <div className="relative flex items-center justify-center px-5 py-12 sm:px-8 z-10 order-2 lg:order-1">
         <div className="w-full max-w-md">
-          <div className="lg:hidden mb-8 flex items-center justify-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 shadow-[0_0_15px_rgba(56,189,248,0.4)] flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-white rounded-sm rotate-45" />
-            </div>
-            <span className="text-xl font-bold" style={display}>SLEEP OX</span>
+          <div className="lg:hidden mb-8 flex justify-center">
+            <Link to="/"><BrandLogo /></Link>
           </div>
-
           <div className="relative">
-            <div className="absolute -inset-6 bg-gradient-to-tr from-sky-500/15 via-indigo-500/10 to-transparent blur-2xl rounded-full pointer-events-none" />
-            <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.03] backdrop-blur-2xl p-8 sm:p-10 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)]">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-400/30 text-sky-300 text-[10px] font-bold uppercase tracking-widest mb-4">
-                Free forever plan · No card
+            <div className="absolute -inset-2 bg-gradient-to-tr from-[#FF7E5F]/30 via-[#FEB47B]/20 to-transparent blur-2xl rounded-[2.5rem] pointer-events-none" />
+            <div className="relative rounded-[2rem] border border-white/80 bg-white/60 backdrop-blur-2xl p-8 sm:p-10 shadow-xl shadow-orange-900/10">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#FF7E5F]/10 border border-[#FF7E5F]/30 text-[#FF7E5F] text-[10px] font-bold uppercase tracking-widest mb-4">
+                Create account
               </div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight" style={display}>Create your account.</h2>
-              <p className="mt-2 text-sm text-white/40">Launch your first cloaked link in under 60 seconds.</p>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#2D1B0D]">Start free in 60s.</h2>
+              <p className="mt-2 text-sm text-[#7D6452]">No credit card. 10,000 free clicks every month.</p>
 
               <form onSubmit={onSubmit} className="mt-8 space-y-4">
                 <FormField label="Full name" icon={<User className="w-4 h-4" />}>
-                  <input required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" className={inputCls} />
+                  <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Jane Doe" className={inputCls} />
                 </FormField>
                 <FormField label="Email" icon={<Mail className="w-4 h-4" />}>
-                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className={inputCls} />
+                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com" className={inputCls} />
                 </FormField>
-                <FormField label="Telegram username" icon={<Send className="w-4 h-4" />}>
-                  <input required value={telegram} onChange={(e) => setTelegram(e.target.value)} placeholder="@yourhandle" className={inputCls} />
+                <FormField label="Telegram (optional)" icon={<Send className="w-4 h-4" />}>
+                  <input type="text" value={telegram} onChange={(e) => setTelegram(e.target.value)}
+                    placeholder="@username" className={inputCls} />
                 </FormField>
                 <FormField label="Password" icon={<Lock className="w-4 h-4" />}>
-                  <input type="password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" className={inputCls} />
+                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Min 6 characters" className={inputCls} minLength={6} />
                 </FormField>
 
-                <button
-                  type="submit" disabled={loading}
-                  className="w-full mt-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white py-3.5 rounded-2xl font-bold text-sm tracking-tight transition-all shadow-[0_0_28px_rgba(56,189,248,0.4)] hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {loading ? "Creating…" : <>Create account <ArrowRight className="w-4 h-4" /></>}
+                <button type="submit" disabled={loading}
+                  className="w-full mt-2 bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] hover:from-[#E66D50] hover:to-[#FF9F6B] text-white py-3.5 rounded-2xl font-bold text-sm transition-all shadow-lg shadow-orange-500/30 hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
+                  {loading ? "Creating account…" : <>Create account <ArrowRight className="w-4 h-4" /></>}
                 </button>
-
-                <p className="text-[11px] text-white/30 text-center">
-                  By signing up you agree to our Terms &amp; Privacy Policy.
-                </p>
               </form>
 
-              <p className="mt-6 text-center text-sm text-white/40">
+              <p className="mt-6 text-center text-sm text-[#7D6452]">
                 Already have an account?{" "}
-                <Link to="/login" className="font-bold text-sky-300 hover:text-sky-200">Sign in</Link>
+                <Link to="/login" className="font-bold text-[#FF7E5F] hover:text-[#E66D50]">Sign in</Link>
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* RIGHT — data-dense brand panel */}
-      <div className="relative hidden lg:flex flex-col justify-between p-12 border-l border-white/5 backdrop-blur-2xl bg-white/[0.01] z-10 order-1 lg:order-2">
-        <Link to="/" className="flex items-center gap-3 w-fit">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-sky-400 via-indigo-500 to-indigo-600 shadow-[0_0_25px_rgba(56,189,248,0.45)] flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white rounded-sm rotate-45" />
-          </div>
-          <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white via-sky-200 to-indigo-300 bg-clip-text text-transparent" style={display}>
-            SLEEP OX
-          </span>
-        </Link>
+      {/* BRAND */}
+      <div className="relative hidden lg:flex flex-col justify-between p-12 z-10 order-1 lg:order-2">
+        <Link to="/" aria-label="Sleepox home"><BrandLogo /></Link>
 
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold uppercase tracking-widest">
-            <span className="live-dot" /> 2,418 users joined this month
+        <div className="space-y-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/60 backdrop-blur-xl border border-white/80 text-[#FF7E5F] text-[10px] font-bold uppercase tracking-widest shadow-sm">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FF7E5F] animate-pulse" /> 2,418 joined this month
           </div>
 
-          <h1 className="text-4xl xl:text-5xl font-extrabold leading-[1.05]" style={display}>
+          <h1 className="text-5xl xl:text-6xl font-extrabold leading-[1.05] text-[#2D1B0D] tracking-tight">
             Built for the<br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-300 via-sky-400 to-indigo-400">serious affiliates.</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF7E5F] via-[#FEB47B] to-[#FF7E5F]">
+              serious affiliates.
+            </span>
           </h1>
 
-          {/* Mock KPI tiles */}
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3">
             <KpiTile label="Avg clicks / user" value="184k" delta="+22%" />
             <KpiTile label="Bot block rate" value="98.2%" delta="↑ 5-layer" />
-            <KpiTile label="Activation time" value="< 60s" delta="No KYC" />
+            <KpiTile label="Activation" value="< 60s" delta="No KYC" />
             <KpiTile label="Lifetime price" value="$50" delta="One-time" />
           </div>
 
-          {/* Bullet checklist */}
-          <div className="rounded-2xl bg-white/[0.02] border border-white/10 backdrop-blur-xl p-5 space-y-3">
+          <div className="rounded-2xl bg-white/60 backdrop-blur-xl border border-white/80 shadow-sm p-5 space-y-3">
             {[
               "Free 10K clicks / month, no credit card",
               "Crypto checkout via Plisio · USDT, BTC, LTC",
               "Geo + device routing on every plan",
               "Telegram support — 24h response",
             ].map((t) => (
-              <div key={t} className="flex items-center gap-3 text-sm text-white/70">
-                <CheckCircle2 className="w-4 h-4 text-sky-300 shrink-0" />
+              <div key={t} className="flex items-center gap-3 text-sm text-[#4A3728]">
+                <CheckCircle2 className="w-4 h-4 text-[#FF7E5F] shrink-0" />
                 <span>{t}</span>
               </div>
             ))}
           </div>
         </div>
 
-        <p className="text-xs text-white/30">© {new Date().getFullYear()} Sleepox · Smart links &amp; analytics</p>
+        <p className="text-xs text-[#A38D7D] tracking-widest uppercase">© {new Date().getFullYear()} Sleepox · Smart links</p>
       </div>
     </div>
   );
 }
 
 const inputCls =
-  "w-full bg-white/[0.03] border border-white/10 rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-sky-400/50 focus:bg-white/[0.05] transition-all text-white placeholder:text-white/30";
+  "w-full bg-white/70 border border-[#FFEDD5] rounded-2xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-[#FF7E5F] focus:bg-white transition-all text-[#2D1B0D] placeholder:text-[#A38D7D]";
 
 function FormField({ label, icon, children }: { label: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2 block">{label}</label>
+      <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A38D7D] mb-2 block">{label}</label>
       <div className="relative">
-        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/30">{icon}</span>
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#A38D7D]">{icon}</span>
         {children}
       </div>
     </div>
@@ -174,10 +158,10 @@ function FormField({ label, icon, children }: { label: string; icon: React.React
 
 function KpiTile({ label, value, delta }: { label: string; value: string; delta: string }) {
   return (
-    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl">
-      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-1">{label}</div>
-      <div className="text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-sky-300 to-indigo-400" style={display}>{value}</div>
-      <div className="text-[10px] text-sky-300/70 mt-1 font-bold">{delta}</div>
+    <div className="p-4 rounded-2xl bg-white/60 backdrop-blur-xl border border-white/80 shadow-sm">
+      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#A38D7D] mb-1">{label}</div>
+      <div className="text-2xl font-extrabold text-[#2D1B0D]">{value}</div>
+      <div className="text-[10px] text-[#FF7E5F] mt-1 font-bold uppercase tracking-wider">{delta}</div>
     </div>
   );
 }
